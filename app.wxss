@@ -1,10 +1,250 @@
-/**app.wxss**/
-.container {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  padding: 200rpx 0;
+/* app.wxss — 全局样式（对齐原型 #1989fa 蓝色主题）
+ *
+ * ══════════════════════════════════════════════════════════════
+ *  统一卡片边距标准（参考：蓝色 Hero 卡片 / 白色信息卡片）
+ * ══════════════════════════════════════════════════════════════
+ *
+ *  ┌──────────────────────────────────────────────┐
+ *  │  标准：卡片内容区内边距 padding ≡ 24rpx       │
+ *  │  卡片宽度 ≡ 全宽（无左右边距）                  │
+ *  │  圆角 border-radius ≡ 24~28rpx               │
+ *  ├──────────────────────────────────────────────┤
+ *  │  适用范围（必须严格遵守）：                     │
+ *  │  · .hero          蓝色渐变头卡    pad=24rpx  │
+ *  │  · .mini-card     白色圆角卡片     pad=24rpx  │
+ *  │  · .week-picker   周历选择器      pad=24rpx  │
+ *  │  · .menu-table    菜单表格容器    pad=0(子项) │
+ *  │  · .meal-big-card 食堂大字卡片    pad=24rpx  │
+ *  │  · .dept-section  部门汇总区      pad=24rpx  │
+ *  │  · .summary-bar   汇总条          pad=24rpx  │
+ *  │  · .detail-item   明细行卡片      pad=24rpx  │
+ *  │  · .phone-modal-card 弹窗卡片    pad=24rpx  │
+ *  │  · .cal-header    日历头部        pad=24rpx  │
+ *  │  · van-cell       列表单元格     pad=12px   │
+ *  │  · van-cell-group--inset  标题   pad=12px   │
+ *  └──────────────────────────────────────────────┘
+ *
+ *  ⚠️ 新增卡片必须遵守此规范！padding 统一 24rpx。
+ */
+
+/* ═══ 页面根 + CSS 变量定义 ══════════════════════════════════ */
+page {
+  /* 品牌色 */
+  --color-primary:        #1989fa;
+  --color-primary-light:  #eaf5ff;
+  --color-primary-dark:   #1677d4;
+
+  /* 语义色 */
+  --color-danger:         #ee0a24;
+  --color-warning:        #ff976a;
+  --color-success:        #07c160;
+
+  /* 文本色 */
+  --color-text-primary:   #1f2937;
+  --color-text-secondary: #6b7280;
+  --color-text-disabled:  #c8c9cc;
+  --color-text-inverse:   #ffffff;
+
+  /* 背景 */
+  --color-bg-page:        #f4f6f9;
+  --color-bg-card:        #ffffff;
+  --color-bg-overlay:     rgba(17, 24, 39, 0.42);
+
+  /* 边框 */
+  --color-border:         #e5e7eb;
+  --color-border-light:   #f0f1f3;
+
+  /* 圆角 */
+  --radius-sm:  8rpx;
+  --radius-md: 16rpx;
+  --radius-lg: 24rpx;
+  --radius-xl: 28rpx;
+  --radius-full: 100rpx;
+
+  /* 阴影 */
+  --shadow-sm:  0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+  --shadow-md:  0 4rpx 16rpx rgba(0, 0, 0, 0.10);
+  --shadow-lg:  0 8rpx 32rpx rgba(0, 0, 0, 0.14);
+
+  /* ── Vant 组件变量覆盖（cell padding ≡ 12px = 24rpx） ── */
+  --cell-vertical-padding:         12px;
+  --cell-horizontal-padding:       12px;
+  --cell-background-color:         #fff;
+
+  /* cell-group 标题 */
+  --cell-group-inset-title-padding: 12px 12px 8px 12px;
+  --cell-group-title-padding:       12px 12px 8px;
+
+  /* cell-group inset 圆角（与 mini-card 的 24rpx 一致） */
+  --cell-group-inset-border-radius: 24rpx;
+  /* cell-group inset 外边距（与 mini-card 的 32rpx 一致） */
+  --cell-group-inset-padding:        0 32rpx;
+
+  /* Vant 主题色 → 蓝色 */
+  --button-primary-background-color:     #1989fa;
+  --button-primary-border-color:         #1989fa;
+  --tabs-bottom-bar-color:               #1989fa;
+  --tab-active-text-color:               #1989fa;
+  --tab-active-color:                    #1989fa;
+  --checkbox-checked-icon-color:         #1989fa;
+  --radio-checked-icon-color:            #1989fa;
+  --switch-on-background-color:         #1989fa;
+  --calendar-selected-day-background-color: #1989fa;
+  --notice-bar-background-color:         #fff;
+  --tag-success-color:                   #07c160;
+  --tag-warning-color:                   #ff976a;
+  --tag-primary-color:                   #1989fa;
+
+  /* 页面基础 */
+  font-size:   28rpx;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+  color:       #1f2937;
+  background:  #f4f6f9;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
   box-sizing: border-box;
-} 
+  min-height: 100vh;
+}
+
+/* ═══ Vant 组件强制样式 override（最高优先级） ═══════════════ */
+
+/* cell 内边距 = 12px (24rpx) — 三重保障 */
+.van-cell.van-cell {
+  padding: 12px 12px !important;
+}
+.van-cell.van-cell::after {
+  left: 12px !important;
+  right: 12px !important;
+}
+
+/* cell-group 标题内边距 */
+.van-cell-group__title {
+  padding: 12px 12px 8px !important;
+}
+.van-cell-group__title--inset {
+  padding: 12px 12px 5px 12px !important;
+}
+
+/* cell-group inset 外边距 = 全宽（与 mini-card 一致） */
+.van-cell-group--inset {
+  margin: 0 !important;  /* 全宽显示（原来是 0 32rpx） */
+  border-radius: 24rpx !important;
+  overflow: hidden;
+}
+
+/* Dialog 按钮居中（不全宽，文本居中） */
+.van-dialog__footer {
+  justify-content: center !important;
+}
+.van-dialog__button {
+  flex: none !important;
+  text-align: center !important;
+}
+.van-dialog__confirm,
+.van-dialog__cancel {
+  min-width: 200rpx !important;
+}
+.van-dialog__confirm .van-button__text,
+.van-dialog__cancel .van-button__text {
+  text-align: center !important;
+}
+
+/* ═══ 全局重置 ══════════════════════════════════════════════════ */
+view, text, image, input, button, navigator {
+  box-sizing: border-box;
+}
+
+/* ═══ 通用组件样式（统一卡片内边距 24rpx） ════════════════════════ */
+
+/* page-pad: 页面外层间距（屏幕边缘 → 内容区域）*/
+.page-pad {
+  padding: 24rpx;
+}
+
+/* hero: 蓝色渐变卡片（参考卡片①） */
+.hero {
+  padding: 24rpx;
+  border-radius: 28rpx;
+  color: #fff;
+  background: linear-gradient(135deg, #1989fa 0%, #4ea6ff 100%);
+  margin-bottom: 24rpx;
+  box-shadow: 0 20rpx 40rpx rgba(25, 137, 250, 0.18);
+}
+.hero-title {
+  font-size: 36rpx; font-weight: 700; margin-bottom: 12rpx;
+}
+.hero-sub {
+  font-size: 24rpx; opacity: 0.9; line-height: 1.6;
+}
+
+/* section-title: 区块标题 */
+.section-title {
+  margin: 28rpx 0 16rpx;
+  font-size: 28rpx; font-weight: 700; color: #374151;
+}
+
+/* mini-card: 白色圆角卡片（全宽显示，padding ≡ 24rpx）*/
+.mini-card {
+  margin: 20rpx 0;  /* 全宽显示（原来是 20rpx 32rpx） */
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  border: 1px solid rgba(229, 231, 235, 0.7);
+}
+
+/* stat-grid: 三列统计网格 */
+.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16rpx; }
+
+/* stat: 统计项（无左右 padding，由父级 mini-card 提供 24rpx） */
+.stat {
+  background: #f7fbff; border: 1px solid #e3f0ff; border-radius: 24rpx;
+  padding: 20rpx 0; text-align: center;
+}
+.stat-num  { display: block; font-size: 40rpx; font-weight: 700; color: #1989fa; margin-bottom: 4rpx; }
+.stat-label { font-size: 22rpx; color: #6b7280; }
+
+/* meal-row: 餐次行（无左右 padding，由父级 mini-card 提供 24rpx） */
+.meal-row {
+  display: grid; grid-template-columns: 104rpx 1fr 144rpx;
+  align-items: center; gap: 16rpx;
+  padding: 16rpx 0; border-bottom: 1px solid #f0f1f3;
+}
+.meal-row:last-child { border-bottom: 0; }
+.meal-name { font-weight: 700; }
+.meal-desc { color: #6b7280; font-size: 24rpx; }
+
+/* title-line: 卡片标题行 */
+.title-line {
+  display: flex; align-items: baseline; gap: 12rpx;
+  margin: 0 0 16rpx; font-size: 28rpx; font-weight: 700; color: #374151;
+}
+.title-line small { color: #9ca3af; font-size: 22rpx; font-weight: 400; }
+
+/* menu-table: 菜单表格容器（内部由 mini-card 包裹提供 24rpx） */
+.menu-table {
+  width: 100%; font-size: 24rpx; background: #fff;
+  border-radius: 20rpx; overflow: hidden; border: 1px solid #eef0f3;
+}
+.menu-table td { vertical-align: top; line-height: 1.45; }
+
+/* muted: 弱化文字 */
+.muted { color: #6b7280; font-size: 24rpx; }
+
+/* ═══ 工具类 ════════════════════════════════════════════════════ */
+.flex        { display: flex; }
+.flex-col    { display: flex; flex-direction: column; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.flex-between{ display: flex; align-items: center; justify-content: space-between; }
+.flex-1      { flex: 1; }
+.flex-wrap   { flex-wrap: wrap; }
+
+.text-primary   { color: #1989fa; }
+.text-danger    { color: #ee0a24; }
+.text-secondary { color: #6b7280; }
+.text-bold      { font-weight: 600; }
+.text-center    { text-align: center; }
+
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.page-container { min-height: 100vh; padding-bottom: calc(120rpx + env(safe-area-inset-bottom)); }

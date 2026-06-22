@@ -1,15 +1,131 @@
 {
   "pages": [
+    "pages/login/index",
     "pages/index/index",
-    "pages/logs/logs"
+    "pages/book/index",
+    "pages/menu/index",
+    "pages/record/index",
+    "pages/profile/index"
   ],
+  "subPackages": [
+    {
+      "root": "subpackages/kitchen",
+      "name": "kitchen",
+      "pages": [
+        "pages/today/index",
+        "pages/detail/index"
+      ]
+    },
+    {
+      "root": "subpackages/dept",
+      "name": "dept",
+      "pages": [
+        "pages/workspace/index",
+        "pages/staff/index",
+        "pages/stat/index",
+        "pages/billing/index"
+      ]
+    },
+    {
+      "root": "subpackages/admin",
+      "name": "admin",
+      "pages": [
+        "pages/dept-manage/index",
+        "pages/permission/index",
+        "pages/sys-config/index",
+        "pages/op-log/index",
+        "pages/billing-snapshot/index",
+        "pages/announcement/index"
+      ]
+    }
+  ],
+  "preloadRule": {
+    "pages/index/index": {
+      "network": "all",
+      "packages": ["kitchen"]
+    }
+  },
+  "tabBar": {
+    "color": "#7b8794",
+    "selectedColor": "#1989fa",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "assets/icons/home.png",
+        "selectedIconPath": "assets/icons/home-active.png"
+      },
+      {
+        "pagePath": "pages/book/index",
+        "text": "报餐",
+        "iconPath": "assets/icons/book.png",
+        "selectedIconPath": "assets/icons/book-active.png"
+      },
+      {
+        "pagePath": "pages/menu/index",
+        "text": "菜单",
+        "iconPath": "assets/icons/menu.png",
+        "selectedIconPath": "assets/icons/menu-active.png"
+      },
+      {
+        "pagePath": "pages/record/index",
+        "text": "记录",
+        "iconPath": "assets/icons/record.png",
+        "selectedIconPath": "assets/icons/record-active.png"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的",
+        "iconPath": "assets/icons/profile.png",
+        "selectedIconPath": "assets/icons/profile-active.png"
+      }
+    ]
+  },
   "window": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "Weixin",
-    "navigationBarBackgroundColor": "#ffffff"
+    "navigationBarTitleText": "企业报餐",
+    "navigationBarBackgroundColor": "#ffffff",
+    "backgroundColor": "#f4f6f9",
+    "enablePullDownRefresh": false
+  },
+  "usingComponents": {
+    "van-button": "@vant/weapp/button/index",
+    "van-cell": "@vant/weapp/cell/index",
+    "van-cell-group": "@vant/weapp/cell-group/index",
+    "van-field": "@vant/weapp/field/index",
+    "van-toast": "@vant/weapp/toast/index",
+    "van-dialog": "@vant/weapp/dialog/index",
+    "van-icon": "@vant/weapp/icon/index",
+    "van-tag": "@vant/weapp/tag/index",
+    "van-loading": "@vant/weapp/loading/index",
+    "van-empty": "@vant/weapp/empty/index",
+    "van-divider": "@vant/weapp/divider/index",
+    "van-popup": "@vant/weapp/popup/index",
+    "van-overlay": "@vant/weapp/overlay/index",
+    "van-nav-bar": "@vant/weapp/nav-bar/index",
+    "van-tab": "@vant/weapp/tab/index",
+    "van-tabs": "@vant/weapp/tabs/index",
+    "van-stepper": "@vant/weapp/stepper/index",
+    "van-calendar": "@vant/weapp/calendar/index",
+    "van-card": "@vant/weapp/card/index",
+    "van-radio": "@vant/weapp/radio/index",
+    "van-radio-group": "@vant/weapp/radio-group/index",
+    "van-checkbox": "@vant/weapp/checkbox/index",
+    "van-checkbox-group": "@vant/weapp/checkbox-group/index",
+    "van-switch": "@vant/weapp/switch/index",
+    "van-notice-bar": "@vant/weapp/notice-bar/index",
+    "van-action-sheet": "@vant/weapp/action-sheet/index",
+    "van-collapse": "@vant/weapp/collapse/index",
+    "van-collapse-item": "@vant/weapp/collapse-item/index",
+    "van-search": "@vant/weapp/search/index",
+    "van-picker": "@vant/weapp/picker/index",
+    "van-uploader": "@vant/weapp/uploader/index",
+    "van-progress": "@vant/weapp/progress/index",
+    "van-count-down": "@vant/weapp/count-down/index"
   },
   "style": "v2",
-  "componentFramework": "glass-easel",
   "sitemapLocation": "sitemap.json",
   "lazyCodeLoading": "requiredComponents"
 }
