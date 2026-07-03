@@ -1,0 +1,283 @@
+/* pages/record/index.wxss — 报餐记录页样式（完善版） */
+
+/* 筛选卡片 */
+.filter-card {
+  margin-bottom: 24rpx;
+}
+
+.filter-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 20rpx;
+}
+
+.filter-row {
+  margin-bottom: 20rpx;
+}
+
+/* 小字灰色标签（时间区间 / 餐别） */
+.filter-label-sm {
+  font-size: 24rpx;
+  color: #9ca3af;
+  display: block;
+  margin-bottom: 12rpx;
+}
+
+/* 日期范围行 — 选择器 + 快捷同行 */
+.date-range-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12rpx 16rpx;
+  padding: 0;
+}
+
+.date-text {
+  font-size: 26rpx;
+  color: #374151;
+  padding: 8rpx 16rpx;
+  background: #f7fbff;
+  border-radius: 8rpx;
+  border: 1px solid #e3f0ff;
+}
+
+.date-sep {
+  color: #9ca3af;
+  font-size: 24rpx;
+}
+
+/* 快捷日期 — 文字链接风格 */
+.quick-tags-inline {
+  display: flex;
+  gap: 20rpx;
+  margin-left: 8rpx;
+}
+
+.quick-link {
+  font-size: 24rpx;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.quick-link.active {
+  color: #1989fa;
+  font-weight: 600;
+}
+
+.filter-tags {
+  display: flex;
+  gap: 16rpx;
+  flex-wrap: wrap;
+}
+
+.filter-tag {
+  font-size: 24rpx;
+  color: #6b7280;
+  padding: 8rpx 24rpx;
+  background: #f7fbff;
+  border-radius: 100rpx;
+  border: 1px solid #e3f0ff;
+}
+
+.filter-tag.active {
+  color: #1989fa;
+  background: #eaf5ff;
+  border-color: #1989fa;
+  font-weight: 600;
+}
+
+/* 查询按钮 — 底部居中 */
+.filter-search {
+  display: flex;
+  justify-content: center;
+  margin-top: 24rpx;
+}
+
+/* 区间统计卡片 */
+.summary-card {
+  margin-bottom: 24rpx;
+}
+
+.summary-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 20rpx;
+}
+
+.summary-body {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+.summary-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.summary-divider {
+  width: 1rpx;
+  background: #e5e7eb;
+  margin: 0 8rpx;
+}
+
+.summary-meal {
+  font-size: 26rpx;
+  color: #6b7280;
+}
+
+.summary-qty {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #374151;
+}
+
+.summary-amount {
+  font-size: 24rpx;
+  color: #1989fa;
+  font-weight: 600;
+}
+
+.summary-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16rpx;
+  border-top: 1px solid #f0f1f3;
+}
+
+.summary-total-label {
+  font-size: 26rpx;
+  color: #9ca3af;
+}
+
+.summary-total-value {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #374151;
+}
+
+/* 记录列表 */
+.record-list {
+  margin-top: 24rpx;
+}
+
+.record-item {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+  border: 1px solid rgba(229, 231, 235, 0.7);
+}
+
+.record-header {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+  padding-bottom: 16rpx;
+  border-bottom: 1px solid #f0f1f3;
+}
+
+.record-date {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #374151;
+}
+
+.record-date-full {
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+/* 按天合并的餐别行 */
+.day-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.meal-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  padding: 12rpx 0;
+  border-bottom: 1px dashed #f0f1f3;
+}
+
+.meal-row:last-child {
+  border-bottom: none;
+}
+
+.meal-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.meal-name {
+  font-size: 26rpx;
+  color: #6b7280;
+  min-width: 80rpx;
+}
+
+.meal-total-qty {
+  font-size: 28rpx;
+  color: #374151;
+  font-weight: 700;
+  flex: 1;
+  text-align: center;
+}
+
+.meal-total-amount {
+  font-size: 28rpx;
+  color: #1989fa;
+  font-weight: 700;
+  min-width: 120rpx;
+  text-align: right;
+}
+
+.meal-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  justify-content: flex-end;
+}
+
+.meal-detail-item {
+  font-size: 22rpx;
+  color: #9ca3af;
+  padding: 4rpx 12rpx;
+  background: #f7fbff;
+  border-radius: 8rpx;
+}
+
+.record-footer {
+  padding-top: 16rpx;
+  border-top: 1px solid #f0f1f3;
+}
+
+.record-footer-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8rpx;
+}
+
+.record-total {
+  font-size: 24rpx;
+  color: #374151;
+  font-weight: 600;
+}
+
+.record-time {
+  font-size: 22rpx;
+  color: #9ca3af;
+}
