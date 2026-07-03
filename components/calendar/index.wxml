@@ -1,0 +1,64 @@
+<!-- components/calendar/index.wxml — 自定义月历组件 -->
+<view class="cal-wrap">
+  <!-- 月份导航 -->
+  <view class="cal-header">
+    <view class="cal-nav-btn" bindtap="onPrevMonth">
+      <van-icon name="arrow-left" size="36rpx" color="#333" />
+    </view>
+    <text class="cal-month-title">{{ displayMonth }}</text>
+    <view class="cal-nav-btn {{ isNextDisabled ? 'cal-nav-btn--disabled' : '' }}" bindtap="onNextMonth">
+      <van-icon name="arrow" size="36rpx" color="{{ isNextDisabled ? '#ccc' : '#333' }}" />
+    </view>
+  </view>
+
+  <!-- 星期头 -->
+  <view class="cal-weekdays">
+    <text class="cal-weekday" wx:for="{{ weekdays }}" wx:key="index">{{ item }}</text>
+  </view>
+
+  <!-- 日期格 -->
+  <view class="cal-grid">
+    <!-- 首行填充空格 -->
+    <view
+      class="cal-cell cal-cell--empty"
+      wx:for="{{ leadingBlanks }}"
+      wx:key="index"
+    />
+    <!-- 日期单元格 -->
+    <view
+      class="cal-cell {{ item.cellClass }}"
+      wx:for="{{ days }}"
+      wx:key="date"
+      data-date="{{ item.date }}"
+      bindtap="onDayTap"
+    >
+      <view class="cal-cell__inner">
+        <text class="cal-cell__day">{{ item.day }}</text>
+        <!-- 报餐状态点 -->
+        <view class="cal-cell__dots" wx:if="{{ item.hasMeal || item.partialMeal }}">
+          <view class="cal-dot {{ item.allMeal ? 'cal-dot--full' : 'cal-dot--partial' }}" />
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 图例 -->
+  <view class="cal-legend">
+    <view class="legend-item">
+      <view class="cal-dot cal-dot--full" />
+      <text>全餐已报</text>
+    </view>
+    <view class="legend-item">
+      <view class="cal-dot cal-dot--partial" />
+      <text>部分已报</text>
+    </view>
+    <view class="legend-item">
+      <view class="legend-dot legend-dot--selected" />
+      <text>已选</text>
+    </view>
+    <view class="legend-item">
+      <view class="legend-dot legend-dot--closed" />
+      <text>已截止</text>
+    </view>
+  </view>
+</view>

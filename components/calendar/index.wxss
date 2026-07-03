@@ -1,0 +1,177 @@
+/* components/calendar/index.wxss */
+
+.cal-wrap {
+  background: #fff;
+  border-radius: 20rpx;
+  overflow: hidden;
+}
+
+/* ─── 头部月份导航 ─── */
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.cal-nav-btn {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #f5f5f5;
+}
+
+.cal-nav-btn--disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.cal-month-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+/* ─── 星期行 ─── */
+.cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: 16rpx 8rpx 8rpx;
+}
+
+.cal-weekday {
+  text-align: center;
+  font-size: 22rpx;
+  color: #999;
+  font-weight: 500;
+}
+
+/* ─── 日期格 ─── */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: 0 8rpx 16rpx;
+  gap: 4rpx 0;
+}
+
+.cal-cell {
+  display: flex;
+  justify-content: center;
+  padding: 4rpx 0;
+}
+
+.cal-cell--empty {
+  /* 占位格 */
+}
+
+.cal-cell__inner {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rpx;
+  position: relative;
+}
+
+.cal-cell__day {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* ── 状态样式 ── */
+.cal-cell--today .cal-cell__inner {
+  border: 1px solid #1989fa;
+}
+
+.cal-cell--today .cal-cell__day {
+  color: #1989fa;
+}
+
+.cal-cell--selected .cal-cell__inner {
+  background: #1989fa;
+}
+
+.cal-cell--selected .cal-cell__day {
+  color: #fff !important;
+  font-weight: 700;
+}
+
+.cal-cell--booked .cal-cell__inner {
+  background: #eaf5ff;
+}
+
+.cal-cell--booked .cal-cell__day {
+  color: #1989fa;
+}
+
+.cal-cell--closed .cal-cell__day {
+  color: #ccc;
+}
+
+.cal-cell--closed {
+  pointer-events: none;
+}
+
+/* ── 状态点 ── */
+.cal-cell__dots {
+  display: flex;
+  justify-content: center;
+}
+
+.cal-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.cal-dot--full {
+  background: #1989fa;
+}
+
+.cal-dot--partial {
+  background: #ff9500;
+}
+
+/* ─── 图例 ─── */
+.cal-legend {
+  display: flex;
+  justify-content: center;
+  gap: 32rpx;
+  padding: 12rpx 0 20rpx;
+  border-top: 1px solid #f5f5f5;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.legend-item text {
+  font-size: 20rpx;
+  color: #999;
+}
+
+.legend-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+}
+
+.legend-dot--selected {
+  background: #1989fa;
+}
+
+.legend-dot--closed {
+  background: #e0e0e0;
+}
