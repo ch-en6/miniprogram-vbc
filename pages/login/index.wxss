@@ -1,0 +1,163 @@
+/* pages/login/index.wxss — 对齐原型蓝色主题 */
+
+.login-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #eef3f9 0%, #dfe7f1 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40rpx 40rpx;
+  box-sizing: border-box;
+}
+
+/* ─── Logo 区域（对齐原型 auth-logo） ─── */
+.logo-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 48rpx;
+}
+
+.logo-icon {
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 36rpx;
+  margin-bottom: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: 44rpx;
+  background: linear-gradient(135deg, #1989fa, #66b6ff);
+  box-shadow: 0 24rpx 48rpx rgba(25, 137, 250, 0.22);
+}
+
+.app-name {
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #1f2937;
+  letter-spacing: 4rpx;
+  margin-bottom: 12rpx;
+}
+
+.app-slogan {
+  font-size: 26rpx;
+  color: #6b7280;
+}
+
+/* ─── 登录卡片 ─── */
+.login-card {
+  width: 100%;
+  background: #fff;
+  border-radius: 36rpx;
+  padding: 48rpx 40rpx;
+  box-sizing: border-box;
+  box-shadow: 0 8rpx 32rpx rgba(31, 41, 55, 0.08);
+}
+
+.login-title {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 12rpx;
+}
+
+.login-desc {
+  display: block;
+  font-size: 26rpx;
+  color: #6b7280;
+  margin-bottom: 48rpx;
+  line-height: 1.6;
+}
+
+/* ─── 微信登录按钮 ─── */
+.btn-wechat-login {
+  width: 100%;
+  background: #1989fa !important;
+  color: #fff !important;
+  border-radius: 48rpx !important;
+  height: 88rpx !important;
+  line-height: 88rpx !important;
+  font-size: 32rpx !important;
+  font-weight: 600 !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+.btn-wechat-login::after {
+  border: none !important;
+}
+
+/* ─── 分割线 ─── */
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 40rpx 0 24rpx;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: #e5e7eb;
+}
+
+.divider-text {
+  font-size: 24rpx;
+  color: #bbb;
+  padding: 0 24rpx;
+}
+
+/* ─── 短信登录 ─── */
+.sms-toggle {
+  display: block;
+  text-align: center;
+  font-size: 28rpx;
+  color: #1989fa;
+  padding: 8rpx 0;
+}
+
+.sms-form {
+  width: 100%;
+}
+
+.sms-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.sms-row van-field {
+  flex: 1;
+}
+
+.btn-sms {
+  flex-shrink: 0;
+  font-size: 24rpx !important;
+  color: #1989fa !important;
+  border: 1px solid #1989fa !important;
+  border-radius: 8rpx !important;
+  background: #fff !important;
+  height: 64rpx !important;
+  line-height: 64rpx !important;
+  padding: 0 20rpx !important;
+  white-space: nowrap;
+}
+
+.btn-sms-submit {
+  margin-top: 32rpx;
+}
+
+/* ─── 隐私 ─── */
+.privacy-tip {
+  margin-top: 40rpx;
+  font-size: 22rpx;
+  color: #aaa;
+  text-align: center;
+}
+
+.privacy-link {
+  color: #1989fa;
+}
