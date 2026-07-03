@@ -1,4 +1,9 @@
 {
+  "navigationBarTitleText": "企业报餐",
   "usingComponents": {
+    "van-button": "@vant/weapp/button/index",
+    "van-tag": "@vant/weapp/tag/index",
+    "van-notice-bar": "@vant/weapp/notice-bar/index",
+    "van-icon": "@vant/weapp/icon/index"
   }
 }

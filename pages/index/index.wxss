@@ -1,62 +1,39 @@
-/**index.wxss**/
-page {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-.scrollarea {
-  flex: 1;
-  overflow-y: hidden;
+/* pages/index/index.wxss — 首页样式（对齐原型 EmployeeHome）
+ * 卡片边距标准统一：padding ≡ 24rpx，margin-horizontal ≡ 32rpx，border-radius ≡ 24~28rpx
+ */
+
+/* notice-bar 通知条（全宽，与 hero 同宽） */
+.notice-bar {
+  margin: 0 0 20rpx;  /* 全宽显示，与 hero 同宽 */
 }
 
-.userinfo {
+.workspace-tags {
   display: flex;
-  flex-direction: column;
+  gap: 10rpx;
+  flex-wrap: nowrap;
+  margin-top: 20rpx;
+  align-items: stretch;
+}
+
+/* 工作台按钮基础样式（与 profile 页一致） */
+.workspace-tags .ws-btn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
   align-items: center;
-  color: #aaa;
-  width: 80%;
-}
-
-.userinfo-avatar {
-  overflow: hidden;
-  width: 128rpx;
-  height: 128rpx;
-  margin: 20rpx;
-  border-radius: 50%;
-}
-
-.usermotto {
-  margin-top: 200px;
-}
-
-.avatar-wrapper {
-  padding: 0;
-  width: 56px !important;
-  border-radius: 8px;
-  margin-top: 40px;
-  margin-bottom: 40px;
-}
-
-.avatar {
-  display: block;
-  width: 56px;
-  height: 56px;
-}
-
-.nickname-wrapper {
-  display: flex;
-  width: 100%;
-  padding: 16px;
+  justify-content: center;
+  text-align: center;
+  font-size: 24rpx;
+  border-radius: 8rpx;
+  padding: 12rpx 0;
+  line-height: 1.3;
   box-sizing: border-box;
-  border-top: .5px solid rgba(0, 0, 0, 0.1);
-  border-bottom: .5px solid rgba(0, 0, 0, 0.1);
-  color: black;
+  white-space: normal;
+  word-break: break-all;
 }
 
-.nickname-label {
-  width: 105px;
-}
-
-.nickname-input {
-  flex: 1;
+.workspace-tags .ws-btn-plain {
+  background: #fff;
+  color: #1989fa;
+  border: 1px solid #1989fa;
 }
