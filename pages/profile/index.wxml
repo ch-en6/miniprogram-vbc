@@ -1,0 +1,66 @@
+<!-- pages/profile/index.wxml — 对齐原型 ProfilePage -->
+<view class="page-pad">
+  <van-cell-group inset title="个人中心">
+    <van-cell title="姓名" value="{{ userInfo.name || '—' }}" />
+    <van-cell title="手机号">
+      <view slot="right-icon" class="phone-row-right">
+        <text class="phone-value">{{ phoneMasked }}</text>
+        <text class="rebind-link" bindtap="toggleRebind">换绑</text>
+      </view>
+    </van-cell>
+    <van-cell title="部门" value="{{ userInfo.dept || '—' }}" />
+    <van-cell title="当前角色" value="{{ roleName }}" />
+    <van-cell title="微信绑定" value="已绑定" />
+  </van-cell-group>
+
+  <!-- 消息通知设置（Phase 4.1） -->
+  <van-cell-group inset title="消息通知">
+    <van-cell title="报餐提醒" is-link bindtap="onSubscribeMessage">
+      <view slot="right-icon">
+        <text class="subscribe-status">{{subscribed ? '已订阅' : '未订阅'}}</text>
+        <van-icon name="arrow" color="#969799" />
+      </view>
+    </van-cell>
+    <van-cell title="订阅消息说明" label="订阅后将在报餐截止前收到微信提醒" />
+  </van-cell-group>
+
+  <!-- 工作台切换 + 退出登录 -->
+  <view class="mini-card">
+    <view class="section-title" style="margin-top: 0;">工作台切换</view>
+    <view class="workspace-tags">
+      <view wx:if="{{ !isKitchen }}" class="ws-btn ws-btn-primary" bindtap="goEmployee">员工端</view>
+      <view wx:if="{{ isDeptAdmin }}" class="ws-btn ws-btn-plain" bindtap="goWorkbench">部门管理员工作台</view>
+      <view wx:if="{{ isSysAdmin }}" class="ws-btn ws-btn-plain" bindtap="goWorkbench">系统管理员工作台</view>
+      <view wx:if="{{ isKitchen }}" class="ws-btn ws-btn-plain" bindtap="goWorkbench">食堂工作台</view>
+      <view class="ws-btn ws-btn-danger" bindtap="logout">退出登录</view>
+    </view>
+  </view>
+
+  <!-- 换绑手机号弹窗 -->
+  <view class="phone-modal" wx:if="{{ showRebind }}">
+    <view class="phone-modal-card">
+      <view class="modal-head">
+        <text class="modal-title">换绑手机号</text>
+        <van-icon name="cross" bindtap="toggleRebind" />
+      </view>
+      <view class="muted rebind-tip">新手机号必须已存在于员工列表，且未绑定其他微信。如需换绑手机号，请先联系部门管理员。</view>
+      <van-cell-group inset>
+        <van-field label="当前手机号" value="{{ phoneMasked }}" readonly />
+        <van-field label="新手机号" placeholder="请输入新手机号" value="{{ newPhone }}" bind:change="onNewPhoneInput" />
+        <van-field label="验证码" placeholder="请输入验证码" value="{{ smsCode }}" bind:change="onSmsInput">
+          <view slot="button">
+            <van-button size="small" type="primary" bindtap="sendSmsCode" disabled="{{ smsCooldown > 0 }}" custom-class="sms-btn-mini">
+              {{ smsCooldown > 0 ? smsCooldown + 's' : '获取验证码' }}
+            </van-button>
+          </view>
+        </van-field>
+      </van-cell-group>
+      <view class="btn-row">
+        <van-button type="primary" block round bindtap="confirmRebind">确认换绑</van-button>
+      </view>
+    </view>
+  </view>
+
+  <!-- Vant Dialog 组件（函数式调用需要） -->
+  <van-dialog id="van-dialog" />
+</view>

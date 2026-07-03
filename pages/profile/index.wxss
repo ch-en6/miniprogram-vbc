@@ -1,0 +1,136 @@
+/* pages/profile/index.wxss — 对齐原型 ProfilePage
+ * 卡片边距标准统一：padding ≡ 24rpx，margin-horizontal ≡ 32rpx，border-radius ≡ 24~28rpx
+ */
+
+.btn-row {
+  margin: 24rpx;
+}
+
+/* 手机号行右侧：号码 + 换绑链接 */
+.phone-row-right {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.phone-value {
+  font-size: 28rpx;
+  color: var(--color-text-secondary, #8c9bad);
+}
+
+.rebind-link {
+  font-size: 26rpx;
+  color: #1989fa;
+  padding: 6rpx 18rpx;
+  border: 1px solid #1989fa;
+  border-radius: 8rpx;
+  line-height: 1.4;
+}
+
+.workspace-tags {
+  display: flex;
+  gap: 10rpx;
+  flex-wrap: nowrap;
+  margin-top: 20rpx;
+  align-items: stretch;
+}
+
+/* 工作台按钮基础样式 */
+.workspace-tags .ws-btn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 24rpx;
+  border-radius: 8rpx;
+  padding: 12rpx 0;
+  line-height: 1.3;
+  box-sizing: border-box;
+  white-space: normal;
+  word-break: break-all;
+}
+
+/* 主按钮（蓝色实心） */
+.workspace-tags .ws-btn-primary {
+  background: #1989fa;
+  color: #fff;
+  border: 1px solid #1989fa;
+}
+
+/* 朴素按钮（蓝色描边） */
+.workspace-tags .ws-btn-plain {
+  background: #fff;
+  color: #1989fa;
+  border: 1px solid #1989fa;
+}
+
+/* 危险按钮（红色描边） */
+.workspace-tags .ws-btn-danger {
+  background: #fff;
+  color: #ee0a24;
+  border: 1px solid #ee0a24;
+}
+
+/* 退出登录按钮与工作台按钮同行，已在 wxml workspace-tags 中 */
+
+/* 换绑弹窗 */
+.phone-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(17, 24, 39, 0.42);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 36rpx;
+}
+
+.phone-modal-card {
+  width: 100%;
+  max-height: 92%;
+  overflow: auto;
+  background: #fff;
+  border-radius: 36rpx;
+  padding: 24rpx;
+  box-shadow: 0 36rpx 80rpx rgba(17, 24, 39, 0.24);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+  font-weight: 700;
+}
+
+.modal-title {
+  font-size: 30rpx;
+}
+
+.rebind-tip {
+  margin-bottom: 20rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+}
+
+/* 换绑弹窗内获取验证码按钮 — 限宽避免挤压输入框 */
+.sms-btn-mini {
+  flex-shrink: 0;
+  min-width: 180rpx !important;
+  max-width: 200rpx !important;
+}
+
+/* Phase 4.1: 订阅消息状态 */
+.subscribe-status {
+  font-size: 24rpx;
+  color: #969799;
+  margin-right: 8rpx;
+}
+.subscribe-status.subscribed {
+  color: #07c160;
+}
