@@ -1,0 +1,58 @@
+/* pages/menu/index.wxss — 用 view 模拟表格（对齐原型 EmployeeMenu）
+ * 卡片边距标准统一：padding ≡ 24rpx，margin-horizontal ≡ 32rpx，border-radius ≡ 24rpx
+ */
+
+/* 菜单表格容器（作为 mini-card 的子元素，无外边距，由父级提供 24rpx padding） */
+.menu-table {
+  width: 100%;
+  font-size: 24rpx;
+  background: #fff;
+  border-radius: 24rpx;  /* 与 mini-card 一致（原来是 20rpx） */
+  overflow: hidden;
+  border: 1px solid #eef0f3;
+}
+
+.menu-row {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid #eef0f3;
+}
+
+.menu-row:last-child {
+  border-bottom: 0;
+}
+
+.menu-header {
+  background: #fafbfc;
+}
+
+.menu-header .menu-cell {
+  color: #6b7280;
+  font-weight: 600;
+  padding: 18rpx 0;
+}
+
+.menu-cell {
+  flex: 1;
+  padding: 20rpx 0;
+  text-align: center;
+  line-height: 1.55;
+  white-space: pre-line;
+  word-break: break-all;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menu-cell-day {
+  flex: 0 0 80rpx;
+  font-weight: 700;
+  color: #374151;
+  background: #fafbfc;
+}
+
+.menu-cell-meal {
+  flex: 1;
+  color: #4b5563;
+  border-left: 1px solid #eef0f3;
+}

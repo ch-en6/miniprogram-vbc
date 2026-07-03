@@ -1,0 +1,24 @@
+<!-- pages/menu/index.wxml — 用 view 模拟表格（对齐原型 EmployeeMenu） -->
+<view class="page-pad">
+  <view class="mini-card">
+    <view class="section-title" style="margin-top: 0;">本周菜单</view>
+
+    <!-- 表头 -->
+    <view class="menu-table">
+      <view class="menu-row menu-header">
+        <view class="menu-cell menu-cell-day">星期</view>
+        <view class="menu-cell menu-cell-meal">早餐</view>
+        <view class="menu-cell menu-cell-meal">午餐</view>
+        <view class="menu-cell menu-cell-meal">晚餐</view>
+      </view>
+
+      <!-- 表身 -->
+      <view class="menu-row" wx:for="{{ menuDays }}" wx:key="day">
+        <view class="menu-cell menu-cell-day text-bold">{{ item.day }}</view>
+        <view class="menu-cell menu-cell-meal">{{ item.breakfast }}</view>
+        <view class="menu-cell menu-cell-meal">{{ item.lunch }}</view>
+        <view class="menu-cell menu-cell-meal">{{ item.dinner }}</view>
+      </view>
+    </view>
+  </view>
+</view>
