@@ -1,0 +1,212 @@
+/* pages/book/index.wxss — 对齐原型 EmployeeBook
+ * 卡片边距标准统一：padding ≡ 24rpx，margin-horizontal ≡ 32rpx，border-radius ≡ 24~28rpx
+ */
+
+/* 月历卡片（全宽，与首页 hero 同宽） */
+.week-picker {
+  background: #fff;
+  border-radius: 28rpx 28rpx 0 0;  /* 仅顶部圆角，底部贴平 */
+  padding: 24rpx;
+  margin: 0;  /* 全宽显示 */
+  border: 1px solid rgba(229, 231, 235, 0.7);
+  border-left: 0;
+  border-right: 0;
+}
+
+.calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 36rpx;
+  color: #1989fa;
+  font-weight: 700;
+  margin-bottom: 24rpx;
+}
+
+.cal-arrow {
+  font-size: 36rpx;
+  padding: 8rpx 16rpx;
+}
+
+.cal-month {
+  font-size: 30rpx;
+}
+
+.weekday-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  color: #9ccbe8;
+  font-size: 24rpx;
+  text-align: center;
+  margin-bottom: 8rpx;
+}
+
+.week-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 12rpx;
+}
+
+.week-day {
+  text-align: center;
+  border-radius: 50%;
+  width: 68rpx;
+  height: 68rpx;
+  margin: 4rpx auto;
+  padding: 8rpx 0;
+  color: #62afd3;
+  border: 2px solid transparent;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 选中日期：蓝色高亮 */
+.week-day.active {
+  color: #fff;
+  background: #1989fa;
+  border-color: #1989fa;
+}
+
+/* 已报餐日期：绿色标识 */
+.week-day.has-meal:not(.active) {
+  color: #07c160;
+  background: #e8f8ee;
+  border-color: #b7ebcc;
+}
+
+/* 已报餐 + 选中：绿色高亮 */
+.week-day.has-meal.active {
+  color: #fff;
+  background: #07c160;
+  border-color: #07c160;
+}
+
+.week-day.disabled {
+  color: #d1d5db;
+}
+
+.day-num {
+  font-size: 24rpx;
+}
+
+/* 图例 */
+.calendar-legend {
+  display: flex;
+  justify-content: center;
+  gap: 40rpx;
+  margin-top: 20rpx;
+  padding-top: 16rpx;
+  border-top: 1px solid #f0f1f3;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.legend-dot {
+  width: 24rpx;
+  height: 24rpx;
+  border-radius: 50%;
+  border: 2px solid transparent;
+}
+
+.legend-booked {
+  background: #e8f8ee;
+  border-color: #b7ebcc;
+}
+
+.legend-selected {
+  background: #1989fa;
+  border-color: #1989fa;
+}
+
+.legend-text {
+  font-size: 22rpx;
+  color: #6b7280;
+}
+
+/* 当日编辑区 */
+.day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.day-info {
+  display: flex;
+  align-items: baseline;
+  gap: 12rpx;
+}
+
+.day-week {
+  font-weight: 700;
+  font-size: 28rpx;
+}
+
+.book-meal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 24rpx 0;  /* 与卡片标准 24rpx 对齐（原来是 20rpx） */
+  border-bottom: 1px solid #f0f1f3;
+}
+
+.book-meal-row:last-child {
+  border-bottom: 0;
+}
+
+.book-meal-left {
+  min-width: 0;
+}
+
+.book-meal-name {
+  font-weight: 700;
+  margin-bottom: 6rpx;
+}
+
+.book-meal-tip {
+  color: #6b7280;
+  font-size: 24rpx;
+}
+
+/* 取消报餐提示 */
+.cancel-hint {
+  margin-top: 16rpx;
+  padding: 16rpx 20rpx;
+  background: #fff7e8;
+  border-radius: 12rpx;
+  font-size: 24rpx;
+  color: #ff976a;
+  text-align: center;
+}
+
+/* 计费提醒 */
+.billing-tip {
+  margin: 0;
+  color: #6b7280;
+  font-size: 26rpx;
+  line-height: 1.7;
+}
+
+/* 提交区域 — 水平居中：报餐提醒 + 按钮同行 */
+.submit-area {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 24rpx;
+  padding: 8rpx 0 16rpx;
+}
+
+.billing-rule-link {
+  font-size: 24rpx;
+  color: #1989fa;
+  text-decoration: underline;
+  white-space: nowrap;
+}

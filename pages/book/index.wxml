@@ -1,0 +1,86 @@
+<!-- pages/book/index.wxml — 对齐原型 EmployeeBook -->
+<view class="page-pad">
+  <!-- 月历 -->
+  <view class="week-picker">
+    <view class="calendar-head">
+      <view class="cal-arrow" bindtap="prevMonth">«</view>
+      <text class="cal-month">{{ monthText }}</text>
+      <view class="cal-arrow" bindtap="nextMonth">»</view>
+    </view>
+    <view class="weekday-row">
+      <text>日</text><text>一</text><text>二</text><text>三</text><text>四</text><text>五</text><text>六</text>
+    </view>
+    <view class="week-row">
+      <view
+        wx:for="{{ calendarDays }}"
+        wx:key="key"
+        class="week-day {{ item.active ? 'active' : '' }} {{ item.hasMeal ? 'has-meal' : '' }} {{ item.disabled ? 'disabled' : '' }}"
+        bindtap="selectDay"
+        data-index="{{ index }}"
+      >
+        <text class="day-num">{{ item.day }}</text>
+      </view>
+    </view>
+    <!-- 图例 -->
+    <view class="calendar-legend">
+      <view class="legend-item">
+        <view class="legend-dot legend-booked"></view>
+        <text class="legend-text">已报餐</text>
+      </view>
+      <view class="legend-item">
+        <view class="legend-dot legend-selected"></view>
+        <text class="legend-text">选中</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 当日编辑区 -->
+  <view class="mini-card" wx:if="{{ selectedDay }}">
+    <view class="day-header">
+      <view class="day-info">
+        <text class="day-week">{{ selectedDay.week }}</text>
+        <text class="muted">{{ selectedDay.dateText }}</text>
+      </view>
+      <!-- 标签逻辑：
+           isViewing（有报餐+已截止）→ "仅查看"（灰色）
+           hasMeal + 可修改 → "已报·可改"（绿色）
+           可修改 → "可修改"（蓝色） -->
+      <van-tag wx:if="{{ selectedDay.isViewing }}" type="default" color="#8c9bad">仅查看</van-tag>
+      <van-tag wx:elif="{{ selectedDay.hasMeal }}" type="success">已报·可改</van-tag>
+      <van-tag wx:else type="primary">可修改</van-tag>
+    </view>
+
+    <view class="book-meal-row" wx:for="{{ meals }}" wx:key="key">
+      <view class="book-meal-left">
+        <view class="book-meal-name">{{ item.label }}</view>
+        <view class="book-meal-tip">{{ item.tip }}</view>
+      </view>
+      <van-stepper
+        value="{{ selectedDay[item.key] }}"
+        min="0"
+        max="5"
+        disabled="{{ selectedDay.isViewing || selectedDay.locked }}"
+        bind:change="onStepperChange"
+        data-key="{{ item.key }}"
+      />
+    </view>
+    <!-- 取消提示：已有报餐 + 全部设为 0 -->
+    <view class="cancel-hint" wx:if="{{ selectedDay.hasMeal && !selectedDay.isViewing && selectedDay.breakfast === 0 && selectedDay.lunch === 0 && selectedDay.dinner === 0 }}">
+      全部设为 0 将取消当日报餐
+    </view>
+  </view>
+
+  <!-- 提交按钮 + 计费规则（同一行居中） -->
+  <view class="submit-area" wx:if="{{ selectedDay && !selectedDay.isViewing }}">
+    <text class="billing-rule-link" bindtap="onShowBillingRule">计费规则</text>
+    <van-button
+      type="{{ selectedDay.hasMeal && selectedDay.breakfast === 0 && selectedDay.lunch === 0 && selectedDay.dinner === 0 ? 'danger' : 'primary' }}"
+      round
+      bindtap="submitDay"
+    >{{ selectedDay.hasMeal && selectedDay.breakfast === 0 && selectedDay.lunch === 0 && selectedDay.dinner === 0 ? '取消报餐' : (selectedDay.hasMeal ? '保存修改' : '提交报餐') }}</van-button>
+  </view>
+
+</view>
+
+<!-- 计费规则弹窗 -->
+<van-dialog id="van-dialog" />
