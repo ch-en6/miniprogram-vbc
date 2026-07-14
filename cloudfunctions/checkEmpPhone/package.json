@@ -1,0 +1,9 @@
+{
+  "name": "checkEmpPhone",
+  "version": "1.0.0",
+  "description": "校验手机号是否在 sys_emp 表中",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

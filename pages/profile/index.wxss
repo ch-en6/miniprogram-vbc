@@ -1,30 +1,229 @@
-/* pages/profile/index.wxss — 对齐原型 ProfilePage
- * 卡片边距标准统一：padding ≡ 24rpx，margin-horizontal ≡ 32rpx，border-radius ≡ 24~28rpx
- */
+/* pages/profile/index.wxss — 个人中心 */
+
+.page-pad {
+  min-height: 100vh;
+  background: #f5f6f8;
+  padding-bottom: 40rpx;
+}
 
 .btn-row {
   margin: 24rpx;
 }
 
-/* 手机号行右侧：号码 + 换绑链接 */
-.phone-row-right {
+/* ═══ 员工信息卡片 ═══ */
+.emp-card {
+  margin: 24rpx 32rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
+}
+
+.emp-card-header {
+  display: flex;
+  align-items: center;
+  padding: 32rpx 28rpx 20rpx;
+  background: linear-gradient(135deg, #1989fa, #4da6ff);
+}
+
+.emp-avatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-right: 24rpx;
+}
+
+.emp-avatar-text {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #fff;
+}
+
+.emp-header-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.emp-name {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 6rpx;
+}
+
+.emp-dept {
+  display: block;
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 8rpx;
+}
+
+.emp-role-tag {
+  display: inline-block;
+  font-size: 22rpx;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 6rpx;
+  padding: 4rpx 16rpx;
+}
+
+.emp-card-body {
+  padding: 20rpx 28rpx 24rpx;
+}
+
+.emp-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.emp-info-row:last-child {
+  border-bottom: none;
+}
+
+.emp-label {
+  font-size: 28rpx;
+  color: #8c9bad;
+}
+
+.emp-value {
+  font-size: 28rpx;
+  color: #333;
+}
+
+.emp-phone-row {
   display: flex;
   align-items: center;
   gap: 16rpx;
 }
 
-.phone-value {
-  font-size: 28rpx;
-  color: var(--color-text-secondary, #8c9bad);
-}
-
 .rebind-link {
-  font-size: 26rpx;
+  font-size: 24rpx;
   color: #1989fa;
-  padding: 6rpx 18rpx;
+  padding: 4rpx 14rpx;
   border: 1px solid #1989fa;
   border-radius: 8rpx;
   line-height: 1.4;
+}
+
+/* ═══ 工牌二维码卡片 ═══ */
+.qr-card {
+  margin: 24rpx 32rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
+  padding: 28rpx;
+}
+
+.qr-card-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 24rpx;
+  text-align: center;
+}
+
+.qr-card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.qr-wrapper {
+  position: relative;
+  width: 360rpx;
+  height: 360rpx;
+  border: 2rpx solid #e5e7eb;
+  border-radius: 16rpx;
+  overflow: hidden;
+}
+
+.qr-canvas {
+  width: 360rpx;
+  height: 360rpx;
+}
+
+/* 停用状态：半透明遮罩 + 红色文字覆盖在二维码上 */
+.qr-disabled-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-disabled-text {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #ee0a24;
+  text-align: center;
+  padding: 12rpx 24rpx;
+  border: 4rpx solid #ee0a24;
+  border-radius: 12rpx;
+  background: rgba(255, 255, 255, 0.9);
+  transform: rotate(-15deg);
+}
+
+.qr-emp-info {
+  margin-top: 20rpx;
+  text-align: center;
+}
+
+.qr-emp-name {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4rpx;
+}
+
+.qr-emp-no {
+  display: block;
+  font-size: 24rpx;
+  color: #8c9bad;
+}
+
+/* 卡片底部停用提示 */
+.qr-card-disabled-tip {
+  margin-top: 20rpx;
+  text-align: center;
+  padding: 12rpx 0 4rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.disabled-tip-text {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #ee0a24;
+}
+
+/* ═══ 工作台切换 ═══ */
+.mini-card {
+  margin: 24rpx 32rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 24rpx 28rpx;
+  box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 12rpx;
 }
 
 .workspace-tags {
@@ -35,7 +234,6 @@
   align-items: stretch;
 }
 
-/* 工作台按钮基础样式 */
 .workspace-tags .ws-btn {
   flex: 1;
   min-width: 0;
@@ -52,30 +250,25 @@
   word-break: break-all;
 }
 
-/* 主按钮（蓝色实心） */
-.workspace-tags .ws-btn-primary {
+.ws-btn-primary {
   background: #1989fa;
   color: #fff;
   border: 1px solid #1989fa;
 }
 
-/* 朴素按钮（蓝色描边） */
-.workspace-tags .ws-btn-plain {
+.ws-btn-plain {
   background: #fff;
   color: #1989fa;
   border: 1px solid #1989fa;
 }
 
-/* 危险按钮（红色描边） */
-.workspace-tags .ws-btn-danger {
+.ws-btn-danger {
   background: #fff;
   color: #ee0a24;
   border: 1px solid #ee0a24;
 }
 
-/* 退出登录按钮与工作台按钮同行，已在 wxml workspace-tags 中 */
-
-/* 换绑弹窗 */
+/* ═══ 换绑弹窗 ═══ */
 .phone-modal {
   position: fixed;
   top: 0;
@@ -118,14 +311,13 @@
   line-height: 1.6;
 }
 
-/* 换绑弹窗内获取验证码按钮 — 限宽避免挤压输入框 */
 .sms-btn-mini {
   flex-shrink: 0;
   min-width: 180rpx !important;
   max-width: 200rpx !important;
 }
 
-/* Phase 4.1: 订阅消息状态 */
+/* ═══ 订阅消息 ═══ */
 .subscribe-status {
   font-size: 24rpx;
   color: #969799;

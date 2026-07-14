@@ -2,7 +2,7 @@
 <view class="page-pad">
 
   <!-- 筛选区域 -->
-  <view class="filter-card mini-card">
+  <view class="filter-card  mini-card">
     <view class="filter-title">筛选条件</view>
 
     <!-- 时间区间 -->
@@ -16,11 +16,12 @@
         <picker mode="date" value="{{endDate}}" bindchange="onEndDateChange">
           <text class="date-text">{{endDate || '结束日期'}}</text>
         </picker>
-        <view class="quick-tags-inline">
-          <text class="quick-link {{activeQuickRange === 'thisMonth' ? 'active' : ''}}" bindtap="onQuickRange" data-type="thisMonth">本月</text>
-          <text class="quick-link {{activeQuickRange === 'thisWeek' ? 'active' : ''}}" bindtap="onQuickRange" data-type="thisWeek">本周</text>
-          <text class="quick-link {{activeQuickRange === 'lastWeek' ? 'active' : ''}}" bindtap="onQuickRange" data-type="lastWeek">上周</text>
-        </view>
+      </view>
+      <view class="quick-tags-inline">
+        <text class="quick-link {{activeQuickRange === 'thisMonth' ? 'active' : ''}}" bindtap="onQuickRange" data-type="thisMonth">本月</text>
+        <text class="quick-link {{activeQuickRange === 'lastMonth' ? 'active' : ''}}" bindtap="onQuickRange" data-type="lastMonth">上月</text>
+        <text class="quick-link {{activeQuickRange === 'thisWeek' ? 'active' : ''}}" bindtap="onQuickRange" data-type="thisWeek">本周</text>
+        <text class="quick-link {{activeQuickRange === 'lastWeek' ? 'active' : ''}}" bindtap="onQuickRange" data-type="lastWeek">上周</text>
       </view>
     </view>
 
@@ -35,32 +36,46 @@
       </view>
     </view>
 
-    <!-- 查询按钮（底部居中） -->
+    <!-- 查询/重置按钮（底部居中） -->
     <view class="filter-search">
-      <van-button type="primary" round bindtap="onSearch">查询</van-button>
+      <van-button type="primary" size="small" round bindtap="onSearch">查询</van-button>
+      <!-- <van-button round custom-class="reset-btn" bindtap="onReset">重置</van-button> -->
     </view>
   </view>
 
+  <!-- 加载状态 -->
+  <view class="loading-wrap" wx:if="{{loading}}">
+    <van-loading type="spinner" color="#1989fa" size="24px">加载中...</van-loading>
+  </view>
+
   <!-- 区间统计卡片 -->
-  <view class="summary-card mini-card" wx:if="{{records.length > 0}}">
-    <view class="summary-title">区间统计</view>
+  <view class="summary-card mini-card" wx:if="{{records.length > 0 && !loading}}">
+    <view class="summary-header">
+      <view class="summary-title">区间统计</view>
+    </view>
     <view class="summary-body">
       <view class="summary-col">
         <text class="summary-meal">早餐</text>
-        <text class="summary-qty">{{mealSummary.breakfast.qty}} 份</text>
-        <text class="summary-amount">¥{{mealSummary.breakfast.amount}}</text>
+        <text class="summary-qty" wx:if="{{statDimension === 'amount'}}">¥{{mealSummary.breakfast.amount}}</text>
+        <text class="summary-qty" wx:else>{{mealSummary.breakfast.qty}} 份</text>
+        <text class="summary-sub" wx:if="{{statDimension === 'amount'}}">{{mealSummary.breakfast.qty}} 份</text>
+        <text class="summary-sub" wx:else>¥{{mealSummary.breakfast.amount}}</text>
       </view>
       <view class="summary-divider"></view>
       <view class="summary-col">
         <text class="summary-meal">午餐</text>
-        <text class="summary-qty">{{mealSummary.lunch.qty}} 份</text>
-        <text class="summary-amount">¥{{mealSummary.lunch.amount}}</text>
+        <text class="summary-qty" wx:if="{{statDimension === 'amount'}}">¥{{mealSummary.lunch.amount}}</text>
+        <text class="summary-qty" wx:else>{{mealSummary.lunch.qty}} 份</text>
+        <text class="summary-sub" wx:if="{{statDimension === 'amount'}}">{{mealSummary.lunch.qty}} 份</text>
+        <text class="summary-sub" wx:else>¥{{mealSummary.lunch.amount}}</text>
       </view>
       <view class="summary-divider"></view>
       <view class="summary-col">
         <text class="summary-meal">晚餐</text>
-        <text class="summary-qty">{{mealSummary.dinner.qty}} 份</text>
-        <text class="summary-amount">¥{{mealSummary.dinner.amount}}</text>
+        <text class="summary-qty" wx:if="{{statDimension === 'amount'}}">¥{{mealSummary.dinner.amount}}</text>
+        <text class="summary-qty" wx:else>{{mealSummary.dinner.qty}} 份</text>
+        <text class="summary-sub" wx:if="{{statDimension === 'amount'}}">{{mealSummary.dinner.qty}} 份</text>
+        <text class="summary-sub" wx:else>¥{{mealSummary.dinner.amount}}</text>
       </view>
     </view>
     <view class="summary-total">
@@ -70,48 +85,47 @@
   </view>
 
   <!-- 记录列表（按天合并） -->
-  <view class="record-list">
+  <view class="record-list" wx:if="{{!loading}}">
     <view class="record-item" wx:for="{{records}}" wx:key="date">
       <view class="record-header">
-        <text class="record-date">{{item.dateDisplay}}</text>
-        <text class="record-date-full">{{item.date}}</text>
+        <view class="record-date-wrap">
+          <text class="record-date">{{item.date}}</text>
+          <text class="record-weekday">{{item.weekDay}}</text>
+        </view>
       </view>
 
       <view class="record-body day-body">
         <!-- 早餐 -->
         <view class="meal-row" wx:if="{{item.meals.breakfast}}">
           <view class="meal-main">
-            <text class="meal-name">早餐</text>
+            <view class="meal-name-wrap">
+              <text class="meal-dot breakfast-dot"></text>
+              <text class="meal-name">早餐</text>
+            </view>
             <text class="meal-total-qty">{{item.meals.breakfast.qty}} 份</text>
             <text class="meal-total-amount">¥{{item.meals.breakfast.amount}}</text>
-          </view>
-          <view class="meal-detail">
-            <text class="meal-detail-item">员工餐 {{item.meals.breakfast.empQty}} 份 ¥{{item.meals.breakfast.empAmount}}</text>
-            <text class="meal-detail-item" wx:if="{{item.meals.breakfast.family > 0}}">家属餐 {{item.meals.breakfast.family}} 份 ¥{{item.meals.breakfast.famAmount}}</text>
           </view>
         </view>
         <!-- 午餐 -->
         <view class="meal-row" wx:if="{{item.meals.lunch}}">
           <view class="meal-main">
-            <text class="meal-name">午餐</text>
+            <view class="meal-name-wrap">
+              <text class="meal-dot lunch-dot"></text>
+              <text class="meal-name">午餐</text>
+            </view>
             <text class="meal-total-qty">{{item.meals.lunch.qty}} 份</text>
             <text class="meal-total-amount">¥{{item.meals.lunch.amount}}</text>
-          </view>
-          <view class="meal-detail">
-            <text class="meal-detail-item">员工餐 {{item.meals.lunch.empQty}} 份 ¥{{item.meals.lunch.empAmount}}</text>
-            <text class="meal-detail-item" wx:if="{{item.meals.lunch.family > 0}}">家属餐 {{item.meals.lunch.family}} 份 ¥{{item.meals.lunch.famAmount}}</text>
           </view>
         </view>
         <!-- 晚餐 -->
         <view class="meal-row" wx:if="{{item.meals.dinner}}">
           <view class="meal-main">
-            <text class="meal-name">晚餐</text>
+            <view class="meal-name-wrap">
+              <text class="meal-dot dinner-dot"></text>
+              <text class="meal-name">晚餐</text>
+            </view>
             <text class="meal-total-qty">{{item.meals.dinner.qty}} 份</text>
             <text class="meal-total-amount">¥{{item.meals.dinner.amount}}</text>
-          </view>
-          <view class="meal-detail">
-            <text class="meal-detail-item">员工餐 {{item.meals.dinner.empQty}} 份 ¥{{item.meals.dinner.empAmount}}</text>
-            <text class="meal-detail-item" wx:if="{{item.meals.dinner.family > 0}}">家属餐 {{item.meals.dinner.family}} 份 ¥{{item.meals.dinner.famAmount}}</text>
           </view>
         </view>
       </view>
@@ -125,6 +139,6 @@
     </view>
 
     <!-- 空状态 -->
-    <van-empty wx:if="{{records.length === 0 && !loading}}" description="暂无报餐记录" />
+    <van-empty wx:if="{{records.length === 0}}" description="暂无报餐记录" />
   </view>
 </view>

@@ -53,12 +53,10 @@
     <view class="book-meal-row" wx:for="{{ meals }}" wx:key="key">
       <view class="book-meal-left">
         <view class="book-meal-name">{{ item.label }}</view>
-        <view class="book-meal-tip">{{ item.tip }}</view>
       </view>
       <van-stepper
         value="{{ selectedDay[item.key] }}"
         min="0"
-        max="5"
         disabled="{{ selectedDay.isViewing || selectedDay.locked }}"
         bind:change="onStepperChange"
         data-key="{{ item.key }}"

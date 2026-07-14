@@ -1,0 +1,9 @@
+{
+  "name": "mealOrder",
+  "version": "1.0.0",
+  "description": "报餐记录云函数：查询月度报餐、保存报餐、删除报餐",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

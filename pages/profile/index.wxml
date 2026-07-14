@@ -1,19 +1,61 @@
-<!-- pages/profile/index.wxml — 对齐原型 ProfilePage -->
+<!-- pages/profile/index.wxml — 个人中心 -->
 <view class="page-pad">
-  <van-cell-group inset title="个人中心">
-    <van-cell title="姓名" value="{{ userInfo.name || '—' }}" />
-    <van-cell title="手机号">
-      <view slot="right-icon" class="phone-row-right">
-        <text class="phone-value">{{ phoneMasked }}</text>
-        <text class="rebind-link" bindtap="toggleRebind">换绑</text>
-      </view>
-    </van-cell>
-    <van-cell title="部门" value="{{ userInfo.dept || '—' }}" />
-    <van-cell title="当前角色" value="{{ roleName }}" />
-    <van-cell title="微信绑定" value="已绑定" />
-  </van-cell-group>
 
-  <!-- 消息通知设置（Phase 4.1） -->
+  <!-- 员工信息卡片 -->
+  <view class="emp-card">
+    <view class="emp-card-header">
+      <view class="emp-avatar">
+        <text class="emp-avatar-text">{{ userInfo.name ? userInfo.name[0] : '?' }}</text>
+      </view>
+      <view class="emp-header-info">
+        <text class="emp-name">{{ userInfo.name || '—' }}</text>
+        <text class="emp-dept">{{ userInfo.dept || '—' }}</text>
+        <view class="emp-role-tag">{{ roleName }}</view>
+      </view>
+    </view>
+
+    <view class="emp-card-body">
+      <view class="emp-info-row">
+        <text class="emp-label">工号</text>
+        <text class="emp-value">{{ empNo || '—' }}</text>
+      </view>
+      <view class="emp-info-row">
+        <text class="emp-label">手机号</text>
+        <view class="emp-phone-row">
+          <text class="emp-value">{{ phoneMasked }}</text>
+          <text class="rebind-link" bindtap="toggleRebind">换绑</text>
+        </view>
+      </view>
+      <view class="emp-info-row">
+        <text class="emp-label">微信绑定</text>
+        <text class="emp-value">已绑定</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 工牌二维码卡片 -->
+  <view class="qr-card">
+    <view class="qr-card-title">员工工牌</view>
+    <view class="qr-card-body">
+      <view class="qr-wrapper">
+        <canvas canvas-id="qrCanvas" class="qr-canvas" style="width: 360rpx; height: 360rpx;"></canvas>
+        <!-- 停用状态：红色提示覆盖在二维码上 -->
+        <view class="qr-disabled-overlay" wx:if="{{ isDisabled }}">
+          <text class="qr-disabled-text">该员工已被停用</text>
+        </view>
+      </view>
+      <view class="qr-emp-info">
+        <text class="qr-emp-name">{{ userInfo.name || '—' }}</text>
+        <text class="qr-emp-no">{{ empNo || '—' }}</text>
+      </view>
+    </view>
+    <!-- 停用状态：卡片底部红色提示 -->
+    <view class="qr-card-disabled-tip" wx:if="{{ isDisabled }}">
+      <text class="disabled-tip-text">该员工已被停用</text>
+    </view>
+  </view>
+
+  <!-- 消息通知设置 -->
   <van-cell-group inset title="消息通知">
     <van-cell title="报餐提醒" is-link bindtap="onSubscribeMessage">
       <view slot="right-icon">
@@ -61,6 +103,6 @@
     </view>
   </view>
 
-  <!-- Vant Dialog 组件（函数式调用需要） -->
+  <!-- Vant Dialog 组件 -->
   <van-dialog id="van-dialog" />
 </view>

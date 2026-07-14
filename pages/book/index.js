@@ -1,21 +1,8 @@
 // pages/book/index.js — 月历报餐页（对齐原型 EmployeeBook）
 const { formatMonth, getWeekDay, isBookable, formatDate, compareDate } = require('../../utils/time')
-const M = require('../../utils/mock')
 
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 const WEEKDAYS_SHORT = ['日', '一', '二', '三', '四', '五', '六']
-
-// Mock 已报餐数据：dateStr → { breakfast, lunch, dinner }
-const MOCK_MEALS = {
-  '2026-06-15': { breakfast: 1, lunch: 2, dinner: 1 },
-  '2026-06-16': { breakfast: 1, lunch: 1, dinner: 0 },
-  '2026-06-17': { breakfast: 0, lunch: 2, dinner: 1 },
-  '2026-06-18': { breakfast: 1, lunch: 2, dinner: 1 },
-  '2026-06-19': { breakfast: 1, lunch: 1, dinner: 1 },
-  '2026-06-22': { breakfast: 1, lunch: 2, dinner: 1 },
-  '2026-06-23': { breakfast: 1, lunch: 1, dinner: 0 },
-  '2026-06-25': { breakfast: 1, lunch: 2, dinner: 1 },
-}
 
 Page({
   data: {
@@ -23,9 +10,9 @@ Page({
     calendarDays: [],
     selectedDay: null,
     meals: [
-      { key: 'breakfast', label: '早餐', tip: '默认 1 份' },
-      { key: 'lunch', label: '午餐', tip: '超过 1 份计家属餐' },
-      { key: 'dinner', label: '晚餐', tip: '可填 0 份' },
+      { key: 'breakfast', label: '早餐'},
+      { key: 'lunch', label: '午餐'},
+      { key: 'dinner', label: '晚餐'},
     ],
   },
 
@@ -34,16 +21,17 @@ Page({
     this._buildCalendar()
   },
 
-  onShow() {
-    this._buildCalendar()
+  async onShow() {
+    await this._buildCalendar()
   },
 
   // ─── 月历构建 ────────────────────────────────────────────────
 
-  _buildCalendar() {
+  async _buildCalendar() {
     const date = this._currentDate
     const year = date.getFullYear()
     const month = date.getMonth()
+    const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`
     this.setData({ monthText: `${year}年${month + 1}月` })
 
     const firstDay = new Date(year, month, 1)
@@ -53,6 +41,26 @@ Page({
 
     const today = new Date()
     const todayStr = formatDate(today)
+
+    // 从云数据库加载当月报餐记录
+    let monthOrders = {}
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'mealOrder',
+        data: { action: 'getMonth', month: monthStr }
+      })
+      if (res.result && res.result.code === 0 && res.result.data) {
+        res.result.data.forEach(item => {
+          monthOrders[item.date] = {
+            breakfast: item.breakfast || 0,
+            lunch: item.lunch || 0,
+            dinner: item.dinner || 0,
+          }
+        })
+      }
+    } catch (err) {
+      console.error('[Book] 加载报餐记录失败:', err)
+    }
 
     const days = []
     for (let i = 0; i < startWeekday; i++) {
@@ -66,9 +74,9 @@ Page({
       const canBook = isBookable(dateStr)
       const isPast = compareDate(dateStr, todayStr) < 0
 
-      const mealData = MOCK_MEALS[dateStr]
+      const mealData = monthOrders[dateStr]
       const hasMeal = !!mealData
-      const mockData = mealData || { breakfast: 0, lunch: 0, dinner: 0 }
+      const data = mealData || { breakfast: 0, lunch: 0, dinner: 0 }
 
       days.push({
         key: 'day' + d,
@@ -83,10 +91,10 @@ Page({
         canModify: canBook,           // 截止时间内可修改（含减为0取消）
         disabled: !canBook && !hasMeal, // 截止后且无报餐 → 不可选；截止后有报餐 → 可选但只读
         locked: !canBook,
-        isViewing: false,
-        breakfast: mockData.breakfast,
-        lunch: mockData.lunch,
-        dinner: mockData.dinner,
+        isViewing: hasMeal && !canBook, // 已报餐且已过截止时间 → 仅查看
+        breakfast: data.breakfast,
+        lunch: data.lunch,
+        dinner: data.dinner,
       })
     }
 
@@ -165,7 +173,7 @@ Page({
     this.setData({ selectedDay })
   },
 
-  submitDay() {
+  async submitDay() {
     const day = this.data.selectedDay
     if (!day || day.isViewing) return
 
@@ -177,39 +185,67 @@ Page({
       return
     }
 
-    // total === 0 且已有报餐 → 取消当日报餐（静默保存）
-    // total > 0 → 正常保存/修改
+    // 判断操作类型：首次报餐 / 修改 / 取消
+    const isCancel = total === 0
+    const isModify = day.hasMeal && !isCancel
+    const isFirstBook = !day.hasMeal && !isCancel
 
-    const app = getApp()
-    if (app.globalData.devMock) {
-      // 更新 mock 数据
-      if (total === 0) {
-        delete MOCK_MEALS[day.dateStr]
+    wx.showLoading({ title: isCancel ? '取消中...' : '保存中...' })
+
+    try {
+      if (isCancel) {
+        // 删除报餐记录
+        const res = await wx.cloud.callFunction({
+          name: 'mealOrder',
+          data: { action: 'remove', date: day.dateStr }
+        })
+        if (res.result && res.result.code !== 0) {
+          throw new Error(res.result.message)
+        }
       } else {
-        MOCK_MEALS[day.dateStr] = {
-          breakfast: day.breakfast,
-          lunch: day.lunch,
-          dinner: day.dinner,
+        // 保存/更新报餐记录
+        const res = await wx.cloud.callFunction({
+          name: 'mealOrder',
+          data: {
+            action: 'save',
+            date: day.dateStr,
+            breakfast: day.breakfast,
+            lunch: day.lunch,
+            dinner: day.dinner,
+          }
+        })
+        if (res.result && res.result.code !== 0) {
+          throw new Error(res.result.message)
         }
       }
 
+      // 更新本地日历数据
       const days = this.data.calendarDays.map(d => {
         if (d.dateStr === day.dateStr) {
-          d.hasMeal = total > 0
-          d.breakfast = day.breakfast
-          d.lunch = day.lunch
-          d.dinner = day.dinner
+          return {
+            ...d,
+            hasMeal: total > 0,
+            breakfast: isCancel ? 0 : day.breakfast,
+            lunch: isCancel ? 0 : day.lunch,
+            dinner: isCancel ? 0 : day.dinner,
+          }
         }
         return d
       })
 
-      // 保存后仍保持编辑状态（截止时间内可继续修改）
-      // 不弹 Toast — 静默保存
-      this.setData({ calendarDays: days, selectedDay: day })
-      return
-    }
+      const updatedDay = days.find(d => d.dateStr === day.dateStr)
+      this.setData({ calendarDays: days, selectedDay: updatedDay })
+      wx.hideLoading()
 
-    // TODO: 接入真实 API — POST /meals/save
-    // 后端逻辑：qty 全 0 则删除当日记录，否则 upsert
+      // 操作成功提示
+      const msg = isCancel ? '已取消报餐'
+               : isFirstBook ? '报餐成功'
+               : '修改成功'
+      wx.showToast({ title: msg, icon: 'success' })
+    } catch (err) {
+      wx.hideLoading()
+      console.error('[Book] 提交报餐失败:', err)
+      wx.showToast({ title: err.message || '操作失败', icon: 'none' })
+    }
   },
 })

@@ -1,6 +1,6 @@
-// pages/record/index.js — 报餐记录页（完善版）
-const M = require('../../utils/mock')
+// pages/record/index.js — 报餐记录页（云开发模式）
 const T = require('../../utils/time')
+const { DEFAULT_MEAL_PRICE, MEAL_TYPE } = require('../../utils/const')
 
 Page({
   data: {
@@ -13,7 +13,7 @@ Page({
     },
     totalQty: 0,         // 区间总份数
     totalAmount: 0,      // 区间总费用
-    activeQuickRange: '', // '' | 'thisMonth' | 'thisWeek' | 'lastWeek'
+    activeQuickRange: '', // '' | 'thisMonth' | 'thisWeek' | 'lastWeek' | 'lastMonth'
 
     // 筛选条件
     startDate: '',
@@ -22,7 +22,6 @@ Page({
   },
 
   onLoad() {
-    // 默认显示本月数据
     this._setDefaultDateRange()
     this._loadRecords()
   },
@@ -72,6 +71,18 @@ Page({
     return { start: T.formatDate(monday), end: T.formatDate(sunday) }
   },
 
+  _getLastMonthRange() {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = now.getMonth() // 0-based, so this is "last month" when -1
+    const lastMonth = new Date(year, month - 1, 1)
+    const lastMonthEnd = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0)
+    return {
+      start: T.formatDate(lastMonth),
+      end: T.formatDate(lastMonthEnd),
+    }
+  },
+
   onQuickRange(e) {
     const type = e.currentTarget.dataset.type
     let range
@@ -85,15 +96,18 @@ Page({
       case 'lastWeek':
         range = this._getLastWeekRange()
         break
+      case 'lastMonth':
+        range = this._getLastMonthRange()
+        break
       default:
         return
     }
-    // 只修改日期范围，不自动查询
     this.setData({
       startDate: range.start,
       endDate: range.end,
       activeQuickRange: type,
     })
+    this._loadRecords()
   },
 
   // ─── 日期选择 ────────────────────────────────────────────────
@@ -106,10 +120,11 @@ Page({
     this.setData({ endDate: e.detail.value, activeQuickRange: '' })
   },
 
-  // 餐别筛选 — 只修改筛选条件，不自动查询
+  // 餐别筛选
   onMealFilter(e) {
     const meal = e.currentTarget.dataset.meal
     this.setData({ mealFilter: meal })
+    this._loadRecords()
   },
 
   // 查询按钮
@@ -117,88 +132,132 @@ Page({
     this._loadRecords()
   },
 
-  // ─── 加载记录 ────────────────────────────────────────────────
+  // 重置筛选
+  onReset() {
+    this._setDefaultDateRange()
+    this.setData({ mealFilter: '' })
+    this._loadRecords()
+  },
 
-  _loadRecords() {
-    const app = getApp()
-    if (app.globalData.devMock) {
-      // 1. 过滤 + 餐别筛选
-      let records = M.mockRecords
-        .filter(r => r.qty > 0)
+  // ─── 加载记录（云函数） ────────────────────────────────────────────────
 
-      if (this.data.mealFilter) {
-        records = records.filter(r => r.mealType === this.data.mealFilter)
-      }
-      if (this.data.startDate) {
-        records = records.filter(r => r.date >= this.data.startDate)
-      }
-      if (this.data.endDate) {
-        records = records.filter(r => r.date <= this.data.endDate)
-      }
+  async _loadRecords() {
+    this.setData({ loading: true })
 
-      // 2. 按日期合并（同一天早午晚餐合成一条）
-      const grouped = {}
-      records.forEach(r => {
-        if (!grouped[r.date]) {
-          grouped[r.date] = {
-            date: r.date,
-            dateDisplay: r.date.slice(5),
-            meals: {},
-            dayTotalQty: 0,
-            dayTotalAmount: 0,
-            dayTotalEmpAmount: 0,
-            dayTotalFamAmount: 0,
-            lastTime: r.time,
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'mealOrder',
+        data: {
+          action: 'getRange',
+          startDate: this.data.startDate,
+          endDate: this.data.endDate,
+        }
+      })
+
+      if (res.result && res.result.code === 0 && res.result.data) {
+        const rawData = res.result.data
+
+        // 1. 过滤 qty > 0 的记录 + 餐别筛选
+        let records = []
+        rawData.forEach(r => {
+          const meals = [
+            { mealType: 'breakfast', qty: r.breakfast || 0 },
+            { mealType: 'lunch',     qty: r.lunch || 0 },
+            { mealType: 'dinner',    qty: r.dinner || 0 },
+          ]
+          meals.forEach(m => {
+            if (m.qty > 0) {
+              if (!this.data.mealFilter || m.mealType === this.data.mealFilter) {
+                records.push({
+                  date: r.date,
+                  mealType: m.mealType,
+                  qty: m.qty,
+                  time: r.updated_at || r.created_at || '',
+                })
+              }
+            }
+          })
+        })
+
+        // 2. 按日期合并（同一天早午晚餐合成一条）
+        const grouped = {}
+        records.forEach(r => {
+          if (!grouped[r.date]) {
+            grouped[r.date] = {
+              date: r.date,
+              dateDisplay: r.date.slice(5),
+              weekDay: T.getWeekDay(r.date),
+              meals: {},
+              dayTotalQty: 0,
+              dayTotalAmount: 0,
+              lastTime: '',
+            }
           }
-        }
-        const day = grouped[r.date]
-        const empQty = Math.max(r.qty - r.family, 0)
-        day.meals[r.mealType] = {
-          qty: r.qty,
-          empQty,
-          family: r.family,
-          empAmount: r.empAmount,
-          famAmount: r.famAmount,
-          amount: r.amount,
-          time: r.time,
-        }
-        day.dayTotalQty += r.qty
-        day.dayTotalAmount += r.amount
-        day.dayTotalEmpAmount += r.empAmount
-        day.dayTotalFamAmount += r.famAmount
-        if (r.time > day.lastTime) day.lastTime = r.time
-      })
+          const day = grouped[r.date]
+          const price = DEFAULT_MEAL_PRICE[r.mealType] || 0
+          const amount = r.qty * price
 
-      const mergedRecords = Object.values(grouped).sort((a, b) => b.date.localeCompare(a.date))
+          day.meals[r.mealType] = {
+            qty: r.qty,
+            amount,
+          }
+          day.dayTotalQty += r.qty
+          day.dayTotalAmount += amount
 
-      // 3. 计算区间按餐别汇总（用于顶部卡片）
-      const mealSummary = {
-        breakfast: { qty: 0, amount: 0 },
-        lunch:     { qty: 0, amount: 0 },
-        dinner:    { qty: 0, amount: 0 },
+          // 格式化时间
+          const timeStr = this._formatTime(r.time)
+          if (timeStr > day.lastTime) day.lastTime = timeStr
+        })
+
+        const mergedRecords = Object.values(grouped).sort((a, b) => b.date.localeCompare(a.date))
+
+        // 3. 计算区间按餐别汇总（用于顶部卡片）
+        const mealSummary = {
+          breakfast: { qty: 0, amount: 0 },
+          lunch:     { qty: 0, amount: 0 },
+          dinner:    { qty: 0, amount: 0 },
+        }
+        let totalQty = 0
+        let totalAmount = 0
+        records.forEach(r => {
+          const price = DEFAULT_MEAL_PRICE[r.mealType] || 0
+          const amount = r.qty * price
+          const m = mealSummary[r.mealType]
+          if (m) {
+            m.qty += r.qty
+            m.amount += amount
+          }
+          totalQty += r.qty
+          totalAmount += amount
+        })
+
+        this.setData({
+          records: mergedRecords,
+          mealSummary,
+          totalQty,
+          totalAmount,
+          loading: false,
+        })
+      } else {
+        this.setData({ loading: false })
+        wx.showToast({ title: res.result?.message || '查询失败', icon: 'none' })
       }
-      let totalQty = 0
-      let totalAmount = 0
-      records.forEach(r => {
-        const m = mealSummary[r.mealType]
-        if (m) {
-          m.qty += r.qty
-          m.amount += r.amount
-        }
-        totalQty += r.qty
-        totalAmount += r.amount
-      })
-
-      this.setData({
-        records: mergedRecords,
-        mealSummary,
-        totalQty,
-        totalAmount,
-      })
-      return
+    } catch (err) {
+      console.error('[Record] 加载记录失败:', err)
+      this.setData({ loading: false })
+      wx.showToast({ title: '加载失败，请重试', icon: 'none' })
     }
-    // TODO: 接入真实 API — GET /meals/records?start=xxx&end=xxx
-    // 后端仅返回 qty > 0 的记录，含费用字段；前端按 date 合并
+  },
+
+  // 格式化时间（云数据库返回的 Date 对象或字符串）
+  _formatTime(timeVal) {
+    if (!timeVal) return ''
+    if (typeof timeVal === 'string') return timeVal.slice(0, 16)
+    if (timeVal.$date) {
+      const d = new Date(timeVal.$date)
+      return T.formatDateTime(d)
+    }
+    return String(timeVal).slice(0, 16)
   },
 
   // 获取餐别标签

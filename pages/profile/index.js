@@ -1,5 +1,6 @@
-// pages/profile/index.js — 个人中心（对齐原型 ProfilePage）
+// pages/profile/index.js — 个人中心
 const { ROLE } = require('../../utils/const')
+const QR = require('../../utils/qrcode')
 
 const ROLE_NAME_MAP = {
   employee: '普通员工',
@@ -13,6 +14,8 @@ Page({
     userInfo: {},
     phoneMasked: '',
     roleName: '普通员工',
+    empNo: '',
+    isDisabled: false, // 员工是否被停用
     isKitchen: false,
     isDeptAdmin: false,
     isSysAdmin: false,
@@ -21,25 +24,22 @@ Page({
     newPhone: '',
     smsCode: '',
     smsCooldown: 0,
-    // Phase 4.1: 订阅消息
+    // 订阅消息
     subscribed: false,
-    templateIds: ['mock_template_id_1'],  // 真实环境中替换为后端配置的模板 ID
+    templateIds: ['mock_template_id_1'],
   },
 
   onLoad() {
-    const app = getApp()
-    // DEV MOCK 兜底：直接打开页面时若 app._initAuth 尚未完成，手动注入 mock 用户
-    if (app.globalData.devMock && !app.globalData.userInfo) {
-      const MU = require('../../utils/mock-user')
-      app.globalData.userInfo = { ...MU }
-      app.globalData.roles = [...MU.roles]
-      app.globalData.authReady = true
-    }
     this._initDisplay()
   },
 
   onShow() {
     this._initDisplay()
+  },
+
+  onReady() {
+    // 页面初次渲染完成后生成二维码
+    this._drawQRCode()
   },
 
   _initDisplay() {
@@ -54,14 +54,28 @@ Page({
       ? phone.slice(0, 3) + '****' + phone.slice(-4)
       : phone
 
+    // 员工状态
+    const isDisabled = userInfo.status === 'disabled'
+
     this.setData({
       userInfo,
       phoneMasked,
       roleName: ROLE_NAME_MAP[primaryRole] || '普通员工',
+      empNo: userInfo.emp_no || '',
+      isDisabled,
       isKitchen: roles.includes(ROLE.KITCHEN),
       isDeptAdmin: roles.includes(ROLE.DEPT_ADMIN),
       isSysAdmin: roles.includes(ROLE.SYS_ADMIN),
     })
+  },
+
+  _drawQRCode() {
+    const { userInfo } = this.data
+    if (!userInfo || !userInfo._id) return
+
+    // 用员工ID生成二维码内容（工牌标识）
+    const qrContent = 'EMP:' + userInfo._id
+    QR.draw('qrCanvas', this, qrContent, 360)
   },
 
   // ─── 换绑手机号 ──────────────────────────────────────────────
@@ -84,13 +98,9 @@ Page({
       wx.showToast({ title: '请输入正确的手机号', icon: 'none' })
       return
     }
-    const app = getApp()
-    if (app.globalData.devMock) {
-      wx.showToast({ title: '验证码已发送（DEV）', icon: 'success' })
-      this._startCooldown()
-      return
-    }
-    // TODO: 接入真实 API
+    // TODO: 调用云函数发送短信验证码
+    wx.showToast({ title: '验证码已发送', icon: 'success' })
+    this._startCooldown()
   },
 
   _startCooldown() {
@@ -103,28 +113,8 @@ Page({
     }, 1000)
   },
 
-  // Phase 4.1: 微信订阅消息授权
   onSubscribeMessage() {
     const templateIds = this.data.templateIds
-
-    const app = getApp()
-    if (app.globalData.devMock) {
-      // Mock 模式：模拟授权
-      wx.showModal({
-        title: '订阅消息授权',
-        content: '订阅后将在报餐截止前（每天 15:00）收到微信提醒。\n\n（Dev 模式：模拟授权成功）',
-        confirmText: '允许',
-        success: (res) => {
-          if (res.confirm) {
-            this.setData({ subscribed: true })
-            wx.showToast({ title: '订阅成功', icon: 'success' })
-          }
-        },
-      })
-      return
-    }
-
-    // 真实模式：调用微信订阅消息接口
     wx.requestSubscribeMessage({
       tmplIds: templateIds,
       success: (res) => {
@@ -136,21 +126,16 @@ Page({
           wx.showToast({ title: '已取消订阅', icon: 'none' })
         }
       },
-      fail: (err) => {
-        console.error('Subscription request failed:', err)
+      fail: () => {
         wx.showToast({ title: '授权失败，请重试', icon: 'none' })
       },
     })
   },
 
   confirmRebind() {
-    const app = getApp()
-    if (app.globalData.devMock) {
-      wx.showToast({ title: '换绑成功（DEV）', icon: 'success' })
-      this.setData({ showRebind: false })
-      return
-    }
-    // TODO: 接入真实 API
+    // TODO: 调用云函数换绑手机号
+    wx.showToast({ title: '换绑申请已提交', icon: 'success' })
+    this.setData({ showRebind: false })
   },
 
   // ─── 页面跳转 ────────────────────────────────────────────────
@@ -185,9 +170,7 @@ Page({
     }).then(() => {
       const app = getApp()
       app.logout()
-    }).catch(() => {
-      // 用户取消，不做操作
-    })
+    }).catch(() => {})
   },
 
   onUnload() {

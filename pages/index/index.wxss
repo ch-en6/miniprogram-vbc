@@ -4,7 +4,46 @@
 
 /* notice-bar 通知条（全宽，与 hero 同宽） */
 .notice-bar {
-  margin: 0 0 20rpx;  /* 全宽显示，与 hero 同宽 */
+  margin: 0 0 20rpx;
+}
+
+/* ═══ 报餐状态两栏布局 ═══ */
+.meal-dual {
+  display: flex;
+  gap: 20rpx;
+  margin: 20rpx 0;
+}
+.meal-col {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.meal-col-title {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 16rpx;
+}
+.meal-col-date {
+  font-size: 20rpx;
+  font-weight: 400;
+  color: #9ca3af;
+  margin-left: 8rpx;
+}
+.meal-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12rpx 0;
+  border-bottom: 1px solid #f0f1f3;
+}
+.meal-item:last-child {
+  border-bottom: 0;
+}
+.meal-item-name {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #374151;
 }
 
 .workspace-tags {

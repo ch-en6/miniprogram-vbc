@@ -2,7 +2,7 @@
 <view class="page-pad">
   <!-- Hero -->
   <view class="hero">
-    <view class="hero-title">企业食堂报餐</view>
+    <view class="hero-title">食堂报餐</view>
     <view class="hero-sub">{{ heroSub }}</view>
   </view>
 
@@ -14,19 +14,31 @@
     custom-class="notice-bar"
   />
 
-  <!-- 今日报餐状态 -->
-  <view class="section-title">今日报餐状态</view>
-  <view class="mini-card">
-    <view class="meal-row" wx:for="{{ mealRows }}" wx:key="key">
-      <view class="meal-name">{{ item.name }}</view>
-      <view class="meal-desc">{{ item.desc }}</view>
-      <van-tag type="{{ item.tagType }}">{{ item.tagText }}</van-tag>
+  <!-- 报餐状态：左今日 右明日 -->
+  <view class="meal-dual">
+    <!-- 今日 -->
+    <view class="meal-col mini-card">
+      <view class="meal-col-title">今日报餐 <text class="meal-col-date">{{ todayDateStr }}</text></view>
+      <view class="meal-item" wx:for="{{ todayMeals }}" wx:key="key">
+        <text class="meal-item-name">{{ item.name }}</text>
+        <van-tag wx:if="{{ item.qty > 0 }}" type="success" size="medium">{{ item.qty }}份</van-tag>
+        <van-tag wx:else type="warning" size="medium">未报</van-tag>
+      </view>
+    </view>
+    <!-- 明日 -->
+    <view class="meal-col mini-card">
+      <view class="meal-col-title">明日报餐 <text class="meal-col-date">{{ tomorrowDateStr }}</text></view>
+      <view class="meal-item" wx:for="{{ tomorrowMeals }}" wx:key="key">
+        <text class="meal-item-name">{{ item.name }}</text>
+        <van-tag wx:if="{{ item.qty > 0 }}" type="success" size="medium">{{ item.qty }}份</van-tag>
+        <van-tag wx:else type="warning" size="medium">未报</van-tag>
+      </view>
     </view>
   </view>
 
   <!-- 本月报餐总计 -->
   <view class="mini-card">
-    <view class="title-line">本月报餐总计 <small>截至昨日，不含今日</small></view>
+    <view class="title-line">本月报餐总计</view>
     <view class="stat-grid">
       <view class="stat">
         <text class="stat-num">{{ monthStat.breakfast }}</text>

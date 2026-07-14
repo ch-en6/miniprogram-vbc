@@ -31,6 +31,7 @@
   flex-wrap: wrap;
   gap: 12rpx 16rpx;
   padding: 0;
+  margin-bottom: 12rpx;
 }
 
 .date-text {
@@ -50,12 +51,14 @@
 /* 快捷日期 — 文字链接风格 */
 .quick-tags-inline {
   display: flex;
-  gap: 20rpx;
-  margin-left: 8rpx;
+  gap: 10rpx;
+  margin-left: 0;
 }
 
 .quick-link {
   font-size: 24rpx;
+  margin-right: 20rpx;
+  margin-top: 10rpx;
   color: #9ca3af;
   white-space: nowrap;
 }
@@ -87,11 +90,26 @@
   font-weight: 600;
 }
 
-/* 查询按钮 — 底部居中 */
+/* 查询/重置按钮 — 底部居中 */
 .filter-search {
   display: flex;
   justify-content: center;
+  gap: 20rpx;
   margin-top: 24rpx;
+  overflow: hidden;
+}
+
+.reset-btn {
+  color: #6b7280;
+  border-color: #e5e7eb;
+}
+
+/* 加载状态 */
+.loading-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 80rpx 0;
 }
 
 /* 区间统计卡片 */
@@ -99,11 +117,39 @@
   margin-bottom: 24rpx;
 }
 
+.summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
 .summary-title {
   font-size: 28rpx;
   font-weight: 700;
   color: #374151;
-  margin-bottom: 20rpx;
+}
+
+/* 统计维度切换 */
+.stat-switch {
+  display: flex;
+  gap: 16rpx;
+}
+
+.stat-switch-item {
+  font-size: 22rpx;
+  color: #9ca3af;
+  padding: 4rpx 16rpx;
+  border-radius: 100rpx;
+  background: #f7fbff;
+  border: 1px solid #e3f0ff;
+}
+
+.stat-switch-item.active {
+  color: #1989fa;
+  background: #eaf5ff;
+  border-color: #1989fa;
+  font-weight: 600;
 }
 
 .summary-body {
@@ -136,6 +182,11 @@
   font-size: 32rpx;
   font-weight: 700;
   color: #374151;
+}
+
+.summary-sub {
+  font-size: 22rpx;
+  color: #9ca3af;
 }
 
 .summary-amount {
@@ -179,16 +230,30 @@
 .record-header {
   display: flex;
   align-items: center;
-  gap: 16rpx;
+  justify-content: space-between;
   margin-bottom: 16rpx;
   padding-bottom: 16rpx;
   border-bottom: 1px solid #f0f1f3;
+}
+
+.record-date-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
 }
 
 .record-date {
   font-size: 28rpx;
   font-weight: 700;
   color: #374151;
+}
+
+.record-weekday {
+  font-size: 22rpx;
+  color: #1989fa;
+  background: #eaf5ff;
+  padding: 2rpx 12rpx;
+  border-radius: 8rpx;
 }
 
 .record-date-full {
@@ -222,10 +287,35 @@
   justify-content: space-between;
 }
 
+.meal-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  min-width: 100rpx;
+}
+
+/* 餐别圆点 */
+.meal-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+}
+
+.breakfast-dot {
+  background: #ff976a;
+}
+
+.lunch-dot {
+  background: #1989fa;
+}
+
+.dinner-dot {
+  background: #07c160;
+}
+
 .meal-name {
   font-size: 26rpx;
   color: #6b7280;
-  min-width: 80rpx;
 }
 
 .meal-total-qty {
@@ -242,21 +332,6 @@
   font-weight: 700;
   min-width: 120rpx;
   text-align: right;
-}
-
-.meal-detail {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16rpx;
-  justify-content: flex-end;
-}
-
-.meal-detail-item {
-  font-size: 22rpx;
-  color: #9ca3af;
-  padding: 4rpx 12rpx;
-  background: #f7fbff;
-  border-radius: 8rpx;
 }
 
 .record-footer {

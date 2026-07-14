@@ -1,5 +1,6 @@
 {
   "compileType": "miniprogram",
+  "cloudfunctionRoot": "cloudfunctions/",
   "libVersion": "3.16.1",
   "packOptions": {
     "ignore": [],
@@ -42,5 +43,6 @@
     "tabSize": 2
   },
   "appid": "wxbe7fe7f3f81cb261",
-  "simulatorPluginLibVersion": {}
+  "simulatorPluginLibVersion": {},
+  "cloudfunctionTemplateRoot": "cloudfunctionTemplate/"
 }

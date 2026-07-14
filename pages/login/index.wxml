@@ -3,7 +3,6 @@
   <view class="logo-area">
     <view class="logo-icon">餐</view>
     <text class="app-name">企业报餐</text>
-    <text class="app-slogan">简单高效的企业用餐管理</text>
   </view>
 
   <!-- 登录卡片 -->

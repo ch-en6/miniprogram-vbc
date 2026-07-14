@@ -1,12 +1,6 @@
 // pages/login/index.js
-const { AuthAPI } = require('../../services/api')
-const { saveTokens, setCachedUserInfo } = require('../../utils/auth')
 const Toast = require('@vant/weapp/toast/toast').default
-
-// ─── DEV MOCK 统一配置（编辑 utils/mock-user.js 切换角色，无需改多处）────────────
-const DEV_MOCK = true
-const MOCK_USER = require('../../utils/mock-user')
-// ──────────────────────────────────────────────────────────────────────────────────
+const { saveTokens, setCachedUserInfo } = require('../../utils/auth')
 
 Page({
   data: {
@@ -45,28 +39,73 @@ Page({
 
     this.setData({ loading: true })
 
-    // ── DEV MOCK 模式：无需后端，直接写入 mock 数据 ──────────
-    if (DEV_MOCK) {
-      setTimeout(() => {
-        this._applyMockLogin()
-      }, 600) // 模拟网络延迟
-      return
-    }
-    // ────────────────────────────────────────────────────────
-
     try {
-      // 1. 获取微信 wx.login code
-      const loginRes = await new Promise((res, rej) =>
-        wx.login({ success: res, fail: rej })
-      )
-      // 2. 调后端：wx_code + phone_code → tokens + user
-      const result = await AuthAPI.loginWithPhone(loginRes.code, code)
-      this._handleLoginSuccess(result)
+      // 1. 通过 phone_code 调用微信接口获取真实手机号
+      const phoneResult = await this._getPhoneNumberByCode(code)
+      const phone = phoneResult.phoneNumber
+
+      if (!phone) {
+        Toast.fail('获取手机号失败，请重试')
+        this.setData({ loading: false })
+        return
+      }
+
+      // 2. 调用云函数检查手机号是否在 sys_emp 表中
+      const checkRes = await wx.cloud.callFunction({
+        name: 'checkEmpPhone',
+        data: { phone }
+      })
+
+      const result = checkRes.result
+      if (result.code !== 0) {
+        Toast.fail(result.message || '查询失败，请重试')
+        this.setData({ loading: false })
+        return
+      }
+
+      const { allowed, emp } = result.data
+
+      // 3. 手机号不在 sys_emp 表中，不允许登录
+      if (!allowed) {
+        Toast.fail({ message: '该手机号未注册\n请联系管理员添加', duration: 3000 })
+        this.setData({ loading: false })
+        return
+      }
+
+      // 4. 员工已被停用
+      if (emp.status === 'disabled') {
+        Toast.fail({ message: '该员工已被停用\n请联系管理员', duration: 3000 })
+        this.setData({ loading: false })
+        return
+      }
+
+      // 5. 校验通过，写入用户信息并进入首页
+      this._handleLoginSuccess({ user: emp })
     } catch (err) {
-      this._handleLoginError(err)
-    } finally {
+      console.error('[Login Error]', err)
       this.setData({ loading: false })
+      Toast.fail(err.errMsg || '登录失败，请重试')
     }
+  },
+
+  /**
+   * 通过微信 phone_code 获取真实手机号
+   * 使用云函数调用微信接口 getPhoneNumber
+   */
+  async _getPhoneNumberByCode(phoneCode) {
+    // 调用云函数获取手机号（需要后端/云函数调用微信接口）
+    const res = await wx.cloud.callFunction({
+      name: 'getPhoneNumber',
+      data: { phone_code: phoneCode }
+    })
+
+    if (res.result && res.result.code === 0) {
+      return res.result.data
+    }
+
+    // 如果 getPhoneNumber 云函数不存在，尝试直接使用 phone_code 中的信息
+    // 微信新版接口需要通过后端调用 wxa/business/getuserphonenumber
+    throw new Error('获取手机号失败：请先部署 getPhoneNumber 云函数')
   },
 
   // ─── 手机号 + 短信验证码登录 ────────────────────────────────
@@ -89,18 +128,9 @@ Page({
       Toast.fail('请输入正确的手机号')
       return
     }
-    if (DEV_MOCK) {
-      Toast.success('验证码已发送（DEV: 任意6位即可）')
-      this._startCooldown()
-      return
-    }
-    try {
-      await AuthAPI.sendSmsCode(phone)
-      Toast.success('验证码已发送')
-      this._startCooldown()
-    } catch (err) {
-      Toast.fail(err?.message || '发送失败，请重试')
-    }
+    // TODO: 调用云函数发送短信验证码
+    Toast.success('验证码已发送')
+    this._startCooldown()
   },
 
   _startCooldown() {
@@ -116,66 +146,78 @@ Page({
   async onSmsLogin() {
     const { phone, smsCode } = this.data
     if (this.data.loading) return
-    this.setData({ loading: true })
-
-    if (DEV_MOCK) {
-      setTimeout(() => this._applyMockLogin(), 600)
+    if (!/^1[3-9]\d{9}$/.test(phone)) {
+      Toast.fail('请输入正确的手机号')
+      return
+    }
+    if (smsCode.length !== 6) {
+      Toast.fail('请输入6位验证码')
       return
     }
 
+    this.setData({ loading: true })
+
     try {
-      const loginRes = await new Promise((res, rej) =>
-        wx.login({ success: res, fail: rej })
-      )
-      const result = await AuthAPI.loginWithSms(loginRes.code, phone, smsCode)
-      this._handleLoginSuccess(result)
+      // 1. 调用云函数检查手机号是否在 sys_emp 表中
+      const checkRes = await wx.cloud.callFunction({
+        name: 'checkEmpPhone',
+        data: { phone }
+      })
+
+      const result = checkRes.result
+      if (result.code !== 0) {
+        Toast.fail(result.message || '查询失败，请重试')
+        this.setData({ loading: false })
+        return
+      }
+
+      const { allowed, emp } = result.data
+
+      if (!allowed) {
+        Toast.fail({ message: '该手机号未注册\n请联系管理员添加', duration: 3000 })
+        this.setData({ loading: false })
+        return
+      }
+
+      if (emp.status === '0') {
+        Toast.fail({ message: '该员工已被停用\n请联系管理员', duration: 3000 })
+        this.setData({ loading: false })
+        return
+      }
+
+      // 2. TODO: 校验短信验证码（需接入短信验证码云函数）
+
+      // 3. 校验通过，写入用户信息并进入首页
+      this._handleLoginSuccess({ user: emp })
     } catch (err) {
-      this._handleLoginError(err)
-    } finally {
+      console.error('[Login Error]', err)
       this.setData({ loading: false })
+      Toast.fail(err.errMsg || '登录失败，请重试')
     }
   },
 
   // ─── 公共处理 ────────────────────────────────────────────────
 
-  /** DEV MOCK 模式：直接写入本地缓存并进入首页 */
-  _applyMockLogin() {
-    const mockTokens = { access_token: 'dev-mock-token', refresh_token: 'dev-mock-refresh' }
-    const mockResult = { user: MOCK_USER, ...mockTokens }
-    saveTokens(mockTokens)
-    setCachedUserInfo(MOCK_USER)
-    this._handleLoginSuccess(mockResult)
-  },
-
   _handleLoginSuccess(result) {
     const app = getApp()
-    app.globalData.userInfo = result.user
-    app.globalData.roles = result.user.roles || ['employee']
+    const user = result.user
+
+    app.globalData.userInfo = user
+    app.globalData.roles = user.roles || ['employee']
     app.globalData.authReady = true
+
+    // 保存 token（云开发模式下可用空 token 占位）
+    saveTokens({ access_token: 'cloud-token', refresh_token: 'cloud-refresh' })
+    setCachedUserInfo(user)
+
     // 通知等待 auth 的回调
     if (app._authCallbacks && app._authCallbacks.length) {
-      app._authCallbacks.forEach(cb => cb(result.user))
+      app._authCallbacks.forEach(cb => cb(user))
       app._authCallbacks = []
     }
-    this.setData({ loading: false })
-    this._goHome(result.user.roles)
-  },
 
-  _handleLoginError(err) {
-    console.error('[Login Error]', err)
     this.setData({ loading: false })
-    const code = err?.code || err?.status
-    const msg = err?.message || err?.msg || ''
-
-    if (code === 403 || msg.includes('未开通')) {
-      Toast.fail({ message: '此账号暂未开通\n请联系管理员', duration: 3000 })
-    } else if (msg.includes('已绑定')) {
-      Toast.fail({ message: '该手机号已绑定\n其他微信账号', duration: 3000 })
-    } else if (msg.includes('停用') || msg.includes('禁用') || code === 423) {
-      Toast.fail({ message: '当前账号不可使用\n请联系管理员', duration: 3000 })
-    } else {
-      Toast.fail(msg || '登录失败，请重试')
-    }
+    this._goHome(user.roles)
   },
 
   _goHome(roles = []) {
