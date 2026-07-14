@@ -252,12 +252,32 @@ Page({
   // 格式化时间（云数据库返回的 Date 对象或字符串）
   _formatTime(timeVal) {
     if (!timeVal) return ''
-    if (typeof timeVal === 'string') return timeVal.slice(0, 16)
-    if (timeVal.$date) {
-      const d = new Date(timeVal.$date)
-      return T.formatDateTime(d)
+    
+    let date
+    
+    // 处理云数据库返回的不同格式
+    if (typeof timeVal === 'string') {
+      // 字符串格式："2026-07-13T16:07:56.000Z" 或 "Mon Jul 13 2026 16:07:56 GMT+0800"
+      date = new Date(timeVal)
+    } else if (timeVal.$date) {
+      // MongoDB 日期格式：{ $date: timestamp }
+      date = new Date(timeVal.$date)
+    } else if (timeVal instanceof Date) {
+      // Date 对象
+      date = timeVal
+    } else {
+      // 其他情况尝试转换
+      date = new Date(timeVal)
     }
-    return String(timeVal).slice(0, 16)
+    
+    // 验证日期是否有效
+    if (isNaN(date.getTime())) {
+      console.warn('[Record] 无效的时间格式:', timeVal)
+      return ''
+    }
+    
+    // 使用 utils/time 中的 formatDateTime 方法
+    return T.formatDateTime(date)
   },
 
   // 获取餐别标签
