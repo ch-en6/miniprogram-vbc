@@ -138,10 +138,13 @@ Page({
       const tomorrowStr = formatDate(tomorrow)
       const month = formatMonth(now)
 
+      const app = getApp()
+      const userInfo = app.globalData.userInfo || {}
+
       // 获取当月记录
       const res = await wx.cloud.callFunction({
         name: 'mealOrder',
-        data: { action: 'getMonth', month }
+        data: { action: 'getMonth', month, emp_id: userInfo._id }
       })
 
       if (res.result && res.result.code === 0 && res.result.data) {
@@ -155,7 +158,7 @@ Page({
           if (tomorrowMonth !== month) {
             const res2 = await wx.cloud.callFunction({
               name: 'mealOrder',
-              data: { action: 'getMonth', month: tomorrowMonth }
+              data: { action: 'getMonth', month: tomorrowMonth, emp_id: userInfo._id }
             })
             if (res2.result && res2.result.code === 0 && res2.result.data) {
               tomorrowRecord = res2.result.data.find(r => r.date === tomorrowStr) || null

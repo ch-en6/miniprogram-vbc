@@ -1,6 +1,5 @@
 // pages/record/index.js — 报餐记录页（云开发模式）
 const T = require('../../utils/time')
-const { DEFAULT_MEAL_PRICE, MEAL_TYPE } = require('../../utils/const')
 
 Page({
   data: {
@@ -19,15 +18,134 @@ Page({
     startDate: '',
     endDate: '',
     mealFilter: '',    // '' | 'breakfast' | 'lunch' | 'dinner'
+
+    // 价格配置（从云数据库读取）
+    priceConfig: null,
   },
 
   onLoad() {
     this._setDefaultDateRange()
+    this._loadPriceConfig()
     this._loadRecords()
   },
 
   onShow() {
     this._loadRecords()
+  },
+
+  /**
+   * 从云数据库加载价格配置
+   */
+  async _loadPriceConfig() {
+    try {
+      // 获取当前用户的部门ID
+      const app = getApp()
+      const userInfo = app.globalData.userInfo || {}
+      const dept_id = userInfo.dept_id
+      
+      if (!dept_id) {
+        console.warn('[Record] 用户没有部门ID，无法加载价格配置')
+        wx.showToast({ title: '未找到部门信息', icon: 'none' })
+        return
+      }
+      
+      const res = await wx.cloud.callFunction({
+        name: 'mealOrder',
+        data: {
+          action: 'getPriceConfig',
+          dept_id: dept_id
+        }
+      })
+
+      if (res.result && res.result.code === 0 && res.result.data) {
+        this.setData({
+          priceConfig: res.result.data
+        })
+        console.log('[Record] 价格配置加载成功:', res.result.data)
+      } else {
+        console.error('[Record] 价格配置加载失败:', res.result?.message)
+        wx.showToast({ title: res.result?.message || '加载价格失败', icon: 'none' })
+      }
+    } catch (err) {
+      console.error('[Record] 加载价格配置失败:', err)
+      wx.showToast({ title: '加载价格配置失败', icon: 'none' })
+    }
+  },
+
+  /**
+   * 计算餐费（阶梯计费：第1份员工价，超出部分家属价）
+   * @param {string} mealType - 'breakfast' | 'lunch' | 'dinner'
+   * @param {number} qty - 报餐数量
+   * @returns {number} 总费用
+   */
+  _calculateMealAmount(mealType, qty) {
+    if (!qty || qty <= 0) return 0
+    
+    const config = this.data.priceConfig
+    if (!config || !config[mealType]) {
+      // 如果配置未加载，返回默认值
+      const defaultPrices = {
+        breakfast: { emp_price: 100, family_price: 1000 },
+        lunch: { emp_price: 200, family_price: 2000 },
+        dinner: { emp_price: 200, family_price: 2000 }
+      }
+      const prices = defaultPrices[mealType] || { emp_price: 0, family_price: 0 }
+      
+      // 阶梯计费：第1份员工价，超出部分家属价
+      if (qty === 1) {
+        return prices.emp_price
+      } else {
+        return prices.emp_price + (qty - 1) * prices.family_price
+      }
+    }
+    
+    const empPrice = config[mealType].emp_price || 0
+    const familyPrice = config[mealType].family_price || 0
+    
+    // 阶梯计费：第1份员工价，超出部分家属价
+    if (qty === 1) {
+      return empPrice
+    } else {
+      return empPrice + (qty - 1) * familyPrice
+    }
+  },
+
+  /**
+   * 获取指定餐次的员工价格
+   * @param {string} mealType - 'breakfast' | 'lunch' | 'dinner'
+   * @returns {number} 员工价格
+   */
+  _getMealPrice(mealType) {
+    const config = this.data.priceConfig
+    if (!config || !config[mealType]) {
+      // 如果配置未加载，返回默认值
+      const defaultPrices = {
+        breakfast: 100,
+        lunch: 200,
+        dinner: 200
+      }
+      return defaultPrices[mealType] || 0
+    }
+    return config[mealType].emp_price || 0
+  },
+
+  /**
+   * 获取指定餐次的家属价格
+   * @param {string} mealType - 'breakfast' | 'lunch' | 'dinner'
+   * @returns {number} 家属价格
+   */
+  _getFamilyMealPrice(mealType) {
+    const config = this.data.priceConfig
+    if (!config || !config[mealType]) {
+      // 如果配置未加载，返回默认值
+      const defaultPrices = {
+        breakfast: 1000,
+        lunch: 2000,
+        dinner: 2000
+      }
+      return defaultPrices[mealType] || 0
+    }
+    return config[mealType].family_price || 0
   },
 
   // 设置默认日期范围（本月）
@@ -145,12 +263,15 @@ Page({
     this.setData({ loading: true })
 
     try {
+      const app = getApp()
+      const userInfo = app.globalData.userInfo || {}
       const res = await wx.cloud.callFunction({
         name: 'mealOrder',
         data: {
           action: 'getRange',
           startDate: this.data.startDate,
           endDate: this.data.endDate,
+          emp_id: userInfo._id,
         }
       })
 
@@ -194,8 +315,7 @@ Page({
             }
           }
           const day = grouped[r.date]
-          const price = DEFAULT_MEAL_PRICE[r.mealType] || 0
-          const amount = r.qty * price
+          const amount = this._calculateMealAmount(r.mealType, r.qty)
 
           day.meals[r.mealType] = {
             qty: r.qty,
@@ -220,8 +340,7 @@ Page({
         let totalQty = 0
         let totalAmount = 0
         records.forEach(r => {
-          const price = DEFAULT_MEAL_PRICE[r.mealType] || 0
-          const amount = r.qty * price
+          const amount = this._calculateMealAmount(r.mealType, r.qty)
           const m = mealSummary[r.mealType]
           if (m) {
             m.qty += r.qty

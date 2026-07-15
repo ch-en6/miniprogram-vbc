@@ -14,16 +14,59 @@ Page({
       { key: 'lunch', label: '午餐'},
       { key: 'dinner', label: '晚餐'},
     ],
+    // 价格配置（从云数据库读取）
+    priceConfig: null,
   },
 
   onLoad() {
     this._currentDate = new Date()
+    this._loadPriceConfig()
     this._buildCalendar()
   },
 
   async onShow() {
     await this._buildCalendar()
   },
+
+  /**
+   * 从云数据库加载价格配置
+   */
+  async _loadPriceConfig() {
+    try {
+      // 获取当前用户的部门ID
+      const app = getApp()
+      const userInfo = app.globalData.userInfo || {}
+      const dept_id = userInfo.dept_id
+      
+      if (!dept_id) {
+        console.warn('[Book] 用户没有部门ID，无法加载价格配置')
+        wx.showToast({ title: '未找到部门信息', icon: 'none' })
+        return
+      }
+      
+      const res = await wx.cloud.callFunction({
+        name: 'mealOrder',
+        data: {
+          action: 'getPriceConfig',
+          dept_id: dept_id
+        }
+      })
+
+      if (res.result && res.result.code === 0 && res.result.data) {
+        this.setData({
+          priceConfig: res.result.data
+        })
+        console.log('[Book] 价格配置加载成功:', res.result.data)
+      } else {
+        console.error('[Book] 价格配置加载失败:', res.result?.message)
+        wx.showToast({ title: res.result?.message || '加载价格失败', icon: 'none' })
+      }
+    } catch (err) {
+      console.error('[Book] 加载价格配置失败:', err)
+      wx.showToast({ title: '加载价格配置失败', icon: 'none' })
+    }
+  },
+
 
   // ─── 月历构建 ────────────────────────────────────────────────
 
@@ -45,9 +88,11 @@ Page({
     // 从云数据库加载当月报餐记录
     let monthOrders = {}
     try {
+      const app = getApp()
+      const userInfo = app.globalData.userInfo || {}
       const res = await wx.cloud.callFunction({
         name: 'mealOrder',
-        data: { action: 'getMonth', month: monthStr }
+        data: { action: 'getMonth', month: monthStr, emp_id: userInfo._id }
       })
       if (res.result && res.result.code === 0 && res.result.data) {
         res.result.data.forEach(item => {
@@ -117,10 +162,27 @@ Page({
   // 计费规则说明
   onShowBillingRule() {
     const Dialog = require('@vant/weapp/dialog/dialog').default
+    
+    // 构建动态价格信息
+    const config = this.data.priceConfig
+    let message = '【餐费】\n每餐第 1 份按员工餐标准收费，超过 1 份的部分按家属餐标准收费。\n\n'
+    
+    if (config) {
+      message += `早餐：员工 ${config.breakfast?.emp_price || 100} 元，家属 ${config.breakfast?.family_price || 1000} 元\n`
+      message += `午餐：员工 ${config.lunch?.emp_price || 1000} 元，家属 ${config.lunch?.family_price || 2000} 元\n`
+      message += `晚餐：员工 ${config.dinner?.emp_price || 1000} 元，家属 ${config.dinner?.family_price || 2000} 元\n\n`
+    } else {
+      message += '早餐：员工 100 元，家属 200 元\n'
+      message += '午餐：员工 1000 元，家属 2000 元\n'
+      message += '晚餐：员工 1000 元，家属 2000 元\n\n'
+    }
+    
+    message += '\n\n将数量减为 0 即取消该餐报餐，截止时间前可修改。'
+    
     Dialog.alert({
       title: '计费规则',
       messageAlign: 'left',
-      message: '每餐第 1 份按员工餐标准收费，超过 1 份的部分按家属餐标准收费。\n\n早餐：员工 5 元，家属 8 元\n午餐：员工 10 元，家属 15 元\n晚餐：员工 8 元，家属 12 元\n\n将数量减为 0 即取消该餐报餐，截止时间前可修改。',
+      message: message,
       confirmButtonText: '知道了',
     })
   },
@@ -195,15 +257,19 @@ Page({
     try {
       if (isCancel) {
         // 删除报餐记录
+        const app = getApp()
+        const userInfo = app.globalData.userInfo || {}
         const res = await wx.cloud.callFunction({
           name: 'mealOrder',
-          data: { action: 'remove', date: day.dateStr }
+          data: { action: 'remove', date: day.dateStr, emp_id: userInfo._id }
         })
         if (res.result && res.result.code !== 0) {
           throw new Error(res.result.message)
         }
       } else {
         // 保存/更新报餐记录
+        const app = getApp()
+        const userInfo = app.globalData.userInfo || {}
         const res = await wx.cloud.callFunction({
           name: 'mealOrder',
           data: {
@@ -212,6 +278,7 @@ Page({
             breakfast: day.breakfast,
             lunch: day.lunch,
             dinner: day.dinner,
+            emp_id: userInfo._id,
           }
         })
         if (res.result && res.result.code !== 0) {
