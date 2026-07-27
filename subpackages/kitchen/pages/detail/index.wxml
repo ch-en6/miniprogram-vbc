@@ -1,0 +1,72 @@
+<view class="kitchen-detail-page">
+  <!-- 搜索栏 -->
+  <van-search
+    value="{{ searchKey }}"
+    placeholder="搜索姓名 / 手机号 / 部门"
+    bind:search="onSearch"
+    bind:change="onSearchInput"
+    bind:clear="onSearchClear"
+    show-action
+    action-text="搜索"
+    background="#f5f6f8"
+  />
+
+  <!-- 筛选Tab -->
+  <van-tabs
+    active="{{ activeMeal }}"
+    color="#07c160"
+    title-active-color="#07c160"
+    bind:change="onMealTabChange"
+    sticky
+    offset-top="112rpx"
+  >
+    <van-tab title="全部" name="" />
+    <van-tab title="早餐" name="breakfast" />
+    <van-tab title="午餐" name="lunch" />
+    <van-tab title="晚餐" name="dinner" />
+  </van-tabs>
+
+  <!-- 汇总行 -->
+  <view class="summary-bar" wx:if="{{ !loading }}">
+    <text class="summary-text">共 {{ total }} 条，合计 {{ totalQty }} 份</text>
+  </view>
+
+  <!-- 列表 -->
+  <view class="detail-list" wx:if="{{ !loading }}">
+    <view class="detail-item" wx:for="{{ list }}" wx:key="id">
+      <view class="detail-left">
+        <text class="detail-name">{{ item.name }}</text>
+        <text class="detail-phone">{{ item.phone }}</text>
+      </view>
+      <view class="detail-center">
+        <text class="detail-dept">{{ item.deptName }}</text>
+      </view>
+      <view class="detail-right">
+        <van-tag
+          type="{{ item.mealType === 'breakfast' ? 'warning' : item.mealType === 'lunch' ? 'success' : 'primary' }}"
+          custom-style="font-size:22rpx;"
+        >{{ item.mealLabel }}</van-tag>
+        <text class="detail-qty">{{ item.qty }} 份</text>
+        <text class="detail-family" wx:if="{{ item.familyQty > 0 }}">家 {{ item.familyQty }}</text>
+      </view>
+    </view>
+
+    <view class="load-more" wx:if="{{ hasMore }}" bindtap="loadMore">
+      <van-loading wx:if="{{ loadingMore }}" size="32rpx" color="#07c160" />
+      <text wx:else>加载更多</text>
+    </view>
+    <view class="no-more" wx:if="{{ !hasMore && list.length > 0 }}">
+      <text>已全部加载</text>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-wrap" wx:if="{{ !loading && list.length === 0 }}">
+    <van-empty description="暂无报餐明细" />
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading-center" wx:if="{{ loading }}">
+    <van-loading type="spinner" color="#07c160" size="64rpx" />
+  </view>
+</view>

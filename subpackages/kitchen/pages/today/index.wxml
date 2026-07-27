@@ -1,0 +1,329 @@
+<!-- subpackages/kitchen/pages/today/index.wxml — 食堂工作台（顶部蓝条 navbar + 底部 4 tab 切换） -->
+<view class="kitchen-page {{ activeTab === 'profile' ? 'kitchen-page--profile' : '' }}">
+
+  <!-- 自定义导航栏（蓝条 + 标题 + 刷新） -->
+  <view class="custom-navbar" style="height: {{ navBarHeight }}px; padding-top: {{ statusBarHeight }}px;">
+    <view class="navbar-inner">
+      <view class="navbar-left" bindtap="onRefreshTap">
+        <van-icon name="replay" size="40rpx" color="#fff" />
+        <text class="refresh-text">刷新</text>
+      </view>
+      <text class="navbar-title">{{ pageTitle }}</text>
+      <view class="navbar-right"></view>
+    </view>
+  </view>
+
+  <!-- 加载中（仅非查询 tab 加载时显示） -->
+  <view class="loading-center" wx:if="{{ loading && activeTab !== 'search' }}">
+    <van-loading type="spinner" color="#1989fa" size="64rpx" />
+  </view>
+
+  <!-- ═══ 报餐查询 Tab ═══ -->
+  <view wx:if="{{ activeTab === 'search' }}" class="search-tab-content">
+    <view class="search-card mini-card">
+      <view class="search-title">按姓名查询今日报餐</view>
+
+      <!-- 搜索框 + 查询按钮 -->
+      <view class="search-input-row">
+        <view class="search-input-wrap">
+          <input
+            class="search-input"
+            type="text"
+            value="{{ searchKeyword }}"
+            placeholder="请输入姓名"
+            placeholder-style="color: #9ca3af"
+            bindinput="onSearchInput"
+            focus="{{ searchFocus }}"
+          />
+          <van-icon wx:if="{{ searchKeyword }}" name="clear" size="28rpx" color="#9ca3af" custom-class="search-clear" bindtap="onClearSearch" />
+        </view>
+        <van-button type="primary" size="small" bindtap="onSearchTap" custom-class="search-btn">查询</van-button>
+      </view>
+
+      <!-- 餐别选择（单选：全天/早餐/午餐/晚餐） -->
+      <view class="meal-filter-row">
+        <text class="meal-filter-label">查询餐别</text>
+        <view class="meal-filter-chips">
+          <view class="meal-chip {{ searchMealFilter === '' ? 'active' : '' }}" bindtap="onSelectMeal" data-meal="">
+            <text>全天</text>
+          </view>
+          <view class="meal-chip {{ searchMealFilter === 'breakfast' ? 'active' : '' }}" bindtap="onSelectMeal" data-meal="breakfast">
+            <text>早餐</text>
+          </view>
+          <view class="meal-chip {{ searchMealFilter === 'lunch' ? 'active' : '' }}" bindtap="onSelectMeal" data-meal="lunch">
+            <text>午餐</text>
+          </view>
+          <view class="meal-chip {{ searchMealFilter === 'dinner' ? 'active' : '' }}" bindtap="onSelectMeal" data-meal="dinner">
+            <text>晚餐</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 查询结果 -->
+    <view class="search-result-panel" wx:if="{{ personSearchResult !== null }}">
+      <!-- 已找到 -->
+      <view class="person-result found" wx:if="{{ personSearchResult.found }}">
+        <view class="person-info-row">
+          <view class="person-info-main">
+            <text class="person-name-lg">{{ personSearchResult.name }}</text>
+            <text class="person-dept-tag">{{ personSearchResult.deptName }}</text>
+          </view>
+          <text class="person-search-date">{{ todayLabel }}</text>
+        </view>
+        <view class="person-detail-card">
+          <view class="person-meal-line" wx:if="{{ !searchMealFilter || searchMealFilter === 'breakfast' }}">
+            <text class="person-date-label">早餐</text>
+            <text class="person-meal-status {{ personSearchResult.breakfast ? 'booked' : '' }}">
+              {{ personSearchResult.breakfast ? '已报餐' : '未报餐' }}
+            </text>
+          </view>
+          <view class="person-meal-line" wx:if="{{ !searchMealFilter || searchMealFilter === 'lunch' }}">
+            <text class="person-date-label">午餐</text>
+            <text class="person-meal-status {{ personSearchResult.lunch ? 'booked' : '' }}">
+              {{ personSearchResult.lunch ? '已报餐' : '未报餐' }}
+            </text>
+          </view>
+          <view class="person-meal-line" wx:if="{{ !searchMealFilter || searchMealFilter === 'dinner' }}">
+            <text class="person-date-label">晚餐</text>
+            <text class="person-meal-status {{ personSearchResult.dinner ? 'booked' : '' }}">
+              {{ personSearchResult.dinner ? '已报餐' : '未报餐' }}
+            </text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 未找到 -->
+      <view class="person-result not-found" wx:if="{{ !personSearchResult.found }}">
+        <van-empty image="search" description="未找到该人员的今日报餐记录" />
+      </view>
+    </view>
+
+    <!-- 空状态提示 -->
+    <view class="search-empty-tip" wx:if="{{ personSearchResult === null && !searchKeyword }}">
+      <van-empty description="请输入姓名，查询今日报餐情况" />
+    </view>
+  </view>
+
+  <!-- ═══ 今日报餐 ═══ -->
+  <view wx:if="{{ !loading && activeTab === 'today' }}">
+    <!-- 日期信息行 -->
+    <view class="date-info-bar">
+      <view class="date-info-main">
+        <text class="date-info-day">{{ todayDay }}</text>
+        <text class="date-info-week">{{ todayWeek }}</text>
+      </view>
+    </view>
+
+    <!-- 三餐汇总卡片 -->
+    <view class="meal-summary">
+      <view class="meal-card {{ item.type }}" wx:for="{{ todayData.mealSummary }}" wx:key="type">
+        <text class="meal-card__label">{{ item.label }}</text>
+        <view class="meal-card__nums">
+          <view class="num-item">
+            <text class="num-val">{{ item.headCount }}</text>
+            <text class="num-key">人数</text>
+          </view>
+          <view class="num-divider" />
+          <view class="num-item">
+            <text class="num-val">{{ item.totalQty }}</text>
+            <text class="num-key">份数</text>
+          </view>
+          <view class="num-divider" />
+          <view class="num-item">
+            <text class="num-val {{ item.familyQty > 0 ? 'num-val--highlight' : '' }}">{{ item.familyQty }}</text>
+            <text class="num-key">家属</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 部门汇总 -->
+    <view class="dept-section mini-card" wx:if="{{ todayData.deptCards.length > 0 }}">
+      <view class="section-title-bar">
+        <text class="section-title">部门汇总</text>
+        <view class="view-detail-btn" bindtap="goDetail" data-date="{{ todayDate }}">
+          <text>明细</text>
+          <van-icon name="arrow" size="24rpx" color="#1989fa" />
+        </view>
+      </view>
+      <view class="dept-card" wx:for="{{ todayData.deptCards }}" wx:key="deptName">
+        <text class="dept-name">{{ item.deptName }}</text>
+        <view class="dept-meals">
+          <text class="dept-meal-item" wx:if="{{ item.breakfast > 0 }}">早 {{ item.breakfast }}</text>
+          <text class="dept-meal-item" wx:if="{{ item.lunch > 0 }}">午 {{ item.lunch }}</text>
+          <text class="dept-meal-item" wx:if="{{ item.dinner > 0 }}">晚 {{ item.dinner }}</text>
+        </view>
+        <text class="dept-total">共 {{ item.total }} 份</text>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-wrap" wx:if="{{ todayData.deptCards.length === 0 }}">
+      <van-empty description="今日暂无报餐记录" />
+    </view>
+  </view>
+
+  <!-- ═══ 明日报餐 ═══ -->
+  <view wx:if="{{ !loading && activeTab === 'tomorrow' }}">
+    <!-- 日期信息行 + 截止状态 -->
+    <view class="date-info-bar">
+      <view class="date-info-main">
+        <text class="date-info-day">{{ tomorrowDay }}</text>
+        <text class="date-info-week">{{ tomorrowWeek }}</text>
+      </view>
+      <text class="deadline-tag {{ tomorrowDeadline === '已截止' ? 'expired' : '' }}">{{ tomorrowDeadline }}</text>
+    </view>
+
+    <!-- 三餐汇总卡片 -->
+    <view class="meal-summary">
+      <view class="meal-card {{ item.type }}" wx:for="{{ tomorrowData.mealSummary }}" wx:key="type">
+        <text class="meal-card__label">{{ item.label }}</text>
+        <view class="meal-card__nums">
+          <view class="num-item">
+            <text class="num-val">{{ item.headCount }}</text>
+            <text class="num-key">人数</text>
+          </view>
+          <view class="num-divider" />
+          <view class="num-item">
+            <text class="num-val">{{ item.totalQty }}</text>
+            <text class="num-key">份数</text>
+          </view>
+          <view class="num-divider" />
+          <view class="num-item">
+            <text class="num-val {{ item.familyQty > 0 ? 'num-val--highlight' : '' }}">{{ item.familyQty }}</text>
+            <text class="num-key">家属</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 部门汇总 -->
+    <view class="dept-section mini-card" wx:if="{{ tomorrowData.deptCards.length > 0 }}">
+      <view class="section-title-bar">
+        <text class="section-title">部门汇总</text>
+        <view class="view-detail-btn" bindtap="goDetail" data-date="{{ tomorrowDate }}">
+          <text>明细</text>
+          <van-icon name="arrow" size="24rpx" color="#1989fa" />
+        </view>
+      </view>
+      <view class="dept-card" wx:for="{{ tomorrowData.deptCards }}" wx:key="deptName">
+        <text class="dept-name">{{ item.deptName }}</text>
+        <view class="dept-meals">
+          <text class="dept-meal-item" wx:if="{{ item.breakfast > 0 }}">早 {{ item.breakfast }}</text>
+          <text class="dept-meal-item" wx:if="{{ item.lunch > 0 }}">午 {{ item.lunch }}</text>
+          <text class="dept-meal-item" wx:if="{{ item.dinner > 0 }}">晚 {{ item.dinner }}</text>
+        </view>
+        <text class="dept-total">共 {{ item.total }} 份</text>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-wrap" wx:if="{{ tomorrowData.deptCards.length === 0 }}">
+      <van-empty description="明日暂无报餐记录" />
+    </view>
+  </view>
+
+  <!-- ═══ 个人中心 Tab ═══ -->
+  <view wx:if="{{ activeTab === 'profile' }}" class="profile-tab-content">
+    <van-cell-group inset title="个人中心">
+      <van-cell title="姓名" value="{{ userInfo.name || '—' }}" />
+      <van-cell title="手机号">
+        <view slot="right-icon" class="phone-row-right">
+          <text class="phone-value">{{ phoneMasked || '—' }}</text>
+          <text class="rebind-link" bindtap="toggleRebind">换绑</text>
+        </view>
+      </van-cell>
+      <van-cell title="部门" value="{{ userInfo.dept || '—' }}" />
+      <van-cell title="当前角色" value="{{ roleName }}" />
+      <van-cell title="微信绑定" value="已绑定" />
+    </van-cell-group>
+
+    <!-- 工作台切换 + 退出登录 -->
+    <view class="mini-card profile-action-card">
+      <view class="section-title" style="margin-top: 0;">工作台切换</view>
+      <view class="workspace-tags">
+        <view wx:if="{{ !isKitchen }}" class="ws-btn ws-btn-primary" bindtap="goEmployee">员工端</view>
+        <view wx:if="{{ isDeptAdmin }}" class="ws-btn ws-btn-plain" bindtap="goWorkbench">部门管理员工作台</view>
+        <view wx:if="{{ isSysAdmin }}" class="ws-btn ws-btn-plain" bindtap="goWorkbench">系统管理员工作台</view>
+        <view wx:if="{{ isKitchen }}" class="ws-btn ws-btn-plain" bindtap="goWorkbench">食堂工作台</view>
+        <view class="ws-btn ws-btn-danger" bindtap="logout">退出登录</view>
+      </view>
+    </view>
+
+    <!-- 换绑手机号弹窗 -->
+    <view class="phone-modal" wx:if="{{ showRebind }}">
+      <view class="phone-modal-card">
+        <view class="modal-head">
+          <text class="modal-title">换绑手机号</text>
+          <van-icon name="cross" bindtap="toggleRebind" />
+        </view>
+        <view class="muted rebind-tip">新手机号必须已存在于员工列表，且未绑定其他微信。如需换绑手机号，请先联系部门管理员。</view>
+        <van-cell-group inset>
+          <van-field label="当前手机号" value="{{ phoneMasked }}" readonly />
+          <van-field label="新手机号" placeholder="请输入新手机号" value="{{ newPhone }}" bind:change="onNewPhoneInput" />
+          <van-field label="验证码" placeholder="请输入验证码" value="{{ smsCode }}" bind:change="onSmsInput">
+            <view slot="button">
+              <van-button size="small" type="primary" bindtap="sendSmsCode" disabled="{{ smsCooldown > 0 }}" custom-class="sms-btn-mini">
+                {{ smsCooldown > 0 ? smsCooldown + 's' : '获取验证码' }}
+              </van-button>
+            </view>
+          </van-field>
+        </van-cell-group>
+        <view class="btn-row">
+          <van-button type="primary" block round bindtap="confirmRebind">确认换绑</van-button>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部留白，避免被底部 tabbar 遮挡 -->
+  <view class="bottom-tabbar-spacer"></view>
+
+  <!-- ═══ 底部 4 tab 导航（自绘，Vant icon + 文字） ═══ -->
+  <view class="bottom-tabbar" style="padding-bottom: {{ safeBottom }}px;">
+    <view
+      class="bottom-tab {{ activeTab === 'search' ? 'active' : '' }}"
+      bindtap="onTabChange"
+      data-tab="search"
+      hover-class="bottom-tab--hover"
+      hover-stay-time="80"
+    >
+      <van-icon name="search" size="22px" color="{{ activeTab === 'search' ? '#1989fa' : '#7b8794' }}" />
+      <text class="bottom-tab__text {{ activeTab === 'search' ? 'active' : '' }}">报餐查询</text>
+    </view>
+    <view
+      class="bottom-tab {{ activeTab === 'today' ? 'active' : '' }}"
+      bindtap="onTabChange"
+      data-tab="today"
+      hover-class="bottom-tab--hover"
+      hover-stay-time="80"
+    >
+      <van-icon name="todo-list-o" size="22px" color="{{ activeTab === 'today' ? '#1989fa' : '#7b8794' }}" />
+      <text class="bottom-tab__text {{ activeTab === 'today' ? 'active' : '' }}">今日报餐</text>
+    </view>
+    <view
+      class="bottom-tab {{ activeTab === 'tomorrow' ? 'active' : '' }}"
+      bindtap="onTabChange"
+      data-tab="tomorrow"
+      hover-class="bottom-tab--hover"
+      hover-stay-time="80"
+    >
+      <van-icon name="calendar-o" size="22px" color="{{ activeTab === 'tomorrow' ? '#1989fa' : '#7b8794' }}" />
+      <text class="bottom-tab__text {{ activeTab === 'tomorrow' ? 'active' : '' }}">明日报餐</text>
+    </view>
+    <view
+      class="bottom-tab {{ activeTab === 'profile' ? 'active' : '' }}"
+      bindtap="onTabChange"
+      data-tab="profile"
+      hover-class="bottom-tab--hover"
+      hover-stay-time="80"
+    >
+      <van-icon name="user-o" size="22px" color="{{ activeTab === 'profile' ? '#1989fa' : '#7b8794' }}" />
+      <text class="bottom-tab__text {{ activeTab === 'profile' ? 'active' : '' }}">个人中心</text>
+    </view>
+  </view>
+
+  <!-- Vant Dialog 组件（函数式调用需要） -->
+  <van-dialog id="van-dialog" />
+</view>

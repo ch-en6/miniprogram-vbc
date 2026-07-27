@@ -1,0 +1,96 @@
+/* subpackages/kitchen/pages/detail/index.wxss */
+
+.kitchen-detail-page {
+  min-height: 100vh;
+  background: #f5f6f8;
+  padding-bottom: 80rpx;
+}
+
+.summary-bar {
+  padding: 24rpx;
+  background: #fff;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.summary-text {
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* ─── 列表 ─── */
+.detail-list {
+  margin: 16rpx 0 0;  /* 全宽显示（原来是 16rpx 32rpx 0） */
+  padding: 0 24rpx;   /* 通过 padding 控制内边距 */
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 24rpx;  /* 与 mini-card 一致（原来是 16rpx） */
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+}
+
+.detail-left {
+  width: 180rpx;
+  flex-shrink: 0;
+}
+
+.detail-name {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.detail-phone {
+  display: block;
+  font-size: 22rpx;
+  color: #bbb;
+  margin-top: 4rpx;
+}
+
+.detail-center {
+  flex: 1;
+  padding: 0 16rpx;
+}
+
+.detail-dept {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.detail-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6rpx;
+}
+
+.detail-qty {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.detail-family {
+  font-size: 20rpx;
+  color: #ff9500;
+}
+
+.load-more, .no-more {
+  text-align: center;
+  padding: 32rpx;
+  font-size: 26rpx;
+  color: #07c160;
+}
+
+.no-more { color: #ccc; }
+
+.empty-wrap, .loading-center {
+  padding-top: 120rpx;
+  display: flex;
+  justify-content: center;
+}
