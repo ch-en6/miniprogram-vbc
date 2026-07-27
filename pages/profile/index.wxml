@@ -22,6 +22,12 @@
           <text class="rebind-link" bindtap="toggleRebind">换绑</text>
         </view>
       </view>
+      <view class="emp-info-row" bindtap="toggleChangePwd">
+        <text class="emp-label">修改密码</text>
+        <view class="pwd-arrow">
+          <van-icon name="arrow" size="16px" color="#c0c4cc" />
+        </view>
+      </view>
       <!-- <view class="emp-info-row">
         <text class="emp-label">微信绑定</text>
         <text class="emp-value">已绑定</text>
@@ -85,7 +91,7 @@
         <text class="modal-title">换绑手机号</text>
         <van-icon name="cross" bindtap="toggleRebind" />
       </view>
-      <view class="muted rebind-tip">新手机号必须已存在于员工列表，且未绑定其他微信。如需换绑手机号，请先联系部门管理员。</view>
+      <view class="muted rebind-tip">如需换绑手机号，请先联系部门管理员。</view>
       <van-cell-group inset>
         <van-field label="当前手机号" value="{{ phoneMasked }}" readonly />
         <!-- <van-field label="新手机号" placeholder="请输入新手机号" value="{{ newPhone }}" bind:change="onNewPhoneInput" />
@@ -100,6 +106,42 @@
       <!-- <view class="btn-row">
         <van-button type="primary" block round bindtap="confirmRebind">确认换绑</van-button>
       </view> -->
+    </view>
+  </view>
+
+  <!-- 修改密码弹窗 -->
+  <view class="phone-modal" wx:if="{{ showChangePwd }}">
+    <view class="phone-modal-card">
+      <view class="modal-head">
+        <text class="modal-title">修改密码</text>
+        <van-icon name="cross" bindtap="toggleChangePwd" />
+      </view>
+      <van-cell-group inset>
+        <van-field
+          label="旧密码"
+          type="password"
+          placeholder="请输入旧密码"
+          value="{{ oldPwd }}"
+          bind:change="onOldPwdInput"
+        />
+        <van-field
+          label="新密码"
+          type="password"
+          placeholder="请输入新密码（至少8位）"
+          value="{{ newPwd }}"
+          bind:change="onNewPwdInput"
+        />
+        <van-field
+          label="确认密码"
+          type="password"
+          placeholder="请再次输入新密码"
+          value="{{ confirmPwd }}"
+          bind:change="onConfirmPwdInput"
+        />
+      </van-cell-group>
+      <view class="btn-row" style="margin-top:24rpx;">
+        <van-button type="primary" block round loading="{{ pwdLoading }}" bindtap="confirmChangePwd">确认修改</van-button>
+      </view>
     </view>
   </view>
 

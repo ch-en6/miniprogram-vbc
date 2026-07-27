@@ -8,65 +8,36 @@
   <!-- 登录卡片 -->
   <view class="login-card">
     <text class="login-title">欢迎使用</text>
-    <text class="login-desc">使用微信授权手机号，快速完成登录</text>
+    <text class="login-desc">请输入账号和密码登录</text>
 
-    <!-- 微信授权手机号登录（主要方式） -->
-    <button
-      class="btn-wechat-login"
-      open-type="getPhoneNumber"
-      bindgetphonenumber="onGetPhoneNumber"
-      loading="{{loading}}"
-      disabled="{{loading}}"
-    >{{ loading ? '登录中...' : '微信授权手机号登录' }}</button>
-
-    <!-- 分割线 -->
-    <view class="divider">
-      <view class="divider-line"></view>
-      <text class="divider-text">或</text>
-      <view class="divider-line"></view>
-    </view>
-
-    <!-- 手机号+验证码登录（备选） -->
-    <view class="sms-login-area" wx:if="{{!showSmsLogin}}">
-      <text class="sms-toggle" bindtap="toggleSmsLogin">手机号 + 验证码登录</text>
-    </view>
-
-    <view class="sms-form" wx:if="{{showSmsLogin}}">
+    <!-- 账号密码登录表单 -->
+    <view class="login-form">
       <van-field
         value="{{ phone }}"
-        label="手机号"
+        label="账号"
         placeholder="请输入手机号"
         type="number"
         maxlength="11"
         bind:change="onPhoneInput"
+        left-icon="phone-o"
       />
-      <view class="sms-row">
-        <van-field
-          value="{{ smsCode }}"
-          label="验证码"
-          placeholder="6位验证码"
-          type="number"
-          maxlength="6"
-          bind:change="onSmsInput"
-        />
-        <button
-          class="btn-sms"
-          size="mini"
-          disabled="{{smsCooldown > 0 || phone.length !== 11}}"
-          bindtap="sendSmsCode"
-        >
-          {{ smsCooldown > 0 ? smsCooldown + 's' : '发送验证码' }}
-        </button>
-      </view>
+      <van-field
+        value="{{ password }}"
+        label="密码"
+        placeholder="请输入密码"
+        type="password"
+        bind:change="onPasswordInput"
+        left-icon="lock"
+      />
       <van-button
         type="primary"
         block
         round
         loading="{{ loading }}"
-        disabled="{{ loading || phone.length !== 11 || smsCode.length !== 6 }}"
-        bindtap="onSmsLogin"
-        custom-class="btn-sms-submit"
-      >立即登录</van-button>
+        disabled="{{ loading || phone.length !== 11 || !password }}"
+        bindtap="onLogin"
+        custom-class="btn-login"
+      >登 录</van-button>
     </view>
   </view>
 

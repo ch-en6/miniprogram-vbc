@@ -73,81 +73,13 @@
   line-height: 1.6;
 }
 
-/* ─── 微信登录按钮 ─── */
-.btn-wechat-login {
-  width: 100%;
-  background: #1989fa !important;
-  color: #fff !important;
-  border-radius: 48rpx !important;
-  height: 88rpx !important;
-  line-height: 88rpx !important;
-  font-size: 32rpx !important;
-  font-weight: 600 !important;
-  border: none !important;
-  padding: 0 !important;
-}
-
-.btn-wechat-login::after {
-  border: none !important;
-}
-
-/* ─── 分割线 ─── */
-.divider {
-  display: flex;
-  align-items: center;
-  margin: 40rpx 0 24rpx;
-}
-
-.divider-line {
-  flex: 1;
-  height: 1px;
-  background: #e5e7eb;
-}
-
-.divider-text {
-  font-size: 24rpx;
-  color: #bbb;
-  padding: 0 24rpx;
-}
-
-/* ─── 短信登录 ─── */
-.sms-toggle {
-  display: block;
-  text-align: center;
-  font-size: 28rpx;
-  color: #1989fa;
-  padding: 8rpx 0;
-}
-
-.sms-form {
+/* ─── 登录表单 ─── */
+.login-form {
   width: 100%;
 }
 
-.sms-row {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-}
-
-.sms-row van-field {
-  flex: 1;
-}
-
-.btn-sms {
-  flex-shrink: 0;
-  font-size: 24rpx !important;
-  color: #1989fa !important;
-  border: 1px solid #1989fa !important;
-  border-radius: 8rpx !important;
-  background: #fff !important;
-  height: 64rpx !important;
-  line-height: 64rpx !important;
-  padding: 0 20rpx !important;
-  white-space: nowrap;
-}
-
-.btn-sms-submit {
-  margin-top: 32rpx;
+.btn-login {
+  margin-top: 48rpx;
 }
 
 /* ─── 隐私 ─── */

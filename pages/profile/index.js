@@ -17,6 +17,12 @@ Page({
     newPhone: '',
     smsCode: '',
     smsCooldown: 0,
+    // 修改密码
+    showChangePwd: false,
+    oldPwd: '',
+    newPwd: '',
+    confirmPwd: '',
+    pwdLoading: false,
     // 订阅消息
     // subscribed: false,
     // templateIds: ['mock_template_id_1'],
@@ -106,9 +112,75 @@ Page({
 
   // ─── 换绑手机号 ──────────────────────────────────────────────
 
-  // toggleRebind() {
-  //   this.setData({ showRebind: !this.data.showRebind })
-  // },
+  toggleRebind() {
+    this.setData({ showRebind: !this.data.showRebind })
+  },
+
+  // ─── 修改密码 ────────────────────────────────────────────────
+
+  toggleChangePwd() {
+    this.setData({
+      showChangePwd: !this.data.showChangePwd,
+      oldPwd: '',
+      newPwd: '',
+      confirmPwd: ''
+    })
+  },
+
+  onOldPwdInput(e) {
+    this.setData({ oldPwd: e.detail })
+  },
+
+  onNewPwdInput(e) {
+    this.setData({ newPwd: e.detail })
+  },
+
+  onConfirmPwdInput(e) {
+    this.setData({ confirmPwd: e.detail })
+  },
+
+  async confirmChangePwd() {
+    const { oldPwd, newPwd, confirmPwd } = this.data
+    if (!oldPwd) {
+      wx.showToast({ title: '请输入旧密码', icon: 'none' })
+      return
+    }
+    if (newPwd.length < 8) {
+      wx.showToast({ title: '新密码至少8位', icon: 'none' })
+      return
+    }
+    if (newPwd !== confirmPwd) {
+      wx.showToast({ title: '两次新密码不一致', icon: 'none' })
+      return
+    }
+
+    this.setData({ pwdLoading: true })
+
+    try {
+      const app = getApp()
+      const userInfo = app.globalData.userInfo || {}
+      const res = await wx.cloud.callFunction({
+        name: 'changePassword',
+        data: {
+          empId: userInfo._id,
+          oldPassword: oldPwd,
+          newPassword: newPwd
+        }
+      })
+      const result = res.result
+      if (result.code === 0) {
+        wx.showToast({ title: '密码修改成功', icon: 'success' })
+        this.setData({ showChangePwd: false, oldPwd: '', newPwd: '', confirmPwd: '' })
+      } else {
+        wx.showToast({ title: result.message || '修改失败', icon: 'none' })
+      }
+    } catch (err) {
+      console.error('[profile] changePassword error:', err)
+      wx.showToast({ title: '修改失败，请重试', icon: 'none' })
+    } finally {
+      this.setData({ pwdLoading: false })
+    }
+  },
 
   // onNewPhoneInput(e) {
   //   this.setData({ newPhone: e.detail })
