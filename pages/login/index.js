@@ -16,7 +16,7 @@ Page({
     // 若已有 userInfo（已登录），直接跳首页
     const app = getApp()
     if (app.globalData.userInfo) {
-      this._goHome(app.globalData.userInfo.roles)
+      this._goHome(app.globalData.roles || [])
     }
   },
 
@@ -52,7 +52,7 @@ Page({
 
       // 2. 调用云函数检查手机号是否在 sys_emp 表中
       const checkRes = await wx.cloud.callFunction({
-        name: 'checkEmpPhone',
+        name: 'checkLogin',
         data: { phone }
       })
 
@@ -160,7 +160,7 @@ Page({
     try {
       // 1. 调用云函数检查手机号是否在 sys_emp 表中
       const checkRes = await wx.cloud.callFunction({
-        name: 'checkEmpPhone',
+        name: 'checkLogin',
         data: { phone }
       })
 
@@ -203,7 +203,7 @@ Page({
     const user = result.user
 
     app.globalData.userInfo = user
-    app.globalData.roles = user.roles || ['employee']
+    app.globalData.roles = user.role_codes || ['employee']
     app.globalData.authReady = true
 
     // 保存 token（云开发模式下可用空 token 占位）
@@ -217,7 +217,7 @@ Page({
     }
 
     this.setData({ loading: false })
-    this._goHome(user.roles)
+    this._goHome(user.role_codes)
   },
 
   _goHome(roles = []) {

@@ -1,7 +1,7 @@
 {
-  "name": "checkEmpPhone",
+  "name": "getRole",
   "version": "1.0.0",
-  "description": "校验手机号是否在 sys_emp 表中",
+  "description": "根据角色ID数组查询sys_role表获取角色名称",
   "main": "index.js",
   "dependencies": {
     "wx-server-sdk": "~2.6.3"

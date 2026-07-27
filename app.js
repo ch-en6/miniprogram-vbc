@@ -53,7 +53,7 @@ App({
       if (cached && cached._id) {
         // 有缓存用户，恢复登录态
         app.globalData.userInfo = cached
-        app.globalData.roles = cached.roles || ['employee']
+        app.globalData.roles = cached.role_codes || ['employee']
         app.globalData.authReady = true
         app._resolveAuthCallbacks(true)
         console.info('[App] Restored user from cache:', cached.name)

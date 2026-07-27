@@ -2,20 +2,13 @@
 const { ROLE } = require('../../utils/const')
 const QR = require('../../utils/qrcode')
 
-const ROLE_NAME_MAP = {
-  employee: '普通员工',
-  kitchen: '食堂员工',
-  dept_admin: '部门管理员',
-  sys_admin: '系统管理员',
-}
-
 Page({
   data: {
     userInfo: {},
     phoneMasked: '',
-    roleName: '普通员工',
-    empNo: '',
+    deptName: '',
     isDisabled: false, // 员工是否被停用
+    showWorkspace: false, // 是否显示工作台
     isKitchen: false,
     isDeptAdmin: false,
     isSysAdmin: false,
@@ -25,28 +18,30 @@ Page({
     smsCode: '',
     smsCooldown: 0,
     // 订阅消息
-    subscribed: false,
-    templateIds: ['mock_template_id_1'],
+    // subscribed: false,
+    // templateIds: ['mock_template_id_1'],
   },
 
   onLoad() {
     this._initDisplay()
+    this._loadDeptName()
   },
 
   onShow() {
     this._initDisplay()
+    this._loadDeptName()
   },
 
   onReady() {
     // 页面初次渲染完成后生成二维码
-    this._drawQRCode()
+    // this._drawQRCode()
   },
 
   _initDisplay() {
     const app = getApp()
     const userInfo = app.globalData.userInfo || {}
-    const roles = userInfo.roles || ['employee']
-    const primaryRole = roles.find(r => r !== 'employee') || 'employee'
+    // 使用登录时缓存的角色 code 数组
+    const roles = app.globalData.roles || []
 
     // 手机号脱敏
     const phone = userInfo.phone || ''
@@ -57,86 +52,117 @@ Page({
     // 员工状态
     const isDisabled = userInfo.status === 'disabled'
 
+    // 判断是否显示工作台（只有食堂员工/部门管理员/系统管理员才显示）
+    const showWorkspace = roles.some(r =>
+      [ROLE.KITCHEN, ROLE.DEPT_ADMIN, ROLE.SYS_ADMIN].includes(r)
+    )
+
     this.setData({
       userInfo,
       phoneMasked,
-      roleName: ROLE_NAME_MAP[primaryRole] || '普通员工',
-      empNo: userInfo.emp_no || '',
       isDisabled,
+      showWorkspace,
       isKitchen: roles.includes(ROLE.KITCHEN),
       isDeptAdmin: roles.includes(ROLE.DEPT_ADMIN),
       isSysAdmin: roles.includes(ROLE.SYS_ADMIN),
     })
   },
 
-  _drawQRCode() {
-    const { userInfo } = this.data
-    if (!userInfo || !userInfo._id) return
+  /**
+   * 调用云函数获取部门名称
+   * 从 sys_dept 读取 name
+   */
+  async _loadDeptName() {
+    const app = getApp()
+    const userInfo = app.globalData.userInfo || {}
+    const dept_id = userInfo.dept_id
+    if (!dept_id) return
 
-    // 用员工ID生成二维码内容（工牌标识）
-    const qrContent = 'EMP:' + userInfo._id
-    QR.draw('qrCanvas', this, qrContent, 360)
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'getDeptName',
+        data: { dept_id }
+      })
+      const result = res.result
+      if (result.code === 0 && result.data) {
+        this.setData({ deptName: result.data.dept_name || '—' })
+      } else {
+        this.setData({ deptName: '—' })
+      }
+    } catch (err) {
+      console.error('[profile] loadDeptName error:', err)
+      this.setData({ deptName: '—' })
+    }
   },
+
+  // _drawQRCode() {
+  //   const { userInfo } = this.data
+  //   if (!userInfo || !userInfo._id) return
+
+  //   // 用员工ID生成二维码内容（工牌标识）
+  //   const qrContent = 'EMP:' + userInfo._id
+  //   QR.draw('qrCanvas', this, qrContent, 360)
+  // },
 
   // ─── 换绑手机号 ──────────────────────────────────────────────
 
-  toggleRebind() {
-    this.setData({ showRebind: !this.data.showRebind })
-  },
+  // toggleRebind() {
+  //   this.setData({ showRebind: !this.data.showRebind })
+  // },
 
-  onNewPhoneInput(e) {
-    this.setData({ newPhone: e.detail })
-  },
+  // onNewPhoneInput(e) {
+  //   this.setData({ newPhone: e.detail })
+  // },
 
-  onSmsInput(e) {
-    this.setData({ smsCode: e.detail })
-  },
+  // onSmsInput(e) {
+  //   this.setData({ smsCode: e.detail })
+  // },
 
-  sendSmsCode() {
-    const { newPhone } = this.data
-    if (!/^1[3-9]\d{9}$/.test(newPhone)) {
-      wx.showToast({ title: '请输入正确的手机号', icon: 'none' })
-      return
-    }
-    // TODO: 调用云函数发送短信验证码
-    wx.showToast({ title: '验证码已发送', icon: 'success' })
-    this._startCooldown()
-  },
+  // sendSmsCode() {
+  //   const { newPhone } = this.data
+  //   if (!/^1[3-9]\d{9}$/.test(newPhone)) {
+  //     wx.showToast({ title: '请输入正确的手机号', icon: 'none' })
+  //     return
+  //   }
+  //   // TODO: 调用云函数发送短信验证码
+  //   wx.showToast({ title: '验证码已发送', icon: 'success' })
+  //   this._startCooldown()
+  // },
 
-  _startCooldown() {
-    let count = 60
-    this.setData({ smsCooldown: count })
-    this._timer = setInterval(() => {
-      count -= 1
-      this.setData({ smsCooldown: count })
-      if (count <= 0) clearInterval(this._timer)
-    }, 1000)
-  },
+  // _startCooldown() {
+  //   let count = 60
+  //   this.setData({ smsCooldown: count })
+  //   this._timer = setInterval(() => {
+  //     count -= 1
+  //     this.setData({ smsCooldown: count })
+  //     if (count <= 0) clearInterval(this._timer)
+  //   }, 1000)
+  // },
 
-  onSubscribeMessage() {
-    const templateIds = this.data.templateIds
-    wx.requestSubscribeMessage({
-      tmplIds: templateIds,
-      success: (res) => {
-        const accepted = templateIds.filter(id => res[id] === 'accept')
-        if (accepted.length > 0) {
-          this.setData({ subscribed: true })
-          wx.showToast({ title: '订阅成功', icon: 'success' })
-        } else {
-          wx.showToast({ title: '已取消订阅', icon: 'none' })
-        }
-      },
-      fail: () => {
-        wx.showToast({ title: '授权失败，请重试', icon: 'none' })
-      },
-    })
-  },
+  // onSubscribeMessage() {
+  //   const templateIds = this.data.templateIds
+  //   wx.requestSubscribeMessage({
+  //     tmplIds: templateIds,
+  //     success: (res) => {
+  //       const accepted = templateIds.filter(id => res[id] === 'accept')
+  //       if (accepted.length > 0) {
+  //         this.setData({ subscribed: true })
+  //         wx.showToast({ title: '订阅成功', icon: 'success' })
+  //       } else {
+  //         wx.showToast({ title: '已取消订阅', icon: 'none' })
+  //       }
+  //     },
+  //     fail: () => {
+  //       wx.showToast({ title: '授权失败，请重试', icon: 'none' })
+  //     },
+  //   })
+  // },
 
-  confirmRebind() {
-    // TODO: 调用云函数换绑手机号
-    wx.showToast({ title: '换绑申请已提交', icon: 'success' })
-    this.setData({ showRebind: false })
-  },
+  // confirmRebind() {
+  //   // TODO: 调用云函数换绑手机号
+  //   wx.showToast({ title: '换绑申请已提交', icon: 'success' })
+  //   this.setData({ showRebind: false })
+  // },
 
   // ─── 页面跳转 ────────────────────────────────────────────────
 

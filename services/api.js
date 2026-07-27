@@ -97,6 +97,12 @@ const BookAPI = {
 // 菜单模块
 // ═══════════════════════════════════════════════════════════
 const MenuAPI = {
+  /** 
+   * 获取当前轮换菜单（自动根据时间范围轮换）
+   * @returns {Promise<Menu>} - 返回包含meals数组的菜单对象
+   */
+  getCurrentMenu: () => wx.cloud.callFunction({ name: 'getMenuList' }),
+  
   /** 获取指定日期菜单 */
   getMenu: (date) => get('/menu', { date }),
   /** 获取本周菜单 */

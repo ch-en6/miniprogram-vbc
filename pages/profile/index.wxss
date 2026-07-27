@@ -58,10 +58,16 @@
 }
 
 .emp-dept {
-  display: block;
+  /* display: block;
   font-size: 24rpx;
   color: rgba(255, 255, 255, 0.85);
-  margin-bottom: 8rpx;
+  margin-bottom: 8rpx; */
+  display: inline-block;
+  font-size: 22rpx;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 6rpx;
+  padding: 4rpx 16rpx;
 }
 
 .emp-role-tag {
@@ -112,6 +118,22 @@
   border: 1px solid #1989fa;
   border-radius: 8rpx;
   line-height: 1.4;
+}
+
+.logout-card {
+  margin: 24rpx 32rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 24rpx 28rpx;
+  box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logout-text {
+  font-size: 28rpx;
+  color: #ee0a24;
 }
 
 /* ═══ 工牌二维码卡片 ═══ */
@@ -260,12 +282,6 @@
   background: #fff;
   color: #1989fa;
   border: 1px solid #1989fa;
-}
-
-.ws-btn-danger {
-  background: #fff;
-  color: #ee0a24;
-  border: 1px solid #ee0a24;
 }
 
 /* ═══ 换绑弹窗 ═══ */

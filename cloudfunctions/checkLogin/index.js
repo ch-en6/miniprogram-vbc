@@ -6,6 +6,7 @@ cloud.init({
 })
 
 const db = cloud.database()
+const _ = db.command
 
 exports.main = async (event, context) => {
   const { phone } = event
@@ -23,6 +24,20 @@ exports.main = async (event, context) => {
 
     if (res.data && res.data.length > 0) {
       const emp = res.data[0]
+
+      // 获取角色ID数组（兼容旧字段 role 和新字段 role_id）
+      const role_ids = emp.role || []
+
+      // 通过 role_id 查询 sys_role 获取角色 code
+      let role_codes = []
+      if (role_ids.length > 0) {
+        const roleRes = await db.collection('sys_role')
+          .where({ _id: _.in(role_ids) })
+          .field({ code: true })
+          .get()
+        role_codes = (roleRes.data || []).map(r => r.code).filter(Boolean)
+      }
+
       return {
         code: 0,
         message: 'success',
@@ -34,8 +49,9 @@ exports.main = async (event, context) => {
             phone: emp.phone,
             _openid: emp._openid,
             dept_id: emp.dept_id || '',
-            role: emp.role || ['employee'],
-            status: emp.status || 'active', // active=正常, disabled=停用
+            role_id: role_ids,
+            role_codes: role_codes,
+            status: emp.status || '1', // active=正常, disabled=停用
           }
         }
       }

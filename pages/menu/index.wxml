@@ -3,8 +3,14 @@
   <view class="mini-card">
     <view class="section-title" style="margin-top: 0;">本周菜单</view>
 
+    <!-- 加载状态 -->
+    <van-loading wx:if="{{ loading }}" size="24px" vertical>加载中...</van-loading>
+
+    <!-- 空状态 -->
+    <van-empty wx:elif="{{ !loading && menuDays.length === 0 }}" description="暂无菜单数据" />
+
     <!-- 表头 -->
-    <view class="menu-table">
+    <view wx:else class="menu-table">
       <view class="menu-row menu-header">
         <view class="menu-cell menu-cell-day">星期</view>
         <view class="menu-cell menu-cell-meal">早餐</view>

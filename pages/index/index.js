@@ -54,7 +54,7 @@ Page({
     const heroSub = `今天是 ${dateStr}，次日报餐截止：${deadlineInfo.isPast ? '已截止' : '今天 ' + deadlineInfo.deadlineTime}`
 
     // 角色判断
-    const roles = userInfo.roles || ['employee']
+    const roles = app.globalData.roles || ['employee']
     const isDeptAdmin = roles.includes(ROLE.DEPT_ADMIN)
     const isSysAdmin = roles.includes(ROLE.SYS_ADMIN)
     const isKitchen = roles.includes(ROLE.KITCHEN)
@@ -225,7 +225,7 @@ Page({
 
   goWorkbench() {
     const app = getApp()
-    const roles = (app.globalData.userInfo && app.globalData.userInfo.roles) || ['employee']
+    const roles = app.globalData.roles || ['employee']
     let url
     if (roles.includes(ROLE.SYS_ADMIN)) {
       url = '/subpackages/admin/pages/dept-manage/index'
