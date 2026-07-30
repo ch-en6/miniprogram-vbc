@@ -58,9 +58,9 @@ Page({
     // 员工状态
     const isDisabled = userInfo.status === 'disabled'
 
-    // 判断是否显示工作台（只有食堂员工/部门管理员/系统管理员才显示）
+    // 判断是否显示工作台（只有部门管理员/系统管理员才显示）
     const showWorkspace = roles.some(r =>
-      [ROLE.KITCHEN, ROLE.DEPT_ADMIN, ROLE.SYS_ADMIN].includes(r)
+      [ROLE.DEPT_ADMIN, ROLE.SYS_ADMIN].includes(r)
     )
 
     this.setData({
@@ -244,14 +244,14 @@ Page({
 
   goWorkbench() {
     const { isSysAdmin, isDeptAdmin, isKitchen } = this.data
-    let url
-    if (isSysAdmin) {
-      url = '/subpackages/admin/pages/dept-manage/index'
-    } else if (isDeptAdmin) {
-      url = '/subpackages/dept/pages/workspace/index'
-    } else if (isKitchen) {
-      url = '/subpackages/kitchen/pages/today/index'
-    }
+    let url = '/subpackages/kitchen/pages/today/index'
+    // if (isSysAdmin) {
+    //   url = '/subpackages/admin/pages/dept-manage/index'
+    // } else if (isDeptAdmin) {
+    //   url = '/subpackages/dept/pages/workspace/index'
+    // } else if (isKitchen) {
+    //   url = '/subpackages/kitchen/pages/today/index'
+    // }
     if (url) wx.navigateTo({ url })
   },
 

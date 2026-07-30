@@ -35,8 +35,8 @@ const BOOK_STATUS_LABEL = {
 const ROLE = {
   EMPLOYEE:   'employee',
   KITCHEN:    'kitchen',
-  DEPT_ADMIN: 'dept_admin',
-  SYS_ADMIN:  'sys_admin',
+  DEPT_ADMIN: 'deptAdmin',
+  SYS_ADMIN:  'sysAdmin',
 }
 
 const ROLE_LABEL = {

@@ -21,7 +21,6 @@ Page({
     todayDateStr: '',
     tomorrowDateStr: '',
     monthStat: { breakfast: 0, lunch: 0, dinner: 0 },
-    hasWorkbench: false,
     isDeptAdmin: false,
     isSysAdmin: false,
     isKitchen: false,
@@ -58,7 +57,6 @@ Page({
     const isDeptAdmin = roles.includes(ROLE.DEPT_ADMIN)
     const isSysAdmin = roles.includes(ROLE.SYS_ADMIN)
     const isKitchen = roles.includes(ROLE.KITCHEN)
-    const hasWorkbench = isDeptAdmin || isSysAdmin || isKitchen
 
     // DEV_MOCK 模式使用 mock 数据
     if (app.globalData.devMock) {
@@ -88,7 +86,6 @@ Page({
         todayDateStr: formatDate(dNow),
         tomorrowDateStr: formatDate(dTomorrow),
         monthStat: M.mockMonthStat,
-        hasWorkbench,
         isDeptAdmin,
         isSysAdmin,
         isKitchen,
@@ -101,7 +98,7 @@ Page({
     const dTomorrow = new Date(dNow)
     dTomorrow.setDate(dTomorrow.getDate() + 1)
     this.setData({
-      heroSub, hasWorkbench, isDeptAdmin, isSysAdmin, isKitchen,
+      heroSub, isDeptAdmin, isSysAdmin, isKitchen,
       todayDateStr: formatDate(dNow),
       tomorrowDateStr: formatDate(dTomorrow),
     })

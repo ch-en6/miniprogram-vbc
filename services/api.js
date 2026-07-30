@@ -113,12 +113,54 @@ const MenuAPI = {
 // 食堂工作台模块
 // ═══════════════════════════════════════════════════════════
 const KitchenAPI = {
-  /** 今日报餐总量汇总（各餐次数量） */
-  getTodaySummary: (date) => get('/kitchen/summary', { date }),
-  /** 获取今日报餐详情列表（部门维度） */
-  getTodayDetail: (params = {}) => get('/kitchen/detail', params),
+  /**
+   * 食堂工作台：按日期汇总报餐数据（云函数，按部门维度）
+   * @param {string} date - 日期 YYYY-MM-DD
+   * @returns {Promise<{meals, depts}>}
+   */
+  getTodaySummary: (date) =>
+    wx.cloud.callFunction({
+      name: 'mealOrder',
+      data: { action: 'getKitchenSummary', date }
+    }).then(res => {
+      const result = res.result || {}
+      if (result.code === 0) return result.data
+      throw new Error(result.message || '查询失败')
+    }),
+  /** 获取报餐明细列表（员工维度，分页） */
+  getTodayDetail: (params = {}) =>
+    wx.cloud.callFunction({
+      name: 'mealOrder',
+      data: { action: 'getKitchenDetail', ...params }
+    }).then(res => {
+      const result = res.result || {}
+      if (result.code === 0) return result.data
+      throw new Error(result.message || '查询明细失败')
+    }),
   /** 按姓名查询今日报餐情况 */
   searchPerson: (params = {}) => get('/kitchen/search', params),
+  /**
+   * 按姓名从云数据库查询报餐记录
+   * @param {string} keyword - 姓名关键词
+   * @param {string} date - 日期 YYYY-MM-DD
+   * @param {string} [meal] - 餐别筛选 'breakfast'|'lunch'|'dinner'
+   */
+  searchByName: (keyword, date, meal) =>
+    wx.cloud.callFunction({
+      name: 'mealOrder',
+      data: { action: 'searchByName', keyword, date, meal }
+    }),
+  /**
+   * 按手机号从云数据库查询报餐记录
+   * @param {string} keyword - 手机号关键词
+   * @param {string} date - 日期 YYYY-MM-DD
+   * @param {string} [meal] - 餐别筛选 'breakfast'|'lunch'|'dinner'
+   */
+  searchByPhone: (keyword, date, meal) =>
+    wx.cloud.callFunction({
+      name: 'mealOrder',
+      data: { action: 'searchByPhone', keyword, date, meal }
+    }),
   /** 导出今日报餐 Excel */
   exportTodayExcel: (date) => {
     const token = getAccessToken()

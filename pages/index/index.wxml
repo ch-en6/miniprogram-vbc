@@ -57,14 +57,4 @@
 
   <!-- 立即报餐 -->
   <van-button type="primary" block round icon="edit" bindtap="goBook">立即报餐</van-button>
-
-  <!-- 工作台入口（仅管理员角色显示） -->
-  <view class="mini-card" wx:if="{{ hasWorkbench }}" style="margin-top: 24rpx;">
-    <view class="section-title" style="margin-top: 0;">工作台入口</view>
-    <view class="workspace-tags">
-      <view wx:if="{{ isDeptAdmin }}" class="ws-btn ws-btn-plain" bindtap="goWorkbench">进入部门管理员工作台</view>
-      <view wx:if="{{ isSysAdmin }}" class="ws-btn ws-btn-plain" bindtap="goWorkbench">进入系统管理员工作台</view>
-      <view wx:if="{{ isKitchen }}" class="ws-btn ws-btn-plain" bindtap="goWorkbench">进入食堂工作台</view>
-    </view>
-  </view>
 </view>

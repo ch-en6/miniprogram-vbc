@@ -1,2 +1,80 @@
-<!--subpackages/kitchen/pages/detail/index.wxml-->
-<text>subpackages/kitchen/pages/detail/index.wxml</text>
+<view class="kitchen-detail-page">
+  <!-- 搜索栏 -->
+  <van-search
+    value="{{ searchKey }}"
+    placeholder="搜索姓名 / 手机号 / 部门"
+    bind:search="onSearch"
+    bind:change="onSearchInput"
+    bind:clear="onSearchClear"
+    show-action
+    use-action-slot
+    background="#f5f6f8"
+  >
+    <view slot="action" class="search-action-btn" bindtap="onSearch">搜索</view>
+  </van-search>
+
+  <!-- 筛选Tab -->
+  <van-tabs
+    active="{{ activeMeal }}"
+    color="#1989fa"
+    title-active-color="#1989fa"
+    bind:change="onMealTabChange"
+    sticky
+    offset-top="112"
+  >
+    <van-tab title="全部" name="all" />
+    <van-tab title="早餐" name="breakfast" />
+    <van-tab title="午餐" name="lunch" />
+    <van-tab title="晚餐" name="dinner" />
+  </van-tabs>
+
+  <!-- 汇总行 -->
+  <view class="summary-bar" wx:if="{{ !loading }}">
+    <text class="summary-text">共 {{ total }} 条，合计 {{ totalQty }} 份</text>
+  </view>
+
+  <!-- ═══ 列表：始终使用 mergedList ═══ -->
+  <view class="detail-list" wx:if="{{ !loading }}">
+    <view class="person-card" wx:for="{{ mergedList }}" wx:key="id">
+      <!-- 人员信息头部 -->
+      <view class="person-info-row">
+        <view class="person-info-main">
+          <text class="person-name">{{ item.name }}</text>
+          <text class="person-dept-tag" wx:if="{{ item.deptName }}">{{ item.deptName }}</text>
+        </view>
+        <text class="person-phone">{{ item.phone }}</text>
+      </view>
+      <!-- 各餐次明细 -->
+      <view class="person-meal-body">
+        <view class="person-meal-line" wx:for="{{ item.meals }}" wx:for-item="meal" wx:key="mealType">
+          <view class="meal-label-wrap">
+            <view class="meal-dot meal-dot--{{ meal.mealType }}"></view>
+            <text class="meal-label-text">{{ meal.mealLabel }}</text>
+          </view>
+          <view class="meal-info">
+            <text class="meal-qty">{{ meal.qty }} 份</text>
+            <text class="meal-family" wx:if="{{ meal.familyQty > 0 }}">家 {{ meal.familyQty }}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="load-more" wx:if="{{ hasMore }}" bindtap="loadMore">
+      <van-loading wx:if="{{ loadingMore }}" size="32rpx" color="#1989fa" />
+      <text wx:else>加载更多</text>
+    </view>
+    <view class="no-more" wx:if="{{ !hasMore && mergedList.length > 0 }}">
+      <text>已全部加载</text>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-wrap" wx:if="{{ !loading && list.length === 0 }}">
+    <van-empty description="暂无报餐明细" />
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading-center" wx:if="{{ loading }}">
+    <van-loading type="spinner" color="#1989fa" size="64rpx" />
+  </view>
+</view>

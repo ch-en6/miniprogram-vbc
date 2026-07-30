@@ -2,7 +2,7 @@
   <!-- Logo 区域 -->
   <view class="logo-area">
     <view class="logo-icon">餐</view>
-    <text class="app-name">企业报餐</text>
+    <text class="app-name">漳平所报餐</text>
   </view>
 
   <!-- 登录卡片 -->

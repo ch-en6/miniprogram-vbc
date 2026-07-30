@@ -1,1 +1,170 @@
-/* subpackages/kitchen/pages/detail/index.wxss */
+/* subpackages/kitchen/pages/detail/index.wxss — 报餐明细页（与 today 页统一蓝白主题） */
+
+.kitchen-detail-page {
+  min-height: 100vh;
+  background: #f5f7fa;
+  padding-bottom: 80rpx;
+}
+
+/* ─── 搜索栏自定义操作按钮 ─── */
+.search-action-btn {
+  font-size: 28rpx;
+  color: #1989fa;
+  font-weight: 600;
+  padding: 10rpx 16rpx;
+}
+
+/* ─── 汇总行 ─── */
+.summary-bar {
+  padding: 20rpx 24rpx;
+  background: #f0f9ff;
+  border-radius: 16rpx;
+  margin: 16rpx 24rpx 0;
+}
+
+.summary-text {
+  font-size: 24rpx;
+  color: #1989fa;
+  font-weight: 500;
+}
+
+/* ─── 列表容器 ─── */
+.detail-list {
+  padding: 16rpx 24rpx 0;
+}
+
+/* ─── 人员卡片（与 today 页 person-result 一致） ─── */
+.person-card {
+  margin-bottom: 20rpx;
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+
+/* 人员信息头部 */
+.person-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx;
+  background: #fff;
+  border-radius: 24rpx 24rpx 0 0;
+  border: 1px solid #e5e7eb;
+  border-bottom: none;
+}
+
+.person-info-main {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.person-name {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #374151;
+}
+
+.person-dept-tag {
+  font-size: 22rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 100rpx;
+  background: #eef4ff;
+  color: #1989fa;
+  font-weight: 500;
+}
+
+.person-phone {
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+/* 餐次明细区域 */
+.person-meal-body {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-top: none;
+  border-radius: 0 0 24rpx 24rpx;
+  padding: 8rpx 24rpx 20rpx;
+}
+
+.person-meal-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18rpx 0;
+  border-bottom: 1px dashed #f0f1f3;
+}
+
+.person-meal-line:last-child {
+  border-bottom: none;
+}
+
+/* 餐别标签（圆点 + 文字） */
+.meal-label-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.meal-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+}
+
+.meal-dot--breakfast {
+  background: #f5a623;
+}
+
+.meal-dot--lunch {
+  background: #1989fa;
+}
+
+.meal-dot--dinner {
+  background: #c8a6ff;
+}
+
+.meal-label-text {
+  font-size: 28rpx;
+  color: #374151;
+  font-weight: 500;
+}
+
+/* 份数信息 */
+.meal-info {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.meal-qty {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #374151;
+}
+
+.meal-family {
+  font-size: 22rpx;
+  color: #f5a623;
+  background: #fff8ed;
+  padding: 2rpx 12rpx;
+  border-radius: 100rpx;
+}
+
+/* ─── 加载更多 / 已全部加载 ─── */
+.load-more, .no-more {
+  text-align: center;
+  padding: 32rpx;
+  font-size: 26rpx;
+  color: #1989fa;
+}
+
+.no-more { color: #ccc; }
+
+/* ─── 空状态 / 加载中 ─── */
+.empty-wrap, .loading-center {
+  padding-top: 120rpx;
+  display: flex;
+  justify-content: center;
+}

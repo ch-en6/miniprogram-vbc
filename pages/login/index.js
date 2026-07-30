@@ -89,7 +89,7 @@ Page({
       }
 
       // 5. 员工已被停用
-      if (emp.status === '0' || emp.status === 'disabled') {
+      if (emp.status === 0 || emp.status === 'disabled') {
         Toast.fail({ message: '该员工已被停用\n请联系管理员', duration: 3000 })
         this.setData({ loading: false })
         return

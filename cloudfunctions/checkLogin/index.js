@@ -114,7 +114,7 @@ exports.main = async (event, context) => {
             dept_id: emp.dept_id || '',
             role_id: role_ids,
             role_codes: role_codes,
-            status: emp.status || '1',
+            status: emp.status !== undefined ? emp.status : 1,
           }
         }
       }
