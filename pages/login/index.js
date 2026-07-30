@@ -118,6 +118,9 @@ Page({
     saveTokens({ access_token: 'cloud-token', refresh_token: 'cloud-refresh' })
     setCachedUserInfo(user)
 
+    // 登录成功后预加载缓存（部门名称 + 价格配置）
+    app._preloadCache(user.dept_id)
+
     // 通知等待 auth 的回调
     if (app._authCallbacks && app._authCallbacks.length) {
       app._authCallbacks.forEach(cb => cb(user))

@@ -34,11 +34,10 @@ Page({
   },
 
   /**
-   * 从云数据库加载价格配置
+   * 加载价格配置：优先从 app 缓存读取，缓存没有再请求云函数
    */
   async _loadPriceConfig() {
     try {
-      // 获取当前用户的部门ID
       const app = getApp()
       const userInfo = app.globalData.userInfo || {}
       const dept_id = userInfo.dept_id
@@ -48,7 +47,15 @@ Page({
         wx.showToast({ title: '未找到部门信息', icon: 'none' })
         return
       }
-      
+
+      // 优先从 app 全局缓存读取
+      if (app.globalData.priceConfig) {
+        this.setData({ priceConfig: app.globalData.priceConfig })
+        console.log('[Record] 价格配置从缓存加载:', app.globalData.priceConfig)
+        return
+      }
+
+      // 缓存没有，请求云函数
       const res = await wx.cloud.callFunction({
         name: 'mealOrder',
         data: {
@@ -58,9 +65,8 @@ Page({
       })
 
       if (res.result && res.result.code === 0 && res.result.data) {
-        this.setData({
-          priceConfig: res.result.data
-        })
+        app.globalData.priceConfig = res.result.data
+        this.setData({ priceConfig: res.result.data })
         console.log('[Record] 价格配置加载成功:', res.result.data)
       } else {
         console.error('[Record] 价格配置加载失败:', res.result?.message)

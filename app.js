@@ -1,5 +1,6 @@
 // app.js — 企业报餐小程序全局入口（云开发模式）
 const { saveTokens, clearAuth, getCachedUserInfo, setCachedUserInfo } = require('./utils/auth')
+const { getCachedDeptName, getCachedPriceConfig, loadAndCacheDeptName, loadAndCachePriceConfig, clearAllCache } = require('./utils/cache')
 
 App({
   globalData: {
@@ -13,6 +14,10 @@ App({
     systemInfo: null,
     /** 全局公告内容 */
     announcement: null,
+    /** 缓存：部门名称 */
+    deptName: null,
+    /** 缓存：价格配置 */
+    priceConfig: null,
   },
 
   onLaunch() {
@@ -57,6 +62,12 @@ App({
         app.globalData.authReady = true
         app._resolveAuthCallbacks(true)
         console.info('[App] Restored user from cache:', cached.name)
+
+        // 恢复缓存的部门名称和价格配置（同步读 Storage，异步刷新）
+        app.globalData.deptName = getCachedDeptName()
+        app.globalData.priceConfig = getCachedPriceConfig()
+        // 后台静刷新（如果缓存过期会自动重新拉取）
+        app._preloadCache(cached.dept_id)
       } else {
         // 无缓存，跳登录页
         app._redirectToLogin()
@@ -102,13 +113,35 @@ App({
   },
 
   /**
+   * 预加载缓存数据（部门名称 + 价格配置）
+   * 缓存有效期内直接返回，过期则重新拉取
+   */
+  async _preloadCache(dept_id) {
+    if (!dept_id) return
+    try {
+      const [deptName, priceConfig] = await Promise.all([
+        loadAndCacheDeptName(dept_id),
+        loadAndCachePriceConfig(dept_id),
+      ])
+      if (deptName) this.globalData.deptName = deptName
+      if (priceConfig) this.globalData.priceConfig = priceConfig
+      console.info('[App] Cache preloaded:', { deptName, priceConfig })
+    } catch (e) {
+      console.warn('[App] _preloadCache error:', e)
+    }
+  },
+
+  /**
    * 退出登录：清除本地凭证，回到登录页
    */
   logout() {
     clearAuth()
+    clearAllCache()
     this.globalData.userInfo = null
     this.globalData.roles = []
     this.globalData.authReady = false
+    this.globalData.deptName = null
+    this.globalData.priceConfig = null
     wx.reLaunch({ url: '/pages/login/index' })
   },
 })

@@ -214,6 +214,13 @@ Page({
     const dept_id = userInfo.dept_id
     if (!dept_id) return
 
+    // 优先从 app 全局缓存读取
+    if (app.globalData.deptName) {
+      this.setData({ deptName: app.globalData.deptName })
+      return
+    }
+
+    // 缓存没有，请求云函数
     try {
       const res = await wx.cloud.callFunction({
         name: 'getDeptName',
@@ -221,7 +228,9 @@ Page({
       })
       const result = res.result
       if (result.code === 0 && result.data) {
-        this.setData({ deptName: result.data.dept_name || '—' })
+        const deptName = result.data.dept_name || '—'
+        app.globalData.deptName = deptName
+        this.setData({ deptName })
       } else {
         this.setData({ deptName: '—' })
       }
