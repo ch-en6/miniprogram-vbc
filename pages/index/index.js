@@ -89,7 +89,7 @@ Page({
     const roles = (app.globalData.userInfo && app.globalData.userInfo.roles) || ['employee']
     let url
     if (roles.includes(ROLE.SYS_ADMIN)) {
-      url = '/subpackages/admin/pages/dept-manage/index'
+      url = '/subpackages/admin/pages/workspace/index'
     } else if (roles.includes(ROLE.DEPT_ADMIN)) {
       url = '/subpackages/dept/pages/workspace/index'
     } else if (roles.includes(ROLE.KITCHEN)) {

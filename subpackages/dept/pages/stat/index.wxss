@@ -1,0 +1,136 @@
+/* subpackages/dept/pages/stat/index.wxss — 报餐统计页样式 */
+
+.page-container {
+  min-height: 100vh;
+  background: #f4f6f9;
+  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
+}
+
+/* 部门选择器 */
+.dept-selector {
+  display: flex;
+  align-items: center;
+  padding: 24rpx;
+  background: #fff;
+  border-bottom: 1px solid #f0f1f3;
+}
+
+.dept-label {
+  font-size: 26rpx;
+  color: #6b7280;
+  margin-right: 16rpx;
+}
+
+.dept-picker {
+  font-size: 28rpx;
+  color: #1989fa;
+  font-weight: 600;
+}
+
+/* 筛选卡片 */
+.filter-card {
+  margin-top: 24rpx;
+}
+
+.filter-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 20rpx;
+}
+
+.filter-row {
+  margin-bottom: 20rpx;
+}
+
+.filter-label {
+  font-size: 24rpx;
+  color: #6b7280;
+  margin-bottom: 12rpx;
+  display: block;
+}
+
+.filter-value {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.date-text {
+  font-size: 26rpx;
+  color: #374151;
+  padding: 8rpx 16rpx;
+  background: #f7fbff;
+  border-radius: 8rpx;
+  border: 1px solid #e3f0ff;
+}
+
+.date-sep {
+  color: #9ca3af;
+  font-size: 24rpx;
+}
+
+.filter-btn {
+  margin-top: 8rpx;
+}
+
+/* 统计列表 */
+.stat-list {
+  margin-top: 24rpx;
+  padding: 0 24rpx;
+}
+
+.stat-item {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+  border: 1px solid rgba(229, 231, 235, 0.7);
+}
+
+.stat-header {
+  margin-bottom: 16rpx;
+  padding-bottom: 16rpx;
+  border-bottom: 1px solid #f0f1f3;
+}
+
+.stat-date {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #374151;
+}
+
+.stat-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.stat-meal {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.meal-name {
+  font-size: 26rpx;
+  color: #6b7280;
+  width: 80rpx;
+}
+
+.meal-qty {
+  font-size: 26rpx;
+  color: #374151;
+  font-weight: 600;
+}
+
+.meal-family {
+  font-size: 22rpx;
+  color: #ff976a;
+}
+
+/* 导出按钮 */
+.export-bar {
+  padding: 24rpx;
+  margin-top: 24rpx;
+}
