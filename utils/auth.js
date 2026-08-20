@@ -136,11 +136,11 @@ async function refreshAccessToken() {
  */
 function hasRole(role) {
   const app = getApp()
-  const roles = (app && app.globalData && app.globalData.roles) || []
+  const roleCode = (app && app.globalData && app.globalData.roleCode) || ''
   if (Array.isArray(role)) {
-    return role.some((r) => roles.includes(r))
+    return role.some((r) => roleCode === r)
   }
-  return roles.includes(role)
+  return roleCode === role
 }
 
 /**
@@ -149,9 +149,9 @@ function hasRole(role) {
  */
 function getPrimaryRole() {
   const app = getApp()
-  const roles = (app && app.globalData && app.globalData.roles) || []
+  const roleCode = (app && app.globalData && app.globalData.roleCode) || ''
   const priority = [ROLE.SYS_ADMIN, ROLE.DEPT_ADMIN, ROLE.KITCHEN, ROLE.EMPLOYEE]
-  return priority.find((r) => roles.includes(r)) || ROLE.EMPLOYEE
+  return priority.find((r) => roleCode === r) || ROLE.EMPLOYEE
 }
 
 module.exports = {

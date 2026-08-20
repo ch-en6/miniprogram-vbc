@@ -1,5 +1,6 @@
 // pages/book/index.js — 月历报餐页（对齐原型 EmployeeBook）
 const { formatMonth, getWeekDay, isBookable, formatDate, compareDate } = require('../../utils/time')
+const { isPriceConfigValid, setCache, getPriceCacheKey } = require('../../utils/cache')
 
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 const WEEKDAYS_SHORT = ['日', '一', '二', '三', '四', '五', '六']
@@ -43,8 +44,8 @@ Page({
         return
       }
 
-      // 优先从 app 全局缓存读取
-      if (app.globalData.priceConfig) {
+      // 优先从 app 全局缓存读取（校验有效期，避免跨天/改价后仍用旧价格）
+      if (app.globalData.priceConfig && isPriceConfigValid(app.globalData.priceConfig)) {
         this.setData({ priceConfig: app.globalData.priceConfig })
         console.log('[Book] 价格配置从缓存加载:', app.globalData.priceConfig)
         return
@@ -52,15 +53,15 @@ Page({
 
       // 缓存没有，请求云函数
       const res = await wx.cloud.callFunction({
-        name: 'mealOrder',
+        name: 'getPriceConfig',
         data: {
-          action: 'getPriceConfig',
           dept_id: dept_id
         }
       })
 
       if (res.result && res.result.code === 0 && res.result.data) {
         app.globalData.priceConfig = res.result.data
+        setCache(getPriceCacheKey(dept_id), res.result.data)
         this.setData({ priceConfig: res.result.data })
         console.log('[Book] 价格配置加载成功:', res.result.data)
       } else {
@@ -98,7 +99,7 @@ Page({
       const userInfo = app.globalData.userInfo || {}
       const res = await wx.cloud.callFunction({
         name: 'mealOrder',
-        data: { action: 'getMonth', month: monthStr, emp_id: userInfo._id }
+        data: { action: 'getMonth', month: monthStr, emp_id: userInfo.id }
       })
       if (res.result && res.result.code === 0 && res.result.data) {
         res.result.data.forEach(item => {
@@ -175,12 +176,12 @@ Page({
     
     if (config) {
       message += `早餐：员工 ${config.breakfast?.emp_price || 100} 元，家属 ${config.breakfast?.family_price || 1000} 元\n`
-      message += `午餐：员工 ${config.lunch?.emp_price || 1000} 元，家属 ${config.lunch?.family_price || 2000} 元\n`
-      message += `晚餐：员工 ${config.dinner?.emp_price || 1000} 元，家属 ${config.dinner?.family_price || 2000} 元\n\n`
+      message += `午餐：员工 ${config.lunch?.emp_price || 100} 元，家属 ${config.lunch?.family_price || 1000} 元\n`
+      message += `晚餐：员工 ${config.dinner?.emp_price || 100} 元，家属 ${config.dinner?.family_price || 1000} 元\n\n`
     } else {
-      message += '早餐：员工 100 元，家属 200 元\n'
-      message += '午餐：员工 1000 元，家属 2000 元\n'
-      message += '晚餐：员工 1000 元，家属 2000 元\n\n'
+      message += '早餐：员工 100 元，家属 1000 元\n'
+      message += '午餐：员工 100 元，家属 1000 元\n'
+      message += '晚餐：员工 100 元，家属 1000 元\n\n'
     }
     
     message += '\n\n将数量减为 0 即取消该餐报餐，截止时间前可修改。'
@@ -267,7 +268,7 @@ Page({
         const userInfo = app.globalData.userInfo || {}
         const res = await wx.cloud.callFunction({
           name: 'mealOrder',
-          data: { action: 'remove', date: day.dateStr, emp_id: userInfo._id }
+          data: { action: 'remove', date: day.dateStr, emp_id: userInfo.id }
         })
         if (res.result && res.result.code !== 0) {
           throw new Error(res.result.message)
@@ -284,7 +285,10 @@ Page({
             breakfast: day.breakfast,
             lunch: day.lunch,
             dinner: day.dinner,
-            emp_id: userInfo._id,
+            emp_id: userInfo.id,
+            dept_id: userInfo.dept_id,
+            location_id: userInfo.location_id,
+            _openid: userInfo._openid,
           }
         })
         if (res.result && res.result.code !== 0) {

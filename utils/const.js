@@ -58,7 +58,6 @@ const STORAGE_KEYS = {
   USER_INFO:     'user_info',
   LAST_LOGIN:    'last_login',
   // ─── 应用级缓存 ───
-  CACHE_DEPT_NAME:    'cache_dept_name',
   CACHE_PRICE_CONFIG: 'cache_price_config',
   CACHE_TIMESTAMP:    'cache_timestamp',  // 缓存写入时间戳
 }

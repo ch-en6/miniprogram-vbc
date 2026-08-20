@@ -7,7 +7,6 @@ Page({
     userInfo: {},
     phoneMasked: '',
     deptName: '',
-    isDisabled: false, // 员工是否被停用
     showWorkspace: false, // 是否显示工作台
     isKitchen: false,
     isDeptAdmin: false,
@@ -46,8 +45,8 @@ Page({
   _initDisplay() {
     const app = getApp()
     const userInfo = app.globalData.userInfo || {}
-    // 使用登录时缓存的角色 code 数组
-    const roles = app.globalData.roles || []
+    // 使用登录时缓存的角色 code
+    const roleCode = app.globalData.roleCode || ''
 
     // 手机号脱敏
     const phone = userInfo.phone || ''
@@ -55,51 +54,50 @@ Page({
       ? phone.slice(0, 3) + '****' + phone.slice(-4)
       : phone
 
-    // 员工状态
-    const isDisabled = userInfo.status === 'disabled'
-
     // 判断是否显示工作台（只有部门管理员/系统管理员才显示）
-    const showWorkspace = roles.some(r =>
-      [ROLE.DEPT_ADMIN, ROLE.SYS_ADMIN].includes(r)
-    )
+    const showWorkspace = [ROLE.DEPT_ADMIN, ROLE.SYS_ADMIN].includes(roleCode)
 
     this.setData({
       userInfo,
       phoneMasked,
-      isDisabled,
       showWorkspace,
-      isKitchen: roles.includes(ROLE.KITCHEN),
-      isDeptAdmin: roles.includes(ROLE.DEPT_ADMIN),
-      isSysAdmin: roles.includes(ROLE.SYS_ADMIN),
+      isKitchen: roleCode === ROLE.KITCHEN,
+      isDeptAdmin: roleCode === ROLE.DEPT_ADMIN,
+      isSysAdmin: roleCode === ROLE.SYS_ADMIN,
     })
   },
 
   /**
-   * 加载部门名称：优先从 app 缓存读取，缓存没有再请求云函数
+   * 加载部门名称
+   * 链路：
+   *   1. userInfo.dept_name（登录时 checkLogin 已联查并随 userInfo 缓存，零额外请求）
+   *   2. 兜底：调用云函数 getDeptName 查询（老版本缓存缺失 dept_name 时），不写缓存
+   *   3. 兜底显示 '—'
    */
   async _loadDeptName() {
     const app = getApp()
     const userInfo = app.globalData.userInfo || {}
     const dept_id = userInfo.dept_id
-    if (!dept_id) return
 
-    // 优先从 app 全局缓存读取
-    if (app.globalData.deptName) {
-      this.setData({ deptName: app.globalData.deptName })
+    // 1. 登录时已随 userInfo 返回部门名，直接使用
+    if (userInfo.dept_name) {
+      this.setData({ deptName: userInfo.dept_name })
       return
     }
 
-    // 缓存没有，请求云函数
+    // 2. 兜底：请求云函数（不写缓存，下次登录会重新带 dept_name）
+    if (!dept_id) {
+      this.setData({ deptName: '—' })
+      return
+    }
     try {
       const res = await wx.cloud.callFunction({
         name: 'getDeptName',
         data: { dept_id }
       })
       const result = res.result
-      if (result.code === 0 && result.data) {
-        const deptName = result.data.dept_name || '—'
-        app.globalData.deptName = deptName
-        this.setData({ deptName })
+      if (result && result.code === 0 && result.data) {
+        this.setData({ deptName: result.data.dept_name || '—' })
       } else {
         this.setData({ deptName: '—' })
       }
@@ -170,7 +168,7 @@ Page({
       const res = await wx.cloud.callFunction({
         name: 'changePassword',
         data: {
-          empId: userInfo._id,
+          empId: userInfo.id,
           oldPassword: oldPwd,
           newPassword: newPwd
         }

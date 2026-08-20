@@ -1,12 +1,13 @@
 // pages/index/index.js — 员工首页
 const { formatDate, formatMonth, getBookDeadlineInfo } = require('../../utils/time')
 const { ROLE } = require('../../utils/const')
-const M = require('../../utils/mock')
 
 Page({
   data: {
     heroSub: '',
     announcement: '',
+    announcementObj: {},  // 最新公告完整对象（弹层展示用）
+    noticeVisible: false, // 公告详情弹层是否显示
     announcements: [],    // 动态公告列表（Phase 4.3）
     todayMeals: [
       { key: 'breakfast', name: '早餐', qty: 0, tagType: 'warning', tagText: '未报' },
@@ -27,14 +28,6 @@ Page({
   },
 
   onLoad() {
-    const app = getApp()
-    // DEV MOCK 兜底：直接打开页面时若 app._initAuth 尚未完成，手动注入 mock 用户
-    if (app.globalData.devMock && !app.globalData.userInfo) {
-      const MU = require('../../utils/mock-user')
-      app.globalData.userInfo = { ...MU }
-      app.globalData.roles = [...MU.roles]
-      app.globalData.authReady = true
-    }
     this._initDisplay()
   },
 
@@ -53,47 +46,11 @@ Page({
     const heroSub = `今天是 ${dateStr}，次日报餐截止：${deadlineInfo.isPast ? '已截止' : '今天 ' + deadlineInfo.deadlineTime}`
 
     // 角色判断
-    const roles = app.globalData.roles || ['employee']
-    const isDeptAdmin = roles.includes(ROLE.DEPT_ADMIN)
-    const isSysAdmin = roles.includes(ROLE.SYS_ADMIN)
-    const isKitchen = roles.includes(ROLE.KITCHEN)
+    const roleCode = app.globalData.roleCode || 'employee'
+    const isDeptAdmin = roleCode === ROLE.DEPT_ADMIN
+    const isSysAdmin = roleCode === ROLE.SYS_ADMIN
+    const isKitchen = roleCode === ROLE.KITCHEN
 
-    // DEV_MOCK 模式使用 mock 数据
-    if (app.globalData.devMock) {
-      const today = M.mockTodayStatus
-      const todayMeals = this._buildMealRows({
-        breakfast: today.breakfast.qty,
-        lunch: today.lunch.qty,
-        dinner: today.dinner.qty,
-      })
-      // mock 明日数据：午餐已报 1 份，其余未报
-      const tomorrowMeals = this._buildMealRows({ breakfast: 0, lunch: 1, dinner: 0 })
-
-      const dNow = new Date()
-      const dTomorrow = new Date(dNow)
-      dTomorrow.setDate(dTomorrow.getDate() + 1)
-
-      // Phase 4.3: 动态公告（取第一条已发布公告）
-      const publishedAnnouncements = (M.mockAnnouncements || []).filter(a => a.status === 'published')
-      const announcement = publishedAnnouncements.length > 0 ? publishedAnnouncements[0].content : M.mockAnnouncement
-
-      this.setData({
-        heroSub,
-        announcement,
-        announcements: publishedAnnouncements,
-        todayMeals,
-        tomorrowMeals,
-        todayDateStr: formatDate(dNow),
-        tomorrowDateStr: formatDate(dTomorrow),
-        monthStat: M.mockMonthStat,
-        isDeptAdmin,
-        isSysAdmin,
-        isKitchen,
-      })
-      return
-    }
-
-    // 生产模式：从云数据库读取
     const dNow = new Date()
     const dTomorrow = new Date(dNow)
     dTomorrow.setDate(dTomorrow.getDate() + 1)
@@ -141,7 +98,7 @@ Page({
       // 获取当月记录
       const res = await wx.cloud.callFunction({
         name: 'mealOrder',
-        data: { action: 'getMonth', month, emp_id: userInfo._id }
+        data: { action: 'getMonth', month, emp_id: userInfo.id }
       })
 
       if (res.result && res.result.code === 0 && res.result.data) {
@@ -155,7 +112,7 @@ Page({
           if (tomorrowMonth !== month) {
             const res2 = await wx.cloud.callFunction({
               name: 'mealOrder',
-              data: { action: 'getMonth', month: tomorrowMonth, emp_id: userInfo._id }
+              data: { action: 'getMonth', month: tomorrowMonth, emp_id: userInfo.id }
             })
             if (res2.result && res2.result.code === 0 && res2.result.data) {
               tomorrowRecord = res2.result.data.find(r => r.date === tomorrowStr) || null
@@ -187,22 +144,30 @@ Page({
    */
   async _fetchLatestNotice() {
     try {
-      // 调用云函数获取最新公告
+      const app = getApp()
+      const userInfo = app.globalData.userInfo || {}
+
+      // 调用云函数获取最新公告，优先传 location_id，无则传 dept_id 由云函数换算
       const res = await wx.cloud.callFunction({
         name: 'getLatestNotice',
-        data: {}
+        data: {
+          location_id: userInfo.location_id || null,
+          dept_id: userInfo.dept_id || null
+        }
       })
-      
+
       if (res.result && res.result.code === 0 && res.result.data) {
         const notice = res.result.data
         this.setData({
           announcement: notice.content || '',
+          announcementObj: notice,
           announcements: [notice]
         })
       } else {
         // 没有公告或出错
         this.setData({
           announcement: '',
+          announcementObj: {},
           announcements: []
         })
       }
@@ -211,10 +176,24 @@ Page({
       // 出错时保持空值
       this.setData({
         announcement: '',
+        announcementObj: {},
         announcements: []
       })
     }
   },
+
+  /** 点击公告条，展开完整公告内容 */
+  showNotice() {
+    this.setData({ noticeVisible: true })
+  },
+
+  /** 关闭公告详情弹层 */
+  hideNotice() {
+    this.setData({ noticeVisible: false })
+  },
+
+  /** 阻止弹层内容区冒泡 */
+  noop() {},
 
   goBook() {
     wx.switchTab({ url: '/pages/book/index' })
@@ -222,13 +201,13 @@ Page({
 
   goWorkbench() {
     const app = getApp()
-    const roles = app.globalData.roles || ['employee']
+    const roleCode = app.globalData.roleCode || 'employee'
     let url
-    if (roles.includes(ROLE.SYS_ADMIN)) {
+    if (roleCode === ROLE.SYS_ADMIN) {
       url = '/subpackages/admin/pages/dept-manage/index'
-    } else if (roles.includes(ROLE.DEPT_ADMIN)) {
+    } else if (roleCode === ROLE.DEPT_ADMIN) {
       url = '/subpackages/dept/pages/workspace/index'
-    } else if (roles.includes(ROLE.KITCHEN)) {
+    } else if (roleCode === ROLE.KITCHEN) {
       url = '/subpackages/kitchen/pages/today/index'
     }
     if (url) wx.navigateTo({ url })

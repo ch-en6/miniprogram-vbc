@@ -1,16 +1,48 @@
-// 云函数 - 账号密码登录校验 + code换openid写入sys_emp
+// 云函数 - 账号密码登录校验（通过 @cloudbase/node-sdk 访问云 MySQL）
+// 流程：
+//   1. code 换取 openid（code2Session）
+//   2. 通过 @cloudbase/node-sdk 的 models.$runSQL 从 MySQL 的 sys_emp 表按手机号查询员工
+//   3. 校验密码（SHA-256 + salt 哈希比对）
+//   4. 通过 sys_emp.role（bigint 角色ID）关联 sys_role 表查询角色 code
+//   5. 将 openid 写回 sys_emp
+//
+// 前提：云开发环境中已绑定/接入 MySQL 数据源（sys_emp、sys_role 表），
+//       云函数无需配置连接串，SDK 自动使用当前环境的数据源。
 const cloud = require('wx-server-sdk')
 const crypto = require('crypto')
+const cloudbaseSDK = require('@cloudbase/node-sdk')
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 })
 
-const db = cloud.database()
-const _ = db.command
+// 初始化 CloudBase 应用（云函数环境自动关联当前环境）
+const cloudbase = cloudbaseSDK.init({
+  env: cloudbaseSDK.SYMBOL_CURRENT_ENV
+})
+const models = cloudbase.models
 
-// 小程序 appID（用于 code2Session）
-const APPID = 'wxbe7fe7f3f81cb261'
+/**
+ * 执行 SQL 查询（预编译模式，参数用 {{key}} 绑定，防 SQL 注入）
+ * @param {string} sql - SQL 语句
+ * @param {object} [params] - 参数对象
+ * @returns {Promise<Array>} 查询结果行数组
+ */
+async function query(sql, params = {}) {
+  const result = await models.$runSQL(sql, params)
+  return (result && result.data && result.data.executeResultList) || []
+}
+
+/**
+ * 执行 SQL 写操作
+ * @param {string} sql - SQL 语句
+ * @param {object} [params] - 参数对象
+ * @returns {Promise<number>} 受影响行数
+ */
+async function update(sql, params = {}) {
+  const result = await models.$runSQL(sql, params)
+  return (result && result.data && result.data.total) || 0
+}
 
 /**
  * 用 SHA-256 + salt 对密码进行哈希
@@ -34,17 +66,13 @@ exports.main = async (event, context) => {
     let openid = null
     if (loginCode) {
       try {
-        // 方式一：使用 cloud.getOpenId()（云函数内直接获取当前用户 openid）
-        // 注意：此方式仅在用户通过 wx.login 后、且云函数在用户上下文中调用时有效
-        // 更可靠的方式是用 code2Session 接口
         const res = await cloud.openapi('code2Session', {
           jsCode: loginCode
         })
         openid = res.openid
         console.log('[checkLogin] code2Session success, openid:', openid)
       } catch (codeErr) {
-        console.warn('[checkLogin] code2Session 失败，尝试 cloud.getOpenId():', codeErr)
-        // 方式二：降级使用 cloud.getOpenId()
+        console.warn('[checkLogin] code2Session 失败，尝试 cloud.getWXContext():', codeErr)
         try {
           const wxContext = cloud.getWXContext()
           openid = wxContext.OPENID || null
@@ -52,23 +80,23 @@ exports.main = async (event, context) => {
             console.log('[checkLogin] 使用 WXContext OPENID:', openid)
           }
         } catch (e2) {
-          console.warn('[checkLogin] cloud.getOpenId() 也失败:', e2)
+          console.warn('[checkLogin] cloud.getWXContext() 也失败:', e2)
         }
       }
     }
 
-    // ── 2. 查询 sys_emp 表中该手机号对应的员工 ────────────────────
-    const res = await db.collection('sys_emp')
-      .where({ phone: phone })
-      .limit(1)
-      .get()
+    // ── 2. 通过 @cloudbase/node-sdk 查询 sys_emp 表 ─────────────
+    const emps = await query(
+      'SELECT * FROM `sys_emp` WHERE `phone` = {{phone}} LIMIT 1',
+      { phone }
+    )
 
-    if (res.data && res.data.length > 0) {
-      const emp = res.data[0]
+    if (emps.length > 0) {
+      const emp = emps[0]
 
       // ── 3. 校验密码（SHA-256 + salt 哈希比对） ──────────────────
       if (emp.password) {
-        const salt = emp.passwordSalt || ''
+        const salt = emp.password_salt || ''
         const inputHash = hashPassword(password, salt)
         if (inputHash !== emp.password) {
           return {
@@ -79,25 +107,42 @@ exports.main = async (event, context) => {
         }
       }
 
-      // 获取角色ID数组（兼容旧字段 role 和新字段 role_id）
-      const role_ids = emp.role || []
-
-      // 通过 role_id 查询 sys_role 获取角色 code
-      let role_codes = []
-      if (role_ids.length > 0) {
-        const roleRes = await db.collection('sys_role')
-          .where({ _id: _.in(role_ids) })
-          .field({ code: true })
-          .get()
-        role_codes = (roleRes.data || []).map(r => r.code).filter(Boolean)
+      // ── 4. 通过角色ID（bigint）查询 sys_role 获取角色 code ──────
+      const role_id = emp.role_id || null
+      let role_code = null
+      if (role_id) {
+        const role = await query(
+          'SELECT `code` FROM `sys_role` WHERE `id` = {{role_id}}',
+          { role_id }
+        )
+        role_code = role.length ? role[0].code : null
       }
 
-      // ── 4. 将 openid 写入 sys_emp（若本次获取到了 openid 且与记录不同） ──
+      // ── 5. 将 openid 写入 sys_emp（若本次获取到了 openid 且与记录不同） ──
       if (openid && emp._openid !== openid) {
-        await db.collection('sys_emp').doc(emp._id).update({
-          data: { _openid: openid }
-        })
-        console.log('[checkLogin] openid 已写入 sys_emp:', emp._id)
+        await update(
+          'UPDATE `sys_emp` SET `_openid` = {{openid}} WHERE `id` = {{id}}',
+          { openid, id: emp.id }
+        )
+        console.log('[checkLogin] openid 已写入 sys_emp:', emp.id)
+      }
+
+      // ── 6. 联查部门名称与 location_id（MySQL sys_dept 表），登录时一并返回 ──
+      let dept_name = ''
+      let location_id = null
+      if (emp.dept_id) {
+        try {
+          const deptRows = await query(
+            'SELECT `name`, `location_id` FROM `sys_dept` WHERE `id` = {{dept_id}} LIMIT 1',
+            { dept_id: emp.dept_id }
+          )
+          if (deptRows.length > 0) {
+            dept_name = deptRows[0].name || ''
+            location_id = deptRows[0].location_id || null
+          }
+        } catch (deptErr) {
+          console.warn('[checkLogin] 查询部门信息失败:', deptErr)
+        }
       }
 
       return {
@@ -107,14 +152,16 @@ exports.main = async (event, context) => {
           allowed: true,
           pwdError: false,
           emp: {
-            _id: emp._id,
+            id: emp.id,
             name: emp.name || '',
             phone: emp.phone,
             _openid: openid || emp._openid,
-            dept_id: emp.dept_id || '',
-            role_id: role_ids,
-            role_codes: role_codes,
-            status: emp.status !== undefined ? emp.status : 1,
+            dept_id: emp.dept_id,
+            dept_name: dept_name,
+            location_id: location_id,
+            role_id: role_id || null,
+            role_code: role_code,
+            status: emp.status !== undefined && emp.status !== null ? emp.status : 1,
           }
         }
       }

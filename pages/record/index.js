@@ -1,5 +1,6 @@
 // pages/record/index.js — 报餐记录页（云开发模式）
 const T = require('../../utils/time')
+const { isPriceConfigValid, setCache, getPriceCacheKey } = require('../../utils/cache')
 
 Page({
   data: {
@@ -48,8 +49,8 @@ Page({
         return
       }
 
-      // 优先从 app 全局缓存读取
-      if (app.globalData.priceConfig) {
+      // 优先从 app 全局缓存读取（校验有效期，避免跨天/改价后仍用旧价格）
+      if (app.globalData.priceConfig && isPriceConfigValid(app.globalData.priceConfig)) {
         this.setData({ priceConfig: app.globalData.priceConfig })
         console.log('[Record] 价格配置从缓存加载:', app.globalData.priceConfig)
         return
@@ -57,15 +58,15 @@ Page({
 
       // 缓存没有，请求云函数
       const res = await wx.cloud.callFunction({
-        name: 'mealOrder',
+        name: 'getPriceConfig',
         data: {
-          action: 'getPriceConfig',
           dept_id: dept_id
         }
       })
 
       if (res.result && res.result.code === 0 && res.result.data) {
         app.globalData.priceConfig = res.result.data
+        setCache(getPriceCacheKey(dept_id), res.result.data)
         this.setData({ priceConfig: res.result.data })
         console.log('[Record] 价格配置加载成功:', res.result.data)
       } else {
@@ -277,7 +278,7 @@ Page({
           action: 'getRange',
           startDate: this.data.startDate,
           endDate: this.data.endDate,
-          emp_id: userInfo._id,
+          emp_id: userInfo.id,
         }
       })
 

@@ -1,13 +1,28 @@
 // 云函数 - 根据角色ID数组查询角色名称
-// 从 sys_role 表中根据 _id 批量查询 name
+// 从 MySQL sys_role 表（主键 id、角色编码 code）根据 id 批量查询 code
 const cloud = require('wx-server-sdk')
+const cloudbaseSDK = require('@cloudbase/node-sdk')
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 })
 
-const db = cloud.database()
-const _ = db.command
+// 初始化 CloudBase 应用（云函数环境自动关联当前环境）
+const cloudbase = cloudbaseSDK.init({
+  env: cloudbaseSDK.SYMBOL_CURRENT_ENV
+})
+const models = cloudbase.models
+
+/**
+ * 执行 SQL 查询（预编译模式，参数用 {{key}} 绑定，防 SQL 注入）
+ * @param {string} sql - SQL 语句
+ * @param {object} [params] - 参数对象
+ * @returns {Promise<Array>} 查询结果行数组
+ */
+async function query(sql, params = {}) {
+  const result = await models.$runSQL(sql, params)
+  return (result && result.data && result.data.executeResultList) || []
+}
 
 exports.main = async (event, context) => {
   const { role_ids } = event
@@ -17,13 +32,17 @@ exports.main = async (event, context) => {
   }
 
   try {
-    const roleRes = await db.collection('sys_role')
-      .where({ _id: _.in(role_ids) })
-      .field({ name: true })
-      .get()
+    const placeholders = role_ids.map((_, idx) => `{{id${idx}}}`).join(',')
+    const params = {}
+    role_ids.forEach((v, idx) => { params[`id${idx}`] = v })
 
-    const roleNames = (roleRes.data && roleRes.data.length > 0)
-      ? roleRes.data.map(r => r.name || '')
+    const roleRes = await query(
+      `SELECT \`code\` FROM \`sys_role\` WHERE \`id\` IN (${placeholders})`,
+      params
+    )
+
+    const roleNames = (roleRes && roleRes.length > 0)
+      ? roleRes.map(r => r.code || '')
       : []
 
     return {

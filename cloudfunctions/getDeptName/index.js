@@ -1,11 +1,27 @@
-// 云函数 - 根据部门ID查询部门名称
+// 云函数 - 根据部门ID查询部门名称（通过 @cloudbase/node-sdk 访问云 MySQL sys_dept 表）
 const cloud = require('wx-server-sdk')
+const cloudbaseSDK = require('@cloudbase/node-sdk')
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 })
 
-const db = cloud.database()
+// 初始化 CloudBase 应用（云函数环境自动关联当前环境）
+const cloudbase = cloudbaseSDK.init({
+  env: cloudbaseSDK.SYMBOL_CURRENT_ENV
+})
+const models = cloudbase.models
+
+/**
+ * 执行 SQL 查询（预编译模式，参数用 {{key}} 绑定，防 SQL 注入）
+ * @param {string} sql - SQL 语句
+ * @param {object} [params] - 参数对象
+ * @returns {Promise<Array>} 查询结果行数组
+ */
+async function query(sql, params = {}) {
+  const result = await models.$runSQL(sql, params)
+  return (result && result.data && result.data.executeResultList) || []
+}
 
 exports.main = async (event, context) => {
   const { dept_id } = event
@@ -15,13 +31,12 @@ exports.main = async (event, context) => {
   }
 
   try {
-    const deptRes = await db.collection('sys_dept')
-      .where({ _id: dept_id })
-      .field({ name: true })
-      .limit(1)
-      .get()
+    const deptRows = await query(
+      'SELECT `name` FROM `sys_dept` WHERE `id` = {{dept_id}} LIMIT 1',
+      { dept_id }
+    )
 
-    if (!deptRes.data || deptRes.data.length === 0) {
+    if (!deptRows || deptRows.length === 0) {
       return { code: -1, message: '未找到该部门信息', data: null }
     }
 
@@ -30,7 +45,7 @@ exports.main = async (event, context) => {
       message: 'success',
       data: {
         dept_id: dept_id,
-        dept_name: deptRes.data[0].name || ''
+        dept_name: deptRows[0].name || ''
       }
     }
   } catch (err) {

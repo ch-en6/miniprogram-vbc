@@ -4,6 +4,7 @@
   "description": "根据角色ID数组查询sys_role表获取角色名称",
   "main": "index.js",
   "dependencies": {
-    "wx-server-sdk": "~2.6.3"
+    "wx-server-sdk": "~2.6.3",
+    "@cloudbase/node-sdk": "^3.18.3"
   }
 }

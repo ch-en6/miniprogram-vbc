@@ -186,12 +186,10 @@ Page({
   _initUserInfo() {
     const app = getApp()
     const userInfo = app.globalData.userInfo || {}
-    const roles = app.globalData.roles || []
+    const roleCode = app.globalData.roleCode || ''
 
     // 判断是否显示工作台（只有部门管理员/系统管理员才显示）
-    const showWorkspace = roles.some(r =>
-      [ROLE.DEPT_ADMIN, ROLE.SYS_ADMIN].includes(r)
-    )    
+    const showWorkspace = [ROLE.DEPT_ADMIN, ROLE.SYS_ADMIN].includes(roleCode)
 
     const phone = userInfo.phone || ''
     const phoneMasked = phone.length >= 11
@@ -201,9 +199,9 @@ Page({
     this.setData({
       userInfo,
       phoneMasked,
-      isKitchen: roles.includes(ROLE.KITCHEN),
-      isDeptAdmin: roles.includes(ROLE.DEPT_ADMIN),
-      isSysAdmin: roles.includes(ROLE.SYS_ADMIN),
+      isKitchen: roleCode === ROLE.KITCHEN,
+      isDeptAdmin: roleCode === ROLE.DEPT_ADMIN,
+      isSysAdmin: roleCode === ROLE.SYS_ADMIN,
       showWorkspace: showWorkspace,
     })
   },
@@ -214,13 +212,13 @@ Page({
     const dept_id = userInfo.dept_id
     if (!dept_id) return
 
-    // 优先从 app 全局缓存读取
-    if (app.globalData.deptName) {
-      this.setData({ deptName: app.globalData.deptName })
+    // 1. 登录时已随 userInfo 返回部门名，直接使用
+    if (userInfo.dept_name) {
+      this.setData({ deptName: userInfo.dept_name })
       return
     }
 
-    // 缓存没有，请求云函数
+    // 2. 兜底：请求云函数（不写缓存，下次登录会重新带 dept_name）
     try {
       const res = await wx.cloud.callFunction({
         name: 'getDeptName',
@@ -228,9 +226,7 @@ Page({
       })
       const result = res.result
       if (result.code === 0 && result.data) {
-        const deptName = result.data.dept_name || '—'
-        app.globalData.deptName = deptName
-        this.setData({ deptName })
+        this.setData({ deptName: result.data.dept_name || '—' })
       } else {
         this.setData({ deptName: '—' })
       }
@@ -414,7 +410,7 @@ Page({
       const res = await wx.cloud.callFunction({
         name: 'changePassword',
         data: {
-          empId: userInfo._id,
+          empId: userInfo.id,
           oldPassword: oldPwd,
           newPassword: newPwd
         }

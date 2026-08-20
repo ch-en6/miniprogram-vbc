@@ -1,9 +1,10 @@
 {
   "name": "mealOrder",
   "version": "1.0.0",
-  "description": "报餐记录云函数：查询月度报餐、保存报餐、删除报餐",
+  "description": "员工报餐读写（云 MySQL meal_order 表，按 emp_id+date+meal_type 拆分存储）",
   "main": "index.js",
   "dependencies": {
-    "wx-server-sdk": "~2.6.3"
+    "wx-server-sdk": "~2.6.3",
+    "@cloudbase/node-sdk": "^3.18.3"
   }
 }

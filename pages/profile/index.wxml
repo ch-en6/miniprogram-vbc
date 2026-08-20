@@ -35,28 +35,6 @@
     </view>
   </view>
 
-  <!-- 工牌二维码卡片 -->
-  <!-- <view class="qr-card">
-    <view class="qr-card-title">员工工牌</view>
-    <view class="qr-card-body">
-      <view class="qr-wrapper">
-        <canvas canvas-id="qrCanvas" class="qr-canvas" style="width: 360rpx; height: 360rpx;"></canvas> -->
-        <!-- 停用状态：红色提示覆盖在二维码上 -->
-        <!-- <view class="qr-disabled-overlay" wx:if="{{ isDisabled }}">
-          <text class="qr-disabled-text">该员工已被停用</text>
-        </view>
-      </view>
-      <view class="qr-emp-info">
-        <text class="qr-emp-name">{{ userInfo.name || '—' }}</text>
-        <text class="qr-emp-no">{{ empNo || '—' }}</text>
-      </view>
-    </view> -->
-    <!-- 停用状态：卡片底部红色提示 -->
-    <!-- <view class="qr-card-disabled-tip" wx:if="{{ isDisabled }}">
-      <text class="disabled-tip-text">该员工已被停用</text>
-    </view>
-  </view> -->
-
   <!-- 消息通知设置 -->
   <!-- <van-cell-group inset title="消息通知">
     <van-cell title="报餐提醒" is-link bindtap="onSubscribeMessage">

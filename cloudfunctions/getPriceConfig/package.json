@@ -1,0 +1,10 @@
+{
+  "name": "getPriceConfig",
+  "version": "1.0.0",
+  "description": "按部门读取价格配置，通过 @cloudbase/node-sdk 从云 MySQL sys_meal_price 表读取并按餐次组装返回",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3",
+    "@cloudbase/node-sdk": "^3.18.3"
+  }
+}

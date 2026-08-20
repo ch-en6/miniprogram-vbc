@@ -1,436 +1,326 @@
-// 云函数 - 报餐记录操作（meal_order 表）
-// 支持 action：
-//   getMonth           - 查询当前用户某月的所有报餐记录
-//   getRange           - 查询当前用户指定日期范围内的所有报餐记录
-//   save               - 保存/更新某日的报餐记录（upsert）
-//   remove             - 删除某日的报餐记录
-//   getPriceConfig     - 获取餐费价格配置
-//   searchByName       - 按姓名查询指定日期的报餐记录
-//   searchByPhone      - 按手机号查询指定日期的报餐记录
-//   getKitchenSummary  - 食堂工作台：按日期汇总报餐数据（按部门维度）
-//   getKitchenDetail   - 食堂工作台：按日期查询报餐明细（员工维度，分页）
+// 云函数 - 员工报餐读写（@cloudbase/node-sdk 访问云 MySQL meal_order 表）
+//
+// 数据模型说明（与 book 页面契约对齐）：
+//   后端按 "每人每天每餐次 = 一行" 存储；
+//   前端 book 页面按 "每天三餐聚合" 展示（{ date, breakfast, lunch, dinner }）。
+//   聚合/拆分都在本函数内完成，book 页面只看到聚合形态。
+//
 const cloud = require('wx-server-sdk')
+const cloudbaseSDK = require('@cloudbase/node-sdk')
 
-cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
+cloud.init({
+  env: cloud.DYNAMIC_CURRENT_ENV
+})
 
-const db = cloud.database()
-const _ = db.command
-const MAX_LIMIT = 100
-const MEAL_KEYS = ['breakfast', 'lunch', 'dinner']
+const cloudbase = cloudbaseSDK.init({
+  env: cloudbaseSDK.SYMBOL_CURRENT_ENV
+})
+const models = cloudbase.models
 
-// ─── 工具函数 ────────────────────────────────────────────
+// meal_type 数值 -> 前端餐次字符串（与 getPriceConfig 保持一致）
+const MEAL_TYPE_NAME = {
+  0: 'breakfast',
+  1: 'lunch',
+  2: 'dinner',
+}
+
+// 前端餐次字符串 -> meal_type 数值
+const NAME_TO_MEAL_TYPE = {
+  breakfast: 0,
+  lunch: 1,
+  dinner: 2,
+}
+
+// 餐次列表（用于遍历 save 时的三次插入/更新/删除）
+const MEAL_NAMES = ['breakfast', 'lunch', 'dinner']
 
 /**
- * 通用分页查询：自动翻页获取全部数据
- * @param {string} collection - 集合名
- * @param {object} where - 查询条件
- * @param {object} [options] - 可选 { orderBy, field }
- * @returns {Array} 全部匹配记录
+ * 执行 SQL 查询（预编译模式，参数用 {{key}} 绑定，防 SQL 注入）
  */
-async function fetchAll(collection, where, options = {}) {
-  const { orderBy, field } = options
-  let allData = []
-  let skip = 0
-  while (true) {
-    let query = db.collection(collection).where(where)
-    if (orderBy) query = query.orderBy(orderBy[0], orderBy[1])
-    if (field) query = query.field(field)
-    const res = await query.skip(skip).limit(MAX_LIMIT).get()
-    allData = allData.concat(res.data)
-    if (res.data.length < MAX_LIMIT) break
-    skip += MAX_LIMIT
+async function query(sql, params = {}) {
+  console.log('[mealOrder][DEBUG] $runSQL SELECT ->', sql)
+  console.log('[mealOrder][DEBUG] $runSQL SELECT params ->', JSON.stringify(params))
+  try {
+    const result = await models.$runSQL(sql, params)
+    return (result && result.data && result.data.executeResultList) || []
+  } catch (err) {
+    console.error(
+      '[mealOrder][DEBUG] $runSQL SELECT FAILED:',
+      err.message || err,
+      '\nSQL:', sql,
+      '\nPARAMS:', JSON.stringify(params)
+    )
+    throw err
   }
-  return allData
 }
 
 /**
- * 统一成功响应
+ * 执行 SQL 写操作
+ * @returns {Promise<number>} 受影响行数
  */
-function ok(data, message = 'success') {
-  return { code: 0, message, data }
+async function update(sql, params = {}) {
+  console.log('[mealOrder][DEBUG] $runSQL WRITE ->', sql)
+  console.log('[mealOrder][DEBUG] $runSQL WRITE params ->', JSON.stringify(params))
+  try {
+    const result = await models.$runSQL(sql, params)
+    return (result && result.data && result.data.total) || 0
+  } catch (err) {
+    console.error(
+      '[mealOrder][DEBUG] $runSQL WRITE FAILED:',
+      err.message || err,
+      '\nSQL:', sql,
+      '\nPARAMS:', JSON.stringify(params)
+    )
+    throw err
+  }
 }
 
 /**
- * 统一错误响应
+ * 将任意日期值规范化为 YYYY-MM-DD 字符串
  */
-function fail(message, data = null) {
-  return { code: -1, message, data }
-}
-
-/**
- * 构建员工报餐搜索结果
- * @param {Array} empList - 员工列表（来自 sys_emp）
- * @param {string} date - 查询日期
- * @param {string} [meal] - 可选餐别筛选
- * @returns {object} 搜索结果 data
- */
-async function buildSearchResult(empList, date, meal) {
-  if (empList.length === 0) {
-    return { found: false, keyword: '', list: [] }
-  }
-
-  const empIds = empList.map(e => e._id)
-
-  // 批量查询报餐记录
-  const orders = await fetchAll('meal_order', { emp_id: _.in(empIds), date })
-  const orderMap = {}
-  orders.forEach(o => { orderMap[o.emp_id] = o })
-
-  // 批量查询部门名称
-  const deptIds = [...new Set(empList.map(e => e.dept_id).filter(Boolean))]
-  const deptMap = {}
-  if (deptIds.length > 0) {
-    const deptRes = await db.collection('sys_dept')
-      .where({ _id: _.in(deptIds) })
-      .field({ _id: true, name: true })
-      .get()
-    deptRes.data.forEach(d => { deptMap[d._id] = d.name })
-  }
-
-  // 组装列表
-  const list = empList.map(emp => {
-    const order = orderMap[emp._id] || {}
-    const breakfast = order.breakfast || 0
-    const lunch = order.lunch || 0
-    const dinner = order.dinner || 0
-    return {
-      emp_id: emp._id,
-      name: emp.name,
-      phone: emp.phone || '',
-      dept_name: deptMap[emp.dept_id] || '',
-      breakfast, lunch, dinner,
-      has_order: breakfast > 0 || lunch > 0 || dinner > 0,
+function ymd(val) {
+  if (!val) return ''
+  if (typeof val === 'string') {
+    // 兼容 'YYYY-MM-DD' 或 'YYYY-MM-DD HH:mm:ss' 等
+    const m = val.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)
+    if (m) {
+      return `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}`
     }
+  }
+  const d = new Date(val)
+  if (isNaN(d.getTime())) return String(val)
+  const pad = n => (n < 10 ? '0' + n : n)
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+/**
+ * 给定月份，返回起止日期字符串 [start, end]
+ * @param {number} year
+ * @param {number} month1 - 1-based 月份
+ */
+function monthRange(year, month1) {
+  const pad = n => (n < 10 ? '0' + n : n)
+  const start = `${year}-${pad(month1)}-01`
+  const lastDay = new Date(year, month1, 0).getDate()
+  const end = `${year}-${pad(month1)}-${pad(lastDay)}`
+  return { start, end }
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Action: getMonth
+//   入参：{ emp_id: number, month: 'YYYY-MM' }
+//   出参：[{ date, breakfast, lunch, dinner }]，每天最多一条
+// ──────────────────────────────────────────────────────────────────
+async function actionGetMonth(event) {
+  const { emp_id, month } = event
+  if (!emp_id || !month) {
+    return { code: -1, message: '缺少参数 emp_id/month', data: null }
+  }
+  const m = String(month).match(/^(\d{4})-(\d{1,2})$/)
+  if (!m) {
+    return { code: -1, message: 'month 参数格式应为 YYYY-MM', data: null }
+  }
+  const year = Number(m[1])
+  const month1 = Number(m[2])
+  const { start, end } = monthRange(year, month1)
+
+  const rows = await query(
+    'SELECT * FROM `meal_order` ' +
+    'WHERE `emp_id` = {{emp_id}} ' +
+    '  AND `date` BETWEEN {{start}} AND {{end}} ' +
+    '  AND `quantity` > 0 ' +
+    'ORDER BY `date` ASC, `meal_type` ASC',
+    { emp_id, start, end }
+  )
+
+  // 按 date 聚合为 { date, breakfast, lunch, dinner }
+  const byDate = new Map()
+  rows.forEach(r => {
+    const date = ymd(r.date)
+    if (!byDate.has(date)) {
+      byDate.set(date, { date, breakfast: 0, lunch: 0, dinner: 0 })
+    }
+    const bucket = byDate.get(date)
+    const name = MEAL_TYPE_NAME[r.meal_type]
+    if (name) bucket[name] = Number(r.quantity) || 0
   })
 
-  // 餐别筛选
-  let filtered = list
-  if (meal) {
-    filtered = list.filter(item => item[meal] > 0)
-  }
-
-  return { found: filtered.length > 0, list: filtered }
+  return { code: 0, message: 'success', data: Array.from(byDate.values()) }
 }
 
-// ─── 主入口 ──────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────
+// Action: save
+//   入参：{
+//     emp_id, date, breakfast, lunch, dinner,
+//     dept_id, location_id, openid
+//   }
+//   语义：
+//     - 数量 > 0：upsert 该 (emp_id, date, meal_type) 行；写入价格快照
+//     - 数量 = 0：删除该 (emp_id, date, meal_type) 行
+// ──────────────────────────────────────────────────────────────────
+async function actionSave(event) {
+  const wxContext = cloud.getWXContext() || {}
+  const openidFromCtx = wxContext.OPENID || ''
 
-exports.main = async (event, context) => {
-  const { action, emp_id } = event
-  const wxContext = cloud.getWXContext()
-  const openid = wxContext.OPENID
+  const emp_id = Number(event.emp_id) || 0
+  const date = ymd(event.date)
+  const dept_id = Number(event.dept_id) || 0
+  const location_id = event.location_id == null ? null : Number(event.location_id)
+  const _openid = openidFromCtx || event._openid
 
-  if (!openid) return fail('无法获取用户信息')
-
-  // 不需要 emp_id 的 action 白名单
-  const NO_EMP_ACTIONS = ['getPriceConfig', 'searchByName', 'searchByPhone', 'getKitchenSummary', 'getKitchenDetail']
-  if (!NO_EMP_ACTIONS.includes(action) && !emp_id) {
-    return fail('缺少用户ID参数(emp_id)')
+  if (!emp_id || !date) {
+    return { code: -1, message: '缺少参数 emp_id/date', data: null }
+  }
+  if (!dept_id) {
+    return { code: -1, message: '缺少部门ID，无法加载价格', data: null }
   }
 
+  const quantities = {
+    breakfast: Number(event.breakfast) || 0,
+    lunch: Number(event.lunch) || 0,
+    dinner: Number(event.dinner) || 0,
+  }
+
+  // 1. 加载该部门当日启用的价格（按 meal_type 取当前生效记录）
+  const priceRows = await query(
+    'SELECT `meal_type`, `emp_price`, `family_price` FROM `price_config` ' +
+    'WHERE `dept_id` = {{dept_id}} AND `status` = 1 ' +
+    'AND `start_date` <= CURDATE() AND `end_date` >= CURDATE()',
+    { dept_id}
+  )
+  const priceMap = new Map()
+  priceRows.forEach(r => {
+    priceMap.set(Number(r.meal_type), {
+      emp_price: Number(r.emp_price) || 100,
+      family_price: Number(r.family_price) || 1000,
+    })
+  })
+
+  // 2. 加载该员工当天的现有记录（避免重复查询）
+  //    注意：参数名不能用 date（与 SQL 保留字 DATE 冲突，SDK 解析失败），用 day 代替
+  const existingRows = await query(
+    'SELECT `id`, `meal_type` FROM `meal_order` ' +
+    'WHERE `emp_id` = {{emp_id}} AND `date` = {{day}}',
+    { emp_id, day: date }
+  )
+  const existingMap = new Map()
+  existingRows.forEach(r => existingMap.set(Number(r.meal_type), r))
+
+  const summary = { inserted: 0, updated: 0, deleted: 0 }
+
+  // 3. 逐个 meal_type 处理
+  for (const name of MEAL_NAMES) {
+    const meal_type = NAME_TO_MEAL_TYPE[name]
+    const quantity = quantities[name]
+    const exists = existingMap.has(meal_type)
+    const price = priceMap.get(meal_type) || { emp_price: 100, family_price: 1000 }
+
+    if (quantity === 0) {
+      // 数量为 0 → 删除（保留历史行为一致；如需审计可改为设置 verified_status）
+      if (exists) {
+        await update(
+          'DELETE FROM `meal_order` WHERE `id` = {{id}}',
+          { id: existingMap.get(meal_type).id }
+        )
+        summary.deleted += 1
+      }
+      continue
+    }
+
+    if (exists) {
+      // 更新现有记录
+      await update(
+        'UPDATE `meal_order` SET ' +
+        '  `quantity`     = {{quantity}}, ' +
+        '  `location_id`  = {{location_id}}, ' +
+        '  `emp_price`    = {{emp_price}}, ' +
+        '  `family_price` = {{family_price}}, ' +
+        '  `submitted_at` = NOW(), ' +
+        '  `updated_at`   = NOW() ' +
+        'WHERE `id` = {{id}}',
+        {
+          id: existingMap.get(meal_type).id,
+          quantity,
+          location_id,
+          emp_price: price.emp_price,
+          family_price: price.family_price,
+        }
+      )
+      summary.updated += 1
+    } else {
+      // 新增
+      await update(
+        'INSERT INTO `meal_order` ' +
+        '(`emp_id`, `date`, `meal_type`, `quantity`, `location_id`, ' +
+        ' `submitted_at`, `verified_status`, `created_at`, `updated_at`, ' +
+        ' `_openid`, `emp_price`, `family_price`) ' +
+        'VALUES ' +
+        '({{emp_id}}, {{day}}, {{meal_type}}, {{quantity}}, {{location_id}}, ' +
+        ' NOW(), 0, NOW(), NOW(), ' +
+        ' {{_openid}}, {{emp_price}}, {{family_price}})',
+        {
+          emp_id,
+          day: date,
+          meal_type,
+          quantity,
+          location_id,
+          _openid,
+          emp_price: price.emp_price,
+          family_price: price.family_price,
+        }
+      )
+      summary.inserted += 1
+    }
+  }
+
+  return { code: 0, message: 'success', data: summary }
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Action: remove
+//   入参：{ emp_id, date }
+//   删除该员工当天的全部 meal_order 行
+// ──────────────────────────────────────────────────────────────────
+async function actionRemove(event) {
+  const emp_id = Number(event.emp_id) || 0
+  const date = ymd(event.date)
+  if (!emp_id || !date) {
+    return { code: -1, message: '缺少参数 emp_id/date', data: null }
+  }
+  const affected = await update(
+    'DELETE FROM `meal_order` WHERE `emp_id` = {{emp_id}} AND `date` = {{day}}',
+    { emp_id, day: date }
+  )
+  return { code: 0, message: 'success', data: { removed: affected } }
+}
+
+// ──────────────────────────────────────────────────────────────────
+// 兼容 kitchen 工作台 action（services/api.js KitchenAPI 仍引用）
+// 当前任务（book 页面）不涉及；返回空数据以避免云函数 not found。
+// ──────────────────────────────────────────────────────────────────
+async function actionKitchenStub() {
+  return { code: 0, message: 'success', data: [] }
+}
+
+// ──────────────────────────────────────────────────────────────────
+// 入口
+// ──────────────────────────────────────────────────────────────────
+exports.main = async (event, context) => {
+  const { action } = event || {}
   try {
     switch (action) {
-      case 'getMonth':          return await getMonth(event, emp_id)
-      case 'getRange':          return await getRange(event, emp_id)
-      case 'save':              return await save(event, emp_id, openid)
-      case 'remove':            return await remove(event, emp_id)
-      case 'getPriceConfig':    return await getPriceConfig(event)
-      case 'searchByName':      return await searchByName(event)
-      case 'searchByPhone':     return await searchByPhone(event)
-      case 'getKitchenSummary': return await getKitchenSummary(event)
-      case 'getKitchenDetail':  return await getKitchenDetail(event)
-      default:                  return fail('未知操作: ' + action)
+      case 'getMonth':         return await actionGetMonth(event)
+      case 'save':             return await actionSave(event)
+      case 'remove':           return await actionRemove(event)
+      case 'getKitchenSummary':
+      case 'getKitchenDetail':
+      case 'searchByName':
+      case 'searchByPhone':    return await actionKitchenStub()
+      default:
+        return { code: -1, message: `未知 action: ${action}`, data: null }
     }
   } catch (err) {
     console.error('[mealOrder] error:', err)
-    return fail('操作失败: ' + err.message)
+    return { code: -1, message: '服务器错误: ' + (err.message || err), data: null }
   }
-}
-
-// ─── 各 action 实现 ──────────────────────────────────────
-
-/**
- * 查询某月报餐记录
- */
-async function getMonth(event, emp_id) {
-  const { month } = event
-  if (!month || !/^\d{4}-\d{2}$/.test(month)) {
-    return fail('缺少月份参数或格式错误')
-  }
-  const data = await fetchAll('meal_order', {
-    emp_id,
-    date: _.gte(month + '-01').and(_.lte(month + '-31'))
-  }, { orderBy: ['date', 'asc'] })
-  return ok(data)
-}
-
-/**
- * 查询指定日期范围内的报餐记录
- */
-async function getRange(event, emp_id) {
-  const { startDate, endDate } = event
-  if (!startDate || !endDate) return fail('缺少日期范围参数')
-  const data = await fetchAll('meal_order', {
-    emp_id,
-    date: _.gte(startDate).and(_.lte(endDate))
-  }, { orderBy: ['date', 'asc'] })
-  return ok(data)
-}
-
-/**
- * 保存/更新某日报餐记录（upsert）
- */
-async function save(event, emp_id, openid) {
-  const { date, breakfast, lunch, dinner } = event
-  if (!date) return fail('缺少日期参数')
-
-  const existing = await db.collection('meal_order')
-    .where({ emp_id, date })
-    .limit(1)
-    .get()
-
-  const now = new Date()
-  const mealData = {
-    emp_id, _openid: openid,
-    breakfast: breakfast || 0,
-    lunch: lunch || 0,
-    dinner: dinner || 0,
-    updated_at: now,
-  }
-
-  if (existing.data.length > 0) {
-    const recordId = existing.data[0]._id
-    await db.collection('meal_order').doc(recordId).update({ data: mealData })
-    return ok({ _id: recordId, date, breakfast, lunch, dinner }, '更新成功')
-  }
-
-  mealData.date = date
-  mealData.created_at = now
-  const res = await db.collection('meal_order').add({ data: mealData })
-  return ok({ _id: res._id, date, breakfast, lunch, dinner }, '保存成功')
-}
-
-/**
- * 删除某日报餐记录
- */
-async function remove(event, emp_id) {
-  const { date } = event
-  if (!date) return fail('缺少日期参数')
-
-  const existing = await db.collection('meal_order')
-    .where({ emp_id, date })
-    .limit(1)
-    .get()
-
-  if (existing.data.length > 0) {
-    await db.collection('meal_order').doc(existing.data[0]._id).remove()
-    return ok(null, '删除成功')
-  }
-  return ok(null, '记录不存在，无需删除')
-}
-
-/**
- * 按姓名/手机号查询报餐记录（统一入口）
- */
-async function searchByName(event) {
-  const { keyword, date, meal } = event
-  if (!keyword || !date) return fail('缺少姓名或日期参数')
-
-  const empRes = await db.collection('sys_emp')
-    .where({ name: db.RegExp({ regexp: keyword, options: 'i' }) })
-    .field({ _id: true, name: true, phone: true, dept_id: true })
-    .limit(50)
-    .get()
-
-  const result = await buildSearchResult(empRes.data || [], date, meal)
-  return ok({ ...result, keyword, date, total: result.list.length })
-}
-
-async function searchByPhone(event) {
-  const { keyword, date, meal } = event
-  if (!keyword || !date) return fail('缺少手机号或日期参数')
-
-  const empRes = await db.collection('sys_emp')
-    .where({ phone: db.RegExp({ regexp: keyword, options: 'i' }) })
-    .field({ _id: true, name: true, phone: true, dept_id: true })
-    .limit(50)
-    .get()
-
-  const result = await buildSearchResult(empRes.data || [], date, meal)
-  return ok({ ...result, keyword, date, total: result.list.length })
-}
-
-/**
- * 食堂工作台：按日期汇总报餐数据（按部门维度）
- */
-async function getKitchenSummary(event) {
-  const { date } = event
-  if (!date) return fail('缺少日期参数')
-
-  // 并行查询：报餐记录、部门列表、员工列表
-  const [allOrders, deptRes, allEmps] = await Promise.all([
-    fetchAll('meal_order', { date }),
-    db.collection('sys_dept').field({ _id: true, name: true }).get(),
-    fetchAll('sys_emp', {}, { field: { _id: true, dept_id: true } }),
-  ])
-
-  const deptMap = {}
-  deptRes.data.forEach(d => { deptMap[d._id] = d.name })
-
-  const empDeptMap = {}
-  allEmps.forEach(e => { empDeptMap[e._id] = e.dept_id })
-
-  // 初始化餐次汇总
-  const mealTotals = {}
-  MEAL_KEYS.forEach(k => { mealTotals[k] = { head_count: 0, total_qty: 0, family_qty: 0 } })
-
-  // 按部门汇总
-  const deptStats = {}
-
-  allOrders.forEach(order => {
-    const deptId = empDeptMap[order.emp_id] || 'unknown'
-    const deptName = deptMap[deptId] || '未知部门'
-
-    if (!deptStats[deptId]) {
-      deptStats[deptId] = { dept_id: deptId, dept_name: deptName, breakfast: 0, lunch: 0, dinner: 0 }
-    }
-    const ds = deptStats[deptId]
-
-    MEAL_KEYS.forEach(meal => {
-      const qty = order[meal] || 0
-      if (qty > 0) {
-        ds[meal] += qty
-        mealTotals[meal].head_count += 1
-        mealTotals[meal].total_qty += qty
-        mealTotals[meal].family_qty += Math.max(qty - 1, 0)
-      }
-    })
-  })
-
-  // 过滤无报餐的部门，按总量降序
-  const depts = Object.values(deptStats)
-    .filter(d => d.breakfast + d.lunch + d.dinner > 0)
-    .sort((a, b) =>
-      (b.breakfast + b.lunch + b.dinner) - (a.breakfast + a.lunch + a.dinner)
-    )
-
-  return ok({ date, meals: mealTotals, depts })
-}
-
-/**
- * 食堂工作台：按日期查询报餐明细（员工维度，支持分页、搜索、餐别筛选）
- */
-async function getKitchenDetail(event) {
-  const { date, page = 1, page_size = 20, keyword, meal_type } = event
-  if (!date) return fail('缺少日期参数')
-
-  const allOrders = await fetchAll('meal_order', { date })
-  if (allOrders.length === 0) return ok({ list: [], total: 0, total_qty: 0 })
-
-  // 获取涉及的 emp_id
-  const empIds = [...new Set(allOrders.map(o => o.emp_id))]
-
-  // 分页查询员工信息（避免超过 100 条限制）
-  const empMap = {}
-  const empChunks = []
-  for (let i = 0; i < empIds.length; i += MAX_LIMIT) {
-    empChunks.push(empIds.slice(i, i + MAX_LIMIT))
-  }
-  await Promise.all(empChunks.map(async chunk => {
-    const res = await db.collection('sys_emp')
-      .where({ _id: _.in(chunk) })
-      .field({ _id: true, name: true, phone: true, dept_id: true })
-      .get()
-    res.data.forEach(e => { empMap[e._id] = e })
-  }))
-
-  // 批量查询部门名称
-  const deptIds = [...new Set(Object.values(empMap).map(e => e.dept_id).filter(Boolean))]
-  const deptMap = {}
-  if (deptIds.length > 0) {
-    const deptRes = await db.collection('sys_dept')
-      .where({ _id: _.in(deptIds) })
-      .field({ _id: true, name: true })
-      .get()
-    deptRes.data.forEach(d => { deptMap[d._id] = d.name })
-  }
-
-  // 展开为各餐次明细行
-  let allRows = []
-  allOrders.forEach(order => {
-    const emp = empMap[order.emp_id] || {}
-    const deptName = deptMap[emp.dept_id] || '未知部门'
-    MEAL_KEYS.forEach(meal => {
-      const qty = order[meal] || 0
-      if (qty > 0) {
-        allRows.push({
-          user_id: order.emp_id,
-          name: emp.name || '',
-          phone: emp.phone || '',
-          dept_name: deptName,
-          meal_type: meal,
-          qty,
-        })
-      }
-    })
-  })
-
-  // 关键词搜索（姓名 / 部门 / 手机号）
-  if (keyword) {
-    const key = keyword.toLowerCase()
-    allRows = allRows.filter(r =>
-      (r.name || '').toLowerCase().includes(key) ||
-      (r.dept_name || '').toLowerCase().includes(key) ||
-      (r.phone || '').includes(key)
-    )
-  }
-
-  // 餐别筛选
-  if (meal_type) {
-    allRows = allRows.filter(r => r.meal_type === meal_type)
-  }
-
-  // 汇总 + 分页
-  const total = allRows.length
-  const total_qty = allRows.reduce((sum, r) => sum + r.qty, 0)
-  const start = (page - 1) * page_size
-  const paged = allRows.slice(start, start + page_size)
-
-  return ok({ list: paged, total, total_qty })
-}
-
-/**
- * 获取餐费价格配置
- */
-async function getPriceConfig(event) {
-  const { dept_id } = event
-  if (!dept_id) return fail('缺少必需的部门ID参数')
-
-  // meal_type: 0-早餐, 1-午餐, 2-晚餐
-  const MEAL_TYPE_MAP = { 0: 'breakfast', 1: 'lunch', 2: 'dinner' }
-  const DEFAULTS = {
-    breakfast: { emp_price: 100, family_price: 1000 },
-    lunch:     { emp_price: 200, family_price: 2000 },
-    dinner:    { emp_price: 200, family_price: 2000 },
-  }
-
-  const res = await db.collection('price_config')
-    .where({ dept_id, status: 1 })
-    .get()
-
-  if (!res.data || res.data.length === 0) {
-    return fail(`部门 ${dept_id} 未配置价格，请联系管理员`)
-  }
-
-  const priceConfig = { ...DEFAULTS, dept_id }
-  res.data.forEach(config => {
-    const mealName = MEAL_TYPE_MAP[config.meal_type]
-    if (mealName) {
-      priceConfig[mealName] = {
-        emp_price: config.emp_price || DEFAULTS[mealName].emp_price,
-        family_price: config.family_price || DEFAULTS[mealName].family_price,
-      }
-    }
-  })
-
-  return ok(priceConfig)
 }

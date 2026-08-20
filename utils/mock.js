@@ -15,9 +15,6 @@ const mockMonthStat = {
   dinner: 6,
 }
 
-// ─── 公告 ──────────────────────────────────────────────────────
-const mockAnnouncement = '本周生效菜单：菜单 1。如有临时变更，以公告说明为准。'
-
 // ─── 月历报餐数据 ──────────────────────────────────────────────
 const mockMonthBookings = {}
 
@@ -181,17 +178,9 @@ const mockBillingSnapshot = {
   snapshotMonth: '2026-06',
 }
 
-// ─── 系统公告列表 ──────────────────────────────────────────────
-const mockAnnouncements = [
-  { id: 1, title: '本周菜单通知', content: '本周生效菜单：菜单 1。如有临时变更，以公告说明为准。', status: 'published', createdAt: '2026-06-20 09:00', publisher: '管理员老王' },
-  { id: 2, title: '报餐截止时间提醒', content: '请各位员工注意，报餐截止时间为前一天 17:00，逾期无法修改。', status: 'published', createdAt: '2026-06-18 14:30', publisher: '管理员老王' },
-  { id: 3, title: '系统维护通知', content: '系统将于本周六晚上 22:00-24:00 进行维护升级，届时可能无法报餐，请提前安排。', status: 'draft', createdAt: '2026-06-25 16:00', publisher: '系统管理员' },
-]
-
 module.exports = {
   mockTodayStatus,
   mockMonthStat,
-  mockAnnouncement,
   mockMonthBookings,
   mockMenu,
   mockRecords,
@@ -202,5 +191,4 @@ module.exports = {
   mockDeptPrices,
   mockBillingList,
   mockBillingSnapshot,
-  mockAnnouncements,
 }

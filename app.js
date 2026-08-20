@@ -1,21 +1,19 @@
 // app.js — 企业报餐小程序全局入口（云开发模式）
 const { saveTokens, clearAuth, getCachedUserInfo, setCachedUserInfo } = require('./utils/auth')
-const { getCachedDeptName, getCachedPriceConfig, loadAndCacheDeptName, loadAndCachePriceConfig, clearAllCache } = require('./utils/cache')
+const { getCachedPriceConfig, loadAndCachePriceConfig, clearAllCache } = require('./utils/cache')
 
 App({
   globalData: {
     /** 当前登录用户信息 */
     userInfo: null,
-    /** 用户角色数组 */
-    roles: [],
+    /** 用户角色 code */
+    roleCode: '',
     /** 是否已完成初始化登录检测 */
     authReady: false,
     /** 系统信息 */
     systemInfo: null,
     /** 全局公告内容 */
     announcement: null,
-    /** 缓存：部门名称 */
-    deptName: null,
     /** 缓存：价格配置 */
     priceConfig: null,
   },
@@ -55,18 +53,17 @@ App({
 
     try {
       const cached = getCachedUserInfo()
-      if (cached && cached._id) {
+      if (cached && cached.id) {
         // 有缓存用户，恢复登录态
         app.globalData.userInfo = cached
-        app.globalData.roles = cached.role_codes || ['employee']
+        app.globalData.roleCode = cached.role_code || 'employee'
         app.globalData.authReady = true
         app._resolveAuthCallbacks(true)
         console.info('[App] Restored user from cache:', cached.name)
 
-        // 恢复缓存的部门名称和价格配置（同步读 Storage，异步刷新）
-        app.globalData.deptName = getCachedDeptName()
-        app.globalData.priceConfig = getCachedPriceConfig()
-        // 后台静刷新（如果缓存过期会自动重新拉取）
+        // 恢复缓存的价格配置（按部门 + 有效期校验，同步读 Storage，异步刷新）
+        app.globalData.priceConfig = getCachedPriceConfig(cached.dept_id)
+        // 后台静刷新（如果缓存过期/失效会自动重新拉取）
         app._preloadCache(cached.dept_id)
       } else {
         // 无缓存，跳登录页
@@ -84,7 +81,7 @@ App({
   _redirectToLogin() {
     this.globalData.authReady = true
     this.globalData.userInfo = null
-    this.globalData.roles = []
+    this.globalData.roleCode = ''
     this._resolveAuthCallbacks(false)
     setTimeout(() => {
       wx.reLaunch({ url: '/pages/login/index' })
@@ -113,19 +110,15 @@ App({
   },
 
   /**
-   * 预加载缓存数据（部门名称 + 价格配置）
+   * 预加载缓存数据（价格配置）
    * 缓存有效期内直接返回，过期则重新拉取
    */
   async _preloadCache(dept_id) {
     if (!dept_id) return
     try {
-      const [deptName, priceConfig] = await Promise.all([
-        loadAndCacheDeptName(dept_id),
-        loadAndCachePriceConfig(dept_id),
-      ])
-      if (deptName) this.globalData.deptName = deptName
+      const priceConfig = await loadAndCachePriceConfig(dept_id)
       if (priceConfig) this.globalData.priceConfig = priceConfig
-      console.info('[App] Cache preloaded:', { deptName, priceConfig })
+      console.info('[App] Cache preloaded:', { priceConfig })
     } catch (e) {
       console.warn('[App] _preloadCache error:', e)
     }
@@ -138,9 +131,8 @@ App({
     clearAuth()
     clearAllCache()
     this.globalData.userInfo = null
-    this.globalData.roles = []
+    this.globalData.roleCode = ''
     this.globalData.authReady = false
-    this.globalData.deptName = null
     this.globalData.priceConfig = null
     wx.reLaunch({ url: '/pages/login/index' })
   },

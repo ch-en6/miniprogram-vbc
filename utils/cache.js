@@ -18,7 +18,7 @@ function getCache(key) {
     if (Date.now() - savedAt > CACHE_TTL) return null
 
     const value = wx.getStorageSync(key)
-    return value || null
+    return value === '' ? null : value
   } catch (e) {
     console.warn('[Cache] getCache error:', key, e)
     return null
@@ -42,66 +42,78 @@ function setCache(key, value) {
 }
 
 /**
- * 清除所有应用缓存
+ * 清除所有应用缓存（含按部门拆分的价格缓存）
  */
 function clearAllCache() {
   try {
-    wx.removeStorageSync(STORAGE_KEYS.CACHE_DEPT_NAME)
-    wx.removeStorageSync(STORAGE_KEYS.CACHE_PRICE_CONFIG)
-    wx.removeStorageSync(STORAGE_KEYS.CACHE_TIMESTAMP)
+    const allKeys = wx.getStorageInfoSync().keys || []
+    allKeys.forEach(key => {
+      if (key === STORAGE_KEYS.CACHE_TIMESTAMP || key.indexOf(STORAGE_KEYS.CACHE_PRICE_CONFIG) === 0) {
+        wx.removeStorageSync(key)
+      }
+    })
   } catch (e) {
     console.warn('[Cache] clearAllCache error:', e)
   }
 }
 
-// ─── 部门名称缓存 ──────────────────────────────────────────
-
-/**
- * 获取缓存的部门名称（24h 有效）
- * @returns {string|null}
- */
-function getCachedDeptName() {
-  return getCache(STORAGE_KEYS.CACHE_DEPT_NAME)
-}
-
-/**
- * 从云函数加载部门名称并缓存
- * @param {string} dept_id
- * @returns {Promise<string>} 部门名称
- */
-async function loadAndCacheDeptName(dept_id) {
-  if (!dept_id) return null
-
-  // 先检查缓存
-  const cached = getCachedDeptName()
-  if (cached) return cached
-
-  // 缓存过期或不存在，从云函数拉取
-  try {
-    const res = await wx.cloud.callFunction({
-      name: 'getDeptName',
-      data: { dept_id }
-    })
-    const result = res.result
-    if (result && result.code === 0 && result.data) {
-      const deptName = result.data.dept_name || ''
-      setCache(STORAGE_KEYS.CACHE_DEPT_NAME, deptName)
-      return deptName
-    }
-  } catch (err) {
-    console.error('[Cache] loadDeptName error:', err)
-  }
-  return null
-}
-
 // ─── 价格配置缓存 ──────────────────────────────────────────
 
 /**
- * 获取缓存的价格配置（24h 有效）
+ * 价格缓存 key：按部门隔离，避免多部门串数据
+ * @param {string} dept_id
+ * @returns {string}
+ */
+function getPriceCacheKey(dept_id) {
+  return dept_id
+    ? `${STORAGE_KEYS.CACHE_PRICE_CONFIG}_${dept_id}`
+    : STORAGE_KEYS.CACHE_PRICE_CONFIG
+}
+
+/**
+ * 校验价格配置当前是否仍有效
+ * 规则：每餐若带 start_date/end_date，则要求当前日期在区间内；
+ * 任一餐次已过期（或日期字段缺失）即视为整体失效，需重新拉取。
+ * @param {object} config - getPriceConfig 返回的价格配置
+ * @returns {boolean}
+ */
+function isPriceConfigValid(config) {
+  if (!config || typeof config !== 'object') return false
+
+  const today = getToday()
+  const meals = ['breakfast', 'lunch', 'dinner']
+  return meals.every(meal => {
+    const item = config[meal]
+    if (!item || typeof item !== 'object') return true
+    const { start_date, end_date } = item
+    // 无日期字段（默认价兜底）→ 视为长期有效
+    if (!start_date && !end_date) return true
+    // 有日期字段但缺失其一 → 数据不完整，视为失效
+    if (!start_date || !end_date) return false
+    // YYYY-MM-DD 字符串可直接比较
+    return start_date <= today && today <= end_date
+  })
+}
+
+/**
+ * 获取当前日期 YYYY-MM-DD（本地时区）
+ * @returns {string}
+ */
+function getToday() {
+  const d = new Date()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${m}-${day}`
+}
+
+/**
+ * 获取缓存的价格配置（24h 有效 + 有效期二次校验）
+ * @param {string} [dept_id]
  * @returns {object|null}
  */
-function getCachedPriceConfig() {
-  return getCache(STORAGE_KEYS.CACHE_PRICE_CONFIG)
+function getCachedPriceConfig(dept_id) {
+  const cached = getCache(getPriceCacheKey(dept_id))
+  return isPriceConfigValid(cached) ? cached : null
 }
 
 /**
@@ -112,18 +124,18 @@ function getCachedPriceConfig() {
 async function loadAndCachePriceConfig(dept_id) {
   if (!dept_id) return null
 
-  // 先检查缓存
-  const cached = getCachedPriceConfig()
+  // 先检查缓存（含有效期校验）
+  const cached = getCachedPriceConfig(dept_id)
   if (cached) return cached
 
-  // 缓存过期或不存在，从云函数拉取
+  // 缓存过期、失效或不存在，从云函数拉取
   try {
     const res = await wx.cloud.callFunction({
-      name: 'mealOrder',
-      data: { action: 'getPriceConfig', dept_id }
+      name: 'getPriceConfig',
+      data: { dept_id }
     })
     if (res.result && res.result.code === 0 && res.result.data) {
-      setCache(STORAGE_KEYS.CACHE_PRICE_CONFIG, res.result.data)
+      setCache(getPriceCacheKey(dept_id), res.result.data)
       return res.result.data
     }
   } catch (err) {
@@ -137,8 +149,8 @@ module.exports = {
   getCache,
   setCache,
   clearAllCache,
-  getCachedDeptName,
-  loadAndCacheDeptName,
+  getPriceCacheKey,
   getCachedPriceConfig,
   loadAndCachePriceConfig,
+  isPriceConfigValid,
 }

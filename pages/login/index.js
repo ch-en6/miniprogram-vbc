@@ -13,7 +13,7 @@ Page({
     // 若已有 userInfo（已登录），直接跳首页
     const app = getApp()
     if (app.globalData.userInfo) {
-      this._goHome(app.globalData.roles || [])
+      this._goHome(app.globalData.roleCode || '')
     }
   },
 
@@ -89,7 +89,7 @@ Page({
       }
 
       // 5. 员工已被停用
-      if (emp.status === 0 || emp.status === 'disabled') {
+      if (emp.status === 0) {
         Toast.fail({ message: '该员工已被停用\n请联系管理员', duration: 3000 })
         this.setData({ loading: false })
         return
@@ -111,7 +111,7 @@ Page({
     const user = result.user
 
     app.globalData.userInfo = user
-    app.globalData.roles = user.role_codes || ['employee']
+    app.globalData.roleCode = user.role_code || 'employee'
     app.globalData.authReady = true
 
     // 保存 token（云开发模式下可用空 token 占位）
@@ -128,11 +128,11 @@ Page({
     }
 
     this.setData({ loading: false })
-    this._goHome(user.role_codes)
+    this._goHome(user.role_code)
   },
 
-  _goHome(roles = []) {
-    if (roles.includes('kitchen')) {
+  _goHome(roleCode = '') {
+    if (roleCode === 'kitchen') {
       wx.reLaunch({ url: '/subpackages/kitchen/pages/today/index' })
     } else {
       wx.switchTab({ url: '/pages/index/index' })

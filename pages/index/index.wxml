@@ -6,11 +6,12 @@
     <view class="hero-sub">{{ heroSub }}</view>
   </view>
 
-  <!-- 公告 -->
+  <!-- 公告（点击可展开完整内容） -->
   <van-notice-bar
     wx:if="{{ announcement }}"
     left-icon="volume-o"
     text="{{ announcement }}"
+    bind:click="showNotice"
     custom-class="notice-bar"
   />
 
@@ -57,4 +58,21 @@
 
   <!-- 立即报餐 -->
   <van-button type="primary" block round icon="edit" bindtap="goBook">立即报餐</van-button>
+</view>
+
+<!-- 公告详情弹层 -->
+<view class="notice-mask" wx:if="{{ noticeVisible }}" bindtap="hideNotice">
+  <view class="notice-pop" catchtap="noop">
+    <view class="notice-pop-head">
+      <view class="notice-pop-title">{{ announcementObj.title || '公告' }}</view>
+      <view class="notice-pop-meta">
+        <text wx:if="{{ announcementObj.created_by_name }}">发布人：{{ announcementObj.created_by_name }}</text>
+        <text wx:if="{{ announcementObj.publish_time }}">发布时间：{{ announcementObj.publish_time }}</text>
+      </view>
+    </view>
+    <scroll-view scroll-y class="notice-pop-body">
+      <text class="notice-pop-content" user-select>{{ announcementObj.content }}</text>
+    </scroll-view>
+    <view class="notice-pop-close" bindtap="hideNotice">我知道了</view>
+  </view>
 </view>

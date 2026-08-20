@@ -7,6 +7,76 @@
   margin: 0 0 20rpx;
 }
 
+/* ═══ 公告详情弹层 ═══ */
+.notice-mask {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.notice-pop {
+  width: 620rpx;
+  max-height: 72vh;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.notice-pop-head {
+  flex-shrink: 0;
+  padding-bottom: 20rpx;
+  border-bottom: 1px solid #f0f1f3;
+}
+.notice-pop-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 8rpx;
+}
+.notice-pop-meta {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  font-size: 22rpx;
+  color: #9ca3af;
+}
+.notice-pop-body {
+  flex: 1;
+  min-height: 120rpx;
+  max-height: 46vh;
+  margin-top: 24rpx;
+}
+.notice-pop-content {
+  display: block;
+  font-size: 28rpx;
+  line-height: 1.7;
+  color: #374151;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.notice-pop-close {
+  flex-shrink: 0;
+  margin-top: 24rpx;
+  height: 80rpx;
+  border-radius: 40rpx;
+  background: #1989fa;
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* ═══ 报餐状态两栏布局 ═══ */
 .meal-dual {
   display: flex;

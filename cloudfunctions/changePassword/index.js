@@ -1,12 +1,35 @@
-// 云函数 - 修改密码（SHA-256 + salt 哈希存储）
+// 云函数 - 修改密码（SHA-256 + salt 哈希存储，通过 @cloudbase/node-sdk 访问云 MySQL）
 const cloud = require('wx-server-sdk')
 const crypto = require('crypto')
+const cloudbaseSDK = require('@cloudbase/node-sdk')
 
-cloud.init({
-  env: cloud.DYNAMIC_CURRENT_ENV
-})
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
-const db = cloud.database()
+// 初始化 CloudBase 应用（云函数环境自动关联当前环境，用于访问云 MySQL）
+const cloudbase = cloudbaseSDK.init({ env: cloudbaseSDK.SYMBOL_CURRENT_ENV })
+const models = cloudbase.models
+
+/**
+ * 执行 SQL 查询（预编译模式，参数用 {{key}} 绑定，防 SQL 注入）
+ * @param {string} sql - SQL 语句
+ * @param {object} [params] - 参数对象
+ * @returns {Promise<Array>} 查询结果行数组
+ */
+async function query(sql, params = {}) {
+  const result = await models.$runSQL(sql, params)
+  return (result && result.data && result.data.executeResultList) || []
+}
+
+/**
+ * 执行 SQL 更新
+ * @param {string} sql - SQL 语句
+ * @param {object} [params] - 参数对象
+ * @returns {Promise<number>} 受影响行数
+ */
+async function update(sql, params = {}) {
+  const result = await models.$runSQL(sql, params)
+  return (result && result.data && result.data.total) || 0
+}
 
 /**
  * 生成随机盐值
@@ -39,9 +62,12 @@ exports.main = async (event, context) => {
   }
 
   try {
-    // 查询员工记录
-    const empRes = await db.collection('sys_emp').doc(empId).get()
-    const emp = empRes.data
+    // 按 bigint 用户 ID 查询员工记录（MySQL sys_emp 表）
+    const emps = await query(
+      'SELECT `id`, `password`, `password_salt` FROM `sys_emp` WHERE `id` = {{empId}} LIMIT 1',
+      { empId }
+    )
+    const emp = emps[0]
 
     if (!emp) {
       return { code: -1, message: '员工不存在', data: null }
@@ -49,29 +75,22 @@ exports.main = async (event, context) => {
 
     // 校验旧密码（哈希比对）
     if (emp.password) {
-      const salt = emp.passwordSalt || ''
+      const salt = emp.password_salt || ''
       const oldHash = hashPassword(oldPassword, salt)
       if (oldHash !== emp.password) {
         return { code: -1, message: '旧密码错误', data: null }
       }
-      // if(emp.password !== oldPassword) {
-      //   return { code: -1, message: '旧密码错误', data: null }
-      // }
     }
 
     // 生成新盐值 + 哈希新密码
     const newSalt = generateSalt()
     const newHash = hashPassword(newPassword, newSalt)
-    const now = new Date()
 
     // 更新密码和盐值
-    await db.collection('sys_emp').doc(empId).update({
-      data: {
-        password: newHash,
-        passwordSalt: newSalt,
-        updated_at: now
-      }
-    })
+    await update(
+      'UPDATE `sys_emp` SET `password` = {{newHash}}, `password_salt` = {{newSalt}}, `updated_at` = NOW() WHERE `id` = {{empId}}',
+      { newHash, newSalt, empId }
+    )
 
     console.log('[changePassword] 密码修改成功, empId:', empId)
     return { code: 0, message: '密码修改成功', data: null }

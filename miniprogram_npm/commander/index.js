@@ -4,7 +4,7 @@ var __DEFINE__ = function(modId, func, req) { var m = { exports: {}, _tempexport
 var __REQUIRE__ = function(modId, source) { if(!__MODS__[modId]) return require(source); if(!__MODS__[modId].status) { var m = __MODS__[modId].m; m._exports = m._tempexports; var desp = Object.getOwnPropertyDescriptor(m, "exports"); if (desp && desp.configurable) Object.defineProperty(m, "exports", { set: function (val) { if(typeof val === "object" && val !== m._exports) { m._exports.__proto__ = val.__proto__; Object.keys(val).forEach(function (k) { m._exports[k] = val[k]; }); } m._tempexports = val }, get: function () { return m._tempexports; } }); __MODS__[modId].status = 1; __MODS__[modId].func(__MODS__[modId].req, m, m.exports); } return __MODS__[modId].m.exports; };
 var __REQUIRE_WILDCARD__ = function(obj) { if(obj && obj.__esModule) { return obj; } else { var newObj = {}; if(obj != null) { for(var k in obj) { if (Object.prototype.hasOwnProperty.call(obj, k)) newObj[k] = obj[k]; } } newObj.default = obj; return newObj; } };
 var __REQUIRE_DEFAULT__ = function(obj) { return obj && obj.__esModule ? obj.default : obj; };
-__DEFINE__(1783497255115, function(require, module, exports) {
+__DEFINE__(1786409997318, function(require, module, exports) {
 var __TEMP__ = require('./lib/argument.js');var Argument = __TEMP__['Argument'];
 var __TEMP__ = require('./lib/command.js');var Command = __TEMP__['Command'];
 var __TEMP__ = require('./lib/error.js');var CommanderError = __TEMP__['CommanderError'];var InvalidArgumentError = __TEMP__['InvalidArgumentError'];
@@ -27,8 +27,8 @@ if (!exports.__esModule) Object.defineProperty(exports, "__esModule", { value: t
 if (!exports.__esModule) Object.defineProperty(exports, "__esModule", { value: true });Object.defineProperty(exports, 'CommanderError', { enumerable: true, configurable: true, get: function() { return CommanderError; } });Object.defineProperty(exports, 'InvalidArgumentError', { enumerable: true, configurable: true, get: function() { return InvalidArgumentError; } });
 if (!exports.__esModule) Object.defineProperty(exports, "__esModule", { value: true });Object.defineProperty(exports, 'InvalidOptionArgumentError', { enumerable: true, configurable: true, get: function() { return InvalidArgumentError; } }); // Deprecated
 
-}, function(modId) {var map = {"./lib/argument.js":1783497255116,"./lib/error.js":1783497255117,"./lib/option.js":1783497255120}; return __REQUIRE__(map[modId], modId); })
-__DEFINE__(1783497255116, function(require, module, exports) {
+}, function(modId) {var map = {"./lib/argument.js":1786409997319,"./lib/error.js":1786409997320,"./lib/option.js":1786409997323}; return __REQUIRE__(map[modId], modId); })
+__DEFINE__(1786409997319, function(require, module, exports) {
 var __TEMP__ = require('./error.js');var InvalidArgumentError = __TEMP__['InvalidArgumentError'];
 
 if (!exports.__esModule) Object.defineProperty(exports, "__esModule", { value: true });class Argument {
@@ -177,8 +177,8 @@ if (!exports.__esModule) Object.defineProperty(exports, "__esModule", { value: t
   return arg.required ? '<' + nameOutput + '>' : '[' + nameOutput + ']';
 };exports.humanReadableArgName = humanReadableArgName
 
-}, function(modId) { var map = {"./error.js":1783497255117}; return __REQUIRE__(map[modId], modId); })
-__DEFINE__(1783497255117, function(require, module, exports) {
+}, function(modId) { var map = {"./error.js":1786409997320}; return __REQUIRE__(map[modId], modId); })
+__DEFINE__(1786409997320, function(require, module, exports) {
 /**
  * CommanderError class
  */
@@ -217,7 +217,7 @@ if (!exports.__esModule) Object.defineProperty(exports, "__esModule", { value: t
 };exports.InvalidArgumentError = InvalidArgumentError
 
 }, function(modId) { var map = {}; return __REQUIRE__(map[modId], modId); })
-__DEFINE__(1783497255120, function(require, module, exports) {
+__DEFINE__(1786409997323, function(require, module, exports) {
 var __TEMP__ = require('./error.js');var InvalidArgumentError = __TEMP__['InvalidArgumentError'];
 
 if (!exports.__esModule) Object.defineProperty(exports, "__esModule", { value: true });class Option {
@@ -596,8 +596,8 @@ function splitOptionFlags(flags) {
   return { shortFlag, longFlag };
 }
 
-}, function(modId) { var map = {"./error.js":1783497255117}; return __REQUIRE__(map[modId], modId); })
-return __REQUIRE__(1783497255115);
+}, function(modId) { var map = {"./error.js":1786409997320}; return __REQUIRE__(map[modId], modId); })
+return __REQUIRE__(1786409997318);
 })()
 //miniprogram-npm-outsideDeps=["./lib/command.js","./lib/help.js"]
 //# sourceMappingURL=index.js.map

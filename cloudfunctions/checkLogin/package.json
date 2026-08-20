@@ -1,9 +1,10 @@
 {
   "name": "checkLogin",
   "version": "1.0.0",
-  "description": "校验手机号是否在 sys_emp 表中",
+  "description": "账号密码登录校验，通过 @cloudbase/node-sdk 访问云 MySQL sys_emp 登录信息",
   "main": "index.js",
   "dependencies": {
-    "wx-server-sdk": "~2.6.3"
+    "wx-server-sdk": "~2.6.3",
+    "@cloudbase/node-sdk": "^3.18.3"
   }
 }

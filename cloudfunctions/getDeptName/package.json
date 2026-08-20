@@ -4,6 +4,7 @@
   "description": "根据部门ID查询部门名称",
   "main": "index.js",
   "dependencies": {
-    "wx-server-sdk": "~2.6.3"
+    "wx-server-sdk": "~2.6.3",
+    "@cloudbase/node-sdk": "^3.18.3"
   }
 }
