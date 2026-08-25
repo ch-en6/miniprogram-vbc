@@ -2,6 +2,14 @@
  * 卡片边距标准统一：padding ≡ 24rpx，margin-horizontal ≡ 32rpx，border-radius ≡ 24rpx
  */
 
+/* 加载状态 */
+.loading-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 80rpx 0;
+}
+
 /* 菜单表格容器（作为 mini-card 的子元素，无外边距，由父级提供 24rpx padding） */
 .menu-table {
   width: 100%;

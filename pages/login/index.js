@@ -1,6 +1,7 @@
 // pages/login/index.js
 const Toast = require('@vant/weapp/toast/toast').default
 const { saveTokens, setCachedUserInfo } = require('../../utils/auth')
+const { AuthAPI } = require('../../services/api')
 
 Page({
   data: {
@@ -56,14 +57,7 @@ Page({
       }
 
       // 2. 调用云函数：校验账号密码 + 用 code 换 openid 并写入 sys_emp
-      const checkRes = await wx.cloud.callFunction({
-        name: 'checkLogin',
-        data: {
-          phone,
-          password,
-          loginCode: loginRes.code
-        }
-      })
+      const checkRes = await AuthAPI.checkLogin({ phone, password, loginCode: loginRes.code })
 
       const result = checkRes.result
       if (result.code !== 0) {
@@ -74,9 +68,9 @@ Page({
 
       const { allowed, emp, pwdError } = result.data
 
-      // 3. 手机号不在 sys_emp 表中
+      // 3. 不允许登录：未注册 / 微信已绑定其他账号等（优先展示云函数返回的具体原因）
       if (!allowed) {
-        Toast.fail({ message: '该账号未注册\n请联系管理员添加', duration: 3000 })
+        Toast.fail({ message: result.message || '该账号未注册\n请联系管理员添加', duration: 3000 })
         this.setData({ loading: false })
         return
       }

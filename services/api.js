@@ -1,112 +1,115 @@
 // services/api.js — 业务接口封装（集中管理所有接口调用）
 
-const { get, post, put, patch, del, downloadFile, BASE_URL } = require('../utils/request')
-const { getAccessToken } = require('../utils/auth')
-
 // ═══════════════════════════════════════════════════════════
 // 认证模块
 // ═══════════════════════════════════════════════════════════
 const AuthAPI = {
-  /** 微信登录（仅 code，无手机号） */
-  login: (code) => post('/auth/wechat-login', { code }, { skipAuth: true }),
   /**
-   * 微信授权手机号一键登录（主流程）
-   * @param {string} wxCode - wx.login() 获取的 code
-   * @param {string} phoneCode - open-type="getPhoneNumber" 获取的 code
+   * 账号密码登录（云函数：校验账号密码 + 用 code 换 openid 并写入 sys_emp）
+   * @param {{ phone: string, password: string, loginCode: string }} params
+   * @returns {Promise<{result: {code: number, message?: string, data?: object}}>}
    */
-  loginWithPhone: (wxCode, phoneCode) =>
-    post('/auth/login-with-phone', { wx_code: wxCode, phone_code: phoneCode }, { skipAuth: true }),
-  /**
-   * 手机号 + 短信验证码登录（备选）
-   */
-  loginWithSms: (wxCode, phone, smsCode) =>
-    post('/auth/login-with-sms', { wx_code: wxCode, phone, sms_code: smsCode }, { skipAuth: true }),
-  /** 发送短信验证码 */
-  sendSmsCode: (phone) => post('/auth/sms-code', { phone }, { skipAuth: true }),
-  /** 刷新 token */
-  refresh: (refreshToken) => post('/auth/refresh', { refresh_token: refreshToken }, { skipAuth: true }),
-  /** 获取当前用户信息 */
-  getMe: () => get('/auth/me'),
-  /** 绑定手机号（使用微信授权 code） */
-  bindPhone: (phoneCode) => post('/auth/bind-phone', { phone_code: phoneCode }),
-  /** 换绑手机号 */
-  rebindPhone: (phoneCode) => post('/auth/rebind-phone', { phone_code: phoneCode }),
-  /** 换绑手机号（短信方式） */
-  rebindPhoneSms: (phone, smsCode) => post('/auth/rebind-phone-sms', { phone, sms_code: smsCode }),
+  checkLogin: ({ phone, password, loginCode }) =>
+    wx.cloud.callFunction({ name: 'checkLogin', data: { phone, password, loginCode } }),
 }
 
 // ═══════════════════════════════════════════════════════════
-// 报餐模块
+// 报餐记录云函数模块（mealOrder 用户侧 action）
 // ═══════════════════════════════════════════════════════════
-const BookAPI = {
+const MealOrderAPI = {
   /**
-   * 获取某月报餐状态（月历用）
-   * @param {string} month - "YYYY-MM"
-   * @returns {Promise<BookRecord[]>}
+   * 获取指定日期区间的报餐记录（按员工；emp_id 可选，云函数按 openid 反查身份，防越权）
+   * @param {{ startDate: string, endDate: string, emp_id?: number|string }} params
+   * @returns {Promise<{result: {code: number, message?: string, data?: Array}}>} - 云函数原始返回
    */
-  getMonthStatus: (month) => get('/bookings/month', { month }),
-
+  getRange: (params) =>
+    wx.cloud.callFunction({
+      name: 'mealOrder',
+      data: { action: 'getRange', ...params }
+    }),
   /**
-   * 批量报餐（一次提交多天）
+   * 获取某月报餐记录（按员工，月历/首页用；emp_id 可选，云函数按 openid 反查身份，防越权）
+   * @param {{ month: string, emp_id?: number|string }} params - month 格式 "YYYY-MM"
+   * @returns {Promise<{result: {code: number, message?: string, data?: Array}}>}
    */
-  batchBook: (bookings) => post('/bookings/batch', { bookings }),
-
+  getMonth: (params) =>
+    wx.cloud.callFunction({
+      name: 'mealOrder',
+      data: { action: 'getMonth', ...params }
+    }),
   /**
-   * 提交单日报餐（新增或覆盖）
-   * @param {string} date - "YYYY-MM-DD"
-   * @param {{ breakfast: number, lunch: number, dinner: number }} meals
+   * 保存/更新单日报餐
+   * 说明：员工身份/部门/食堂由云函数按 openid 反查，前端无需传 emp_id/dept_id/location_id/_openid（传了也会被忽略）
+   * @param {{ date: string, breakfast: number, lunch: number, dinner: number }} params
+   * @returns {Promise<{result: {code: number, message?: string, data?: *}}>}
    */
-  submitDay: (date, meals) => post('/bookings', { date, ...meals }),
-
+  save: (params) =>
+    wx.cloud.callFunction({
+      name: 'mealOrder',
+      data: { action: 'save', ...params }
+    }),
   /**
-   * 取消单日报餐
-   * @param {string} date - "YYYY-MM-DD"
+   * 删除单日报餐记录（emp_id 可选，云函数按 openid 反查身份，防越权）
+   * @param {{ date: string, emp_id?: number|string }} params
+   * @returns {Promise<{result: {code: number, message?: string}}>}
    */
-  cancel: (date) => del('/bookings', { date }),
-
-  /**
-   * 取消单日某餐次
-   * @param {string} date
-   * @param {string} mealType - 'breakfast'|'lunch'|'dinner'
-   */
-  cancelMeal: (date, mealType) => del('/bookings/meal', { date, meal_type: mealType }),
-
-  /**
-   * 修改单日报餐
-   */
-  update: (date, meals) => put('/bookings', { date, ...meals }),
-
-  /**
-   * 获取个人历史记录（分页）
-   */
-  getRecords: (params = {}) => get('/bookings/records', params),
-
-  /**
-   * 获取当日报餐汇总（首页状态卡片用）
-   */
-  getTodayStatus: () => get('/bookings/today'),
-
-  /**
-   * 获取本月报餐份数统计（首页小卡片用）
-   * @param {string} month - "YYYY-MM"
-   */
-  getMonthStat: (month) => get('/bookings/month-stat', { month }),
+  remove: (params) =>
+    wx.cloud.callFunction({
+      name: 'mealOrder',
+      data: { action: 'remove', ...params }
+    }),
 }
 
 // ═══════════════════════════════════════════════════════════
-// 菜单模块
+// 价格配置云函数模块
+// ═══════════════════════════════════════════════════════════
+const PriceConfigAPI = {
+  /**
+   * 获取价格配置（按部门）
+   * @param {number|string} dept_id
+   * @returns {Promise<{result: {code: number, message?: string, data?: object}}>}
+   */
+  getConfig: (dept_id) =>
+    wx.cloud.callFunction({
+      name: 'getPriceConfig',
+      data: { dept_id }
+    }),
+}
+
+// ═══════════════════════════════════════════════════════════
+// 菜单云函数模块
 // ═══════════════════════════════════════════════════════════
 const MenuAPI = {
-  /** 
-   * 获取当前轮换菜单（自动根据时间范围轮换）
+  /**
+   * 获取当前轮换菜单（自动根据时间范围轮换，且仅返回当前用户部门的菜单）
+   * @param {number|string} locationId - 当前用户的 location_id（部门/食堂）
    * @returns {Promise<Menu>} - 返回包含meals数组的菜单对象
    */
-  getCurrentMenu: () => wx.cloud.callFunction({ name: 'getMenuList' }),
-  
-  /** 获取指定日期菜单 */
-  getMenu: (date) => get('/menu', { date }),
-  /** 获取本周菜单 */
-  getWeekMenu: (weekStart) => get('/menu/week', { week_start: weekStart }),
+  getCurrentMenu: (locationId) =>
+    wx.cloud.callFunction({ name: 'getMenuList', data: { location_id: locationId } }),
+}
+
+// ═══════════════════════════════════════════════════════════
+// 用户资料模块（云函数）
+// ═══════════════════════════════════════════════════════════
+const UserAPI = {
+  /**
+   * 获取部门名称（兜底：老版本缓存缺 dept_name 时调用）
+   * @param {number|string} dept_id
+   * @returns {Promise<{result: {code: number, message?: string, data?: {dept_name: string}}}>}
+   */
+  getDeptName: (dept_id) =>
+    wx.cloud.callFunction({ name: 'getDeptName', data: { dept_id } }),
+  /**
+   * 修改密码（empId 可选，云函数按 openid 反查身份，防越权）
+   * @param {{ empId?: number|string, oldPassword: string, newPassword: string }} params
+   * @returns {Promise<{result: {code: number, message?: string}}>}
+   */
+  changePassword: ({ empId, oldPassword, newPassword }) =>
+    wx.cloud.callFunction({
+      name: 'changePassword',
+      data: { empId, oldPassword, newPassword }
+    }),
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -137,8 +140,6 @@ const KitchenAPI = {
       if (result.code === 0) return result.data
       throw new Error(result.message || '查询明细失败')
     }),
-  /** 按姓名查询今日报餐情况 */
-  searchPerson: (params = {}) => get('/kitchen/search', params),
   /**
    * 按姓名从云数据库查询报餐记录
    * @param {string} keyword - 姓名关键词
@@ -161,106 +162,26 @@ const KitchenAPI = {
       name: 'mealOrder',
       data: { action: 'searchByPhone', keyword, date, meal }
     }),
-  /** 导出今日报餐 Excel */
-  exportTodayExcel: (date) => {
-    const token = getAccessToken()
-    return downloadFile(
-      `${BASE_URL}/kitchen/export?date=${date}&token=${token}`,
-      `报餐明细_${date}.xlsx`
-    )
-  },
-}
-
-// ═══════════════════════════════════════════════════════════
-// 部门管理员模块
-// ═══════════════════════════════════════════════════════════
-const DeptAPI = {
-  // ─── 员工管理 ───
-  /** 获取部门员工列表 */
-  getStaffList: (params = {}) => get('/dept/staff', params),
-  /** 添加员工 */
-  addStaff: (data) => post('/dept/staff', data),
-  /** 编辑员工信息 */
-  updateStaff: (id, data) => put(`/dept/staff/${id}`, data),
-  /** 删除/停用员工 */
-  removeStaff: (id) => del(`/dept/staff/${id}`),
-  /** 批量导入员工（Excel） */
-  importStaff: (filePath) => {
-    return new Promise((resolve, reject) => {
-      wx.uploadFile({
-        url: `${BASE_URL}/dept/staff/import`,
-        filePath,
-        name: 'file',
-        header: { Authorization: `Bearer ${getAccessToken()}` },
-        success: (res) => {
-          const data = JSON.parse(res.data)
-          if (data.code === 0) resolve(data.data)
-          else reject(data)
-        },
-        fail: reject,
-      })
-    })
-  },
-
-  // ─── 报餐统计 ───
-  /** 获取部门本月报餐统计 */
-  getMonthStat: (month) => get('/dept/stat/month', { month }),
-  /** 获取部门报餐详情（员工维度） */
-  getStatDetail: (params) => get('/dept/stat/detail', params),
-
-  // ─── 月度收费 ───
-  /** 生成月度收费快照 */
-  generateBilling: (month) => post('/dept/billing/generate', { month }),
-  /** 获取月度收费列表 */
-  getBillingList: (month) => get('/dept/billing', { month }),
-  /** 导出收费 Excel */
-  exportBilling: (month) => {
-    const token = getAccessToken()
-    return downloadFile(
-      `${BASE_URL}/dept/billing/export?month=${month}&token=${token}`,
-      `月度收费_${month}.xlsx`
-    )
-  },
-}
-
-// ═══════════════════════════════════════════════════════════
-// 系统管理员模块
-// ═══════════════════════════════════════════════════════════
-const AdminAPI = {
-  // ─── 部门管理 ───
-  getDeptList: () => get('/admin/departments'),
-  createDept: (data) => post('/admin/departments', data),
-  updateDept: (id, data) => put(`/admin/departments/${id}`, data),
-  deleteDept: (id) => del(`/admin/departments/${id}`),
-
-  // ─── 权限管理 ───
-  getUserList: (params) => get('/admin/users', params),
-  assignRole: (userId, roles) => patch(`/admin/users/${userId}/roles`, { roles }),
-
-  // ─── 系统配置 ───
-  getSysConfig: () => get('/admin/config'),
-  updateSysConfig: (data) => put('/admin/config', data),
-
-  // ─── 操作日志 ───
-  getOpLogs: (params) => get('/admin/logs', params),
 }
 
 // ═══════════════════════════════════════════════════════════
 // 公告模块
 // ═══════════════════════════════════════════════════════════
 const NoticeAPI = {
-  /** 获取最新公告 */
-  getLatest: () => get('/notices/latest'),
-  /** 获取公告列表 */
-  getList: (params) => get('/notices', params),
+  /** 获取最新公告（云函数，按 location/dept 换算归属） */
+  getLatest: (params = {}) =>
+    wx.cloud.callFunction({
+      name: 'getLatestNotice',
+      data: params
+    }),
 }
 
 module.exports = {
   AuthAPI,
-  BookAPI,
+  MealOrderAPI,
+  PriceConfigAPI,
   MenuAPI,
+  UserAPI,
   KitchenAPI,
-  DeptAPI,
-  AdminAPI,
   NoticeAPI,
 }

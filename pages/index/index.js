@@ -1,6 +1,7 @@
 // pages/index/index.js — 员工首页
 const { formatDate, formatMonth, getBookDeadlineInfo } = require('../../utils/time')
 const { ROLE } = require('../../utils/const')
+const { MealOrderAPI, NoticeAPI } = require('../../services/api')
 
 Page({
   data: {
@@ -92,14 +93,8 @@ Page({
       const tomorrowStr = formatDate(tomorrow)
       const month = formatMonth(now)
 
-      const app = getApp()
-      const userInfo = app.globalData.userInfo || {}
-
       // 获取当月记录
-      const res = await wx.cloud.callFunction({
-        name: 'mealOrder',
-        data: { action: 'getMonth', month, emp_id: userInfo.id }
-      })
+      const res = await MealOrderAPI.getMonth({ month })
 
       if (res.result && res.result.code === 0 && res.result.data) {
         const records = res.result.data
@@ -110,10 +105,7 @@ Page({
         if (!tomorrowRecord) {
           const tomorrowMonth = formatMonth(tomorrow)
           if (tomorrowMonth !== month) {
-            const res2 = await wx.cloud.callFunction({
-              name: 'mealOrder',
-              data: { action: 'getMonth', month: tomorrowMonth, emp_id: userInfo.id }
-            })
+            const res2 = await MealOrderAPI.getMonth({ month: tomorrowMonth })
             if (res2.result && res2.result.code === 0 && res2.result.data) {
               tomorrowRecord = res2.result.data.find(r => r.date === tomorrowStr) || null
             }
@@ -148,12 +140,9 @@ Page({
       const userInfo = app.globalData.userInfo || {}
 
       // 调用云函数获取最新公告，优先传 location_id，无则传 dept_id 由云函数换算
-      const res = await wx.cloud.callFunction({
-        name: 'getLatestNotice',
-        data: {
-          location_id: userInfo.location_id || null,
-          dept_id: userInfo.dept_id || null
-        }
+      const res = await NoticeAPI.getLatest({
+        location_id: userInfo.location_id || null,
+        dept_id: userInfo.dept_id || null
       })
 
       if (res.result && res.result.code === 0 && res.result.data) {

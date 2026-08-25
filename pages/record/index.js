@@ -1,6 +1,9 @@
 // pages/record/index.js — 报餐记录页（云开发模式）
 const T = require('../../utils/time')
-const { isPriceConfigValid, setCache, getPriceCacheKey } = require('../../utils/cache')
+const { MealOrderAPI } = require('../../services/api')
+
+// 筛选时间跨度上限（天），与云函数 mealOrder/getRange 保持一致（最近半年）
+const MAX_RANGE_DAYS = 183
 
 Page({
   data: {
@@ -18,15 +21,13 @@ Page({
     // 筛选条件
     startDate: '',
     endDate: '',
+    pickerStart: '2026-06-01',  // 结束日期选择器的可选下限
+    pickerEnd: '2030-12-31',    // 开始日期选择器的可选上限
     mealFilter: '',    // '' | 'breakfast' | 'lunch' | 'dinner'
-
-    // 价格配置（从云数据库读取）
-    priceConfig: null,
   },
 
   onLoad() {
     this._setDefaultDateRange()
-    this._loadPriceConfig()
     this._loadRecords()
   },
 
@@ -35,133 +36,38 @@ Page({
   },
 
   /**
-   * 加载价格配置：优先从 app 缓存读取，缓存没有再请求云函数
-   */
-  async _loadPriceConfig() {
-    try {
-      const app = getApp()
-      const userInfo = app.globalData.userInfo || {}
-      const dept_id = userInfo.dept_id
-      
-      if (!dept_id) {
-        console.warn('[Record] 用户没有部门ID，无法加载价格配置')
-        wx.showToast({ title: '未找到部门信息', icon: 'none' })
-        return
-      }
-
-      // 优先从 app 全局缓存读取（校验有效期，避免跨天/改价后仍用旧价格）
-      if (app.globalData.priceConfig && isPriceConfigValid(app.globalData.priceConfig)) {
-        this.setData({ priceConfig: app.globalData.priceConfig })
-        console.log('[Record] 价格配置从缓存加载:', app.globalData.priceConfig)
-        return
-      }
-
-      // 缓存没有，请求云函数
-      const res = await wx.cloud.callFunction({
-        name: 'getPriceConfig',
-        data: {
-          dept_id: dept_id
-        }
-      })
-
-      if (res.result && res.result.code === 0 && res.result.data) {
-        app.globalData.priceConfig = res.result.data
-        setCache(getPriceCacheKey(dept_id), res.result.data)
-        this.setData({ priceConfig: res.result.data })
-        console.log('[Record] 价格配置加载成功:', res.result.data)
-      } else {
-        console.error('[Record] 价格配置加载失败:', res.result?.message)
-        wx.showToast({ title: res.result?.message || '加载价格失败', icon: 'none' })
-      }
-    } catch (err) {
-      console.error('[Record] 加载价格配置失败:', err)
-      wx.showToast({ title: '加载价格配置失败', icon: 'none' })
-    }
-  },
-
-  /**
    * 计算餐费（阶梯计费：第1份员工价，超出部分家属价）
-   * @param {string} mealType - 'breakfast' | 'lunch' | 'dinner'
-   * @param {number} qty - 报餐数量
+   * 价格直接从 meal_order 行快照中读取，不再使用缓存或配置。
+   * @param {object} r - 包含 qty/emp_price/family_price 的记录
    * @returns {number} 总费用
    */
-  _calculateMealAmount(mealType, qty) {
-    if (!qty || qty <= 0) return 0
-    
-    const config = this.data.priceConfig
-    if (!config || !config[mealType]) {
-      // 如果配置未加载，返回默认值
-      const defaultPrices = {
-        breakfast: { emp_price: 100, family_price: 1000 },
-        lunch: { emp_price: 200, family_price: 2000 },
-        dinner: { emp_price: 200, family_price: 2000 }
-      }
-      const prices = defaultPrices[mealType] || { emp_price: 0, family_price: 0 }
-      
-      // 阶梯计费：第1份员工价，超出部分家属价
-      if (qty === 1) {
-        return prices.emp_price
-      } else {
-        return prices.emp_price + (qty - 1) * prices.family_price
-      }
-    }
-    
-    const empPrice = config[mealType].emp_price || 0
-    const familyPrice = config[mealType].family_price || 0
-    
+  _calculateMealAmount(r) {
+    if (!r || !r.qty || r.qty <= 0) return 0
+
+    const empPrice = Number(r.emp_price) || 0
+    const familyPrice = Number(r.family_price) || 0
+
     // 阶梯计费：第1份员工价，超出部分家属价
-    if (qty === 1) {
+    if (r.qty === 1) {
       return empPrice
     } else {
-      return empPrice + (qty - 1) * familyPrice
+      return empPrice + (r.qty - 1) * familyPrice
     }
-  },
-
-  /**
-   * 获取指定餐次的员工价格
-   * @param {string} mealType - 'breakfast' | 'lunch' | 'dinner'
-   * @returns {number} 员工价格
-   */
-  _getMealPrice(mealType) {
-    const config = this.data.priceConfig
-    if (!config || !config[mealType]) {
-      // 如果配置未加载，返回默认值
-      const defaultPrices = {
-        breakfast: 100,
-        lunch: 200,
-        dinner: 200
-      }
-      return defaultPrices[mealType] || 0
-    }
-    return config[mealType].emp_price || 0
-  },
-
-  /**
-   * 获取指定餐次的家属价格
-   * @param {string} mealType - 'breakfast' | 'lunch' | 'dinner'
-   * @returns {number} 家属价格
-   */
-  _getFamilyMealPrice(mealType) {
-    const config = this.data.priceConfig
-    if (!config || !config[mealType]) {
-      // 如果配置未加载，返回默认值
-      const defaultPrices = {
-        breakfast: 1000,
-        lunch: 2000,
-        dinner: 2000
-      }
-      return defaultPrices[mealType] || 0
-    }
-    return config[mealType].family_price || 0
   },
 
   // 设置默认日期范围（本月）
   _setDefaultDateRange() {
-    const range = this._getThisMonthRange()
+    this._applyDateRange(this._getThisMonthRange(), 'thisMonth')
+  },
+
+  // 统一应用日期范围，并同步 picker 的起止限制
+  _applyDateRange(range, quickType = '') {
     this.setData({
       startDate: range.start,
       endDate: range.end,
-      activeQuickRange: 'thisMonth',
+      activeQuickRange: quickType,
+      pickerStart: range.start,
+      pickerEnd: range.end,
     })
   },
 
@@ -227,22 +133,40 @@ Page({
       default:
         return
     }
-    this.setData({
-      startDate: range.start,
-      endDate: range.end,
-      activeQuickRange: type,
-    })
+    this._applyDateRange(range, type)
     this._loadRecords()
   },
 
   // ─── 日期选择 ────────────────────────────────────────────────
 
   onStartDateChange(e) {
-    this.setData({ startDate: e.detail.value, activeQuickRange: '' })
+    const startDate = e.detail.value
+    // 防呆：若开始日期晚于结束日期，结束日期自动跟随
+    const endDate = this.data.endDate && startDate > this.data.endDate
+      ? startDate
+      : this.data.endDate
+    this.setData({
+      startDate,
+      endDate,
+      activeQuickRange: '',
+      pickerStart: startDate,
+      pickerEnd: endDate || '2030-12-31',
+    })
   },
 
   onEndDateChange(e) {
-    this.setData({ endDate: e.detail.value, activeQuickRange: '' })
+    const endDate = e.detail.value
+    // 防呆：若结束日期早于开始日期，开始日期自动跟随
+    const startDate = this.data.startDate && this.data.startDate > endDate
+      ? endDate
+      : this.data.startDate
+    this.setData({
+      startDate,
+      endDate,
+      activeQuickRange: '',
+      pickerStart: startDate || '2026-06-01',
+      pickerEnd: endDate,
+    })
   },
 
   // 餐别筛选
@@ -254,7 +178,27 @@ Page({
 
   // 查询按钮
   onSearch() {
+    if (!this._validateRange()) return
     this._loadRecords()
+  },
+
+  // 校验时间区间：开始 ≤ 结束，且跨度不超过一年（366 天）
+  _validateRange() {
+    const { startDate, endDate } = this.data
+    if (!startDate || !endDate) {
+      wx.showToast({ title: '请选择完整的时间区间', icon: 'none' })
+      return false
+    }
+    if (startDate > endDate) {
+      wx.showToast({ title: '开始日期不能晚于结束日期', icon: 'none' })
+      return false
+    }
+    const days = Math.round((T.toDate(endDate) - T.toDate(startDate)) / 86400000) + 1
+    if (days > MAX_RANGE_DAYS) {
+      wx.showToast({ title: '查询区间不能超过半年', icon: 'none' })
+      return false
+    }
+    return true
   },
 
   // 重置筛选
@@ -270,28 +214,21 @@ Page({
     this.setData({ loading: true })
 
     try {
-      const app = getApp()
-      const userInfo = app.globalData.userInfo || {}
-      const res = await wx.cloud.callFunction({
-        name: 'mealOrder',
-        data: {
-          action: 'getRange',
-          startDate: this.data.startDate,
-          endDate: this.data.endDate,
-          emp_id: userInfo.id,
-        }
+      const res = await MealOrderAPI.getRange({
+        startDate: this.data.startDate,
+        endDate: this.data.endDate,
       })
 
       if (res.result && res.result.code === 0 && res.result.data) {
         const rawData = res.result.data
 
-        // 1. 过滤 qty > 0 的记录 + 餐别筛选
+        // 1. 过滤 qty > 0 的记录 + 餐别筛选；价格随每行快照携带
         let records = []
         rawData.forEach(r => {
           const meals = [
-            { mealType: 'breakfast', qty: r.breakfast || 0 },
-            { mealType: 'lunch',     qty: r.lunch || 0 },
-            { mealType: 'dinner',    qty: r.dinner || 0 },
+            { mealType: 'breakfast', qty: r.breakfast || 0, emp_price: r.breakfast_emp_price || 0, family_price: r.breakfast_family_price || 0 },
+            { mealType: 'lunch',     qty: r.lunch || 0,     emp_price: r.lunch_emp_price || 0,     family_price: r.lunch_family_price || 0 },
+            { mealType: 'dinner',    qty: r.dinner || 0,    emp_price: r.dinner_emp_price || 0,    family_price: r.dinner_family_price || 0 },
           ]
           meals.forEach(m => {
             if (m.qty > 0) {
@@ -300,7 +237,9 @@ Page({
                   date: r.date,
                   mealType: m.mealType,
                   qty: m.qty,
-                  time: r.updated_at || r.created_at || '',
+                  emp_price: m.emp_price,
+                  family_price: m.family_price,
+                  time: r.submitted_at || '',
                 })
               }
             }
@@ -322,7 +261,7 @@ Page({
             }
           }
           const day = grouped[r.date]
-          const amount = this._calculateMealAmount(r.mealType, r.qty)
+          const amount = this._calculateMealAmount(r)
 
           day.meals[r.mealType] = {
             qty: r.qty,
@@ -347,7 +286,7 @@ Page({
         let totalQty = 0
         let totalAmount = 0
         records.forEach(r => {
-          const amount = this._calculateMealAmount(r.mealType, r.qty)
+          const amount = this._calculateMealAmount(r)
           const m = mealSummary[r.mealType]
           if (m) {
             m.qty += r.qty

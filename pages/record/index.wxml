@@ -9,11 +9,11 @@
     <view class="filter-row">
       <text class="filter-label-sm">时间区间</text>
       <view class="date-range-row">
-        <picker mode="date" value="{{startDate}}" bindchange="onStartDateChange">
+        <picker mode="date" value="{{startDate}}" end="{{pickerEnd}}" bindchange="onStartDateChange">
           <text class="date-text">{{startDate || '开始日期'}}</text>
         </picker>
         <text class="date-sep">至</text>
-        <picker mode="date" value="{{endDate}}" bindchange="onEndDateChange">
+        <picker mode="date" value="{{endDate}}" start="{{pickerStart}}" bindchange="onEndDateChange">
           <text class="date-text">{{endDate || '结束日期'}}</text>
         </picker>
       </view>

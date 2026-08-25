@@ -1,5 +1,6 @@
 // utils/cache.js — 应用级集中缓存管理（24 小时有效期）
 const { STORAGE_KEYS } = require('./const')
+const { PriceConfigAPI } = require('../services/api')
 
 /** 缓存有效期：24 小时（毫秒） */
 const CACHE_TTL = 24 * 60 * 60 * 1000
@@ -130,10 +131,7 @@ async function loadAndCachePriceConfig(dept_id) {
 
   // 缓存过期、失效或不存在，从云函数拉取
   try {
-    const res = await wx.cloud.callFunction({
-      name: 'getPriceConfig',
-      data: { dept_id }
-    })
+    const res = await PriceConfigAPI.getConfig(dept_id)
     if (res.result && res.result.code === 0 && res.result.data) {
       setCache(getPriceCacheKey(dept_id), res.result.data)
       return res.result.data

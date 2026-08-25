@@ -60,29 +60,38 @@ exports.main = async (event, context) => {
   if (!phone || !password) {
     return { code: -1, message: '缺少账号或密码参数', data: null }
   }
+  if (!loginCode) {
+    return { code: -1, message: '缺少登录凭证，请重新登录', data: null }
+  }
 
   try {
     // ── 1. 通过 loginCode 换取 openid ──────────────────────────
+    //    云函数必须能拿到真实调用者的 openid 才允许登录（loginCode 已在入口强制必传）
+    //    日志只打印脱敏后的 openid，避免完整标识落日志
+    const maskOpenid = oid => (oid && oid.length > 8 ? oid.slice(0, 8) + '****' : '****')
     let openid = null
-    if (loginCode) {
+    try {
+      const res = await cloud.openapi('code2Session', {
+        jsCode: loginCode
+      })
+      openid = res.openid
+      console.log('[checkLogin] code2Session success, openid:', maskOpenid(openid))
+    } catch (codeErr) {
+      console.warn('[checkLogin] code2Session 失败，尝试 cloud.getWXContext():', codeErr)
       try {
-        const res = await cloud.openapi('code2Session', {
-          jsCode: loginCode
-        })
-        openid = res.openid
-        console.log('[checkLogin] code2Session success, openid:', openid)
-      } catch (codeErr) {
-        console.warn('[checkLogin] code2Session 失败，尝试 cloud.getWXContext():', codeErr)
-        try {
-          const wxContext = cloud.getWXContext()
-          openid = wxContext.OPENID || null
-          if (openid) {
-            console.log('[checkLogin] 使用 WXContext OPENID:', openid)
-          }
-        } catch (e2) {
-          console.warn('[checkLogin] cloud.getWXContext() 也失败:', e2)
+        const wxContext = cloud.getWXContext()
+        openid = wxContext.OPENID || null
+        if (openid) {
+          console.log('[checkLogin] 使用 WXContext OPENID:', maskOpenid(openid))
         }
+      } catch (e2) {
+        console.warn('[checkLogin] cloud.getWXContext() 也失败:', e2)
       }
+    }
+
+    // 拿不到 openid 直接拒绝登录（防绕过绑定关系）
+    if (!openid) {
+      return { code: -1, message: '获取微信身份失败，请重试', data: null }
     }
 
     // ── 2. 通过 @cloudbase/node-sdk 查询 sys_emp 表 ─────────────
@@ -118,8 +127,20 @@ exports.main = async (event, context) => {
         role_code = role.length ? role[0].code : null
       }
 
-      // ── 5. 将 openid 写入 sys_emp（若本次获取到了 openid 且与记录不同） ──
-      if (openid && emp._openid !== openid) {
+      // ── 5. 防换绑：校验该 openid 是否已被其他账号绑定（一人一微信一账号） ──
+      if (emp._openid !== openid) {
+        const bound = await query(
+          'SELECT `id` FROM `sys_emp` WHERE `_openid` = {{openid}} AND `id` != {{id}} LIMIT 1',
+          { openid, id: emp.id }
+        )
+        if (bound.length > 0) {
+          return {
+            code: 0,
+            message: '该微信已绑定其他账号，如需换绑请联系管理员',
+            data: { allowed: false, pwdError: false, emp: null }
+          }
+        }
+        // 未被他人占用，则写入 openid 完成绑定
         await update(
           'UPDATE `sys_emp` SET `_openid` = {{openid}} WHERE `id` = {{id}}',
           { openid, id: emp.id }
@@ -155,7 +176,6 @@ exports.main = async (event, context) => {
             id: emp.id,
             name: emp.name || '',
             phone: emp.phone,
-            _openid: openid || emp._openid,
             dept_id: emp.dept_id,
             dept_name: dept_name,
             location_id: location_id,

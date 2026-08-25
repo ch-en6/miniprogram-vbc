@@ -1,6 +1,7 @@
 // pages/profile/index.js — 个人中心
 const { ROLE } = require('../../utils/const')
 const QR = require('../../utils/qrcode')
+const { UserAPI } = require('../../services/api')
 
 Page({
   data: {
@@ -91,10 +92,7 @@ Page({
       return
     }
     try {
-      const res = await wx.cloud.callFunction({
-        name: 'getDeptName',
-        data: { dept_id }
-      })
+      const res = await UserAPI.getDeptName(dept_id)
       const result = res.result
       if (result && result.code === 0 && result.data) {
         this.setData({ deptName: result.data.dept_name || '—' })
@@ -163,15 +161,9 @@ Page({
     this.setData({ pwdLoading: true })
 
     try {
-      const app = getApp()
-      const userInfo = app.globalData.userInfo || {}
-      const res = await wx.cloud.callFunction({
-        name: 'changePassword',
-        data: {
-          empId: userInfo.id,
-          oldPassword: oldPwd,
-          newPassword: newPwd
-        }
+      const res = await UserAPI.changePassword({
+        oldPassword: oldPwd,
+        newPassword: newPwd
       })
       const result = res.result
       if (result.code === 0) {

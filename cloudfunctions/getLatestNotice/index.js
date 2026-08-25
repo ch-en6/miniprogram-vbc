@@ -105,7 +105,6 @@ exports.main = async (event, context) => {
         created_at: formatDateTime(notice.created_at),
         updated_at: formatDateTime(notice.updated_at),
         location_id: notice.location_id,
-        _openid: notice._openid,
       }
     }
   } catch (err) {

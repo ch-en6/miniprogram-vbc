@@ -1,4 +1,4 @@
-// 云函数 - 修改密码（SHA-256 + salt 哈希存储，通过 @cloudbase/node-sdk 访问云 MySQL）
+// 云函数 - 修改密码（SHA-256 + salt 哈希存储，通过 @cloudbase/node-sdk 访问云 MySQL；按 openid 反查身份，防越权）
 const cloud = require('wx-server-sdk')
 const crypto = require('crypto')
 const cloudbaseSDK = require('@cloudbase/node-sdk')
@@ -51,9 +51,9 @@ function hashPassword(password, salt) {
 }
 
 exports.main = async (event, context) => {
-  const { empId, oldPassword, newPassword } = event
+  const { oldPassword, newPassword } = event
 
-  if (!empId || !oldPassword || !newPassword) {
+  if (!oldPassword || !newPassword) {
     return { code: -1, message: '缺少必要参数', data: null }
   }
 
@@ -62,10 +62,16 @@ exports.main = async (event, context) => {
   }
 
   try {
-    // 按 bigint 用户 ID 查询员工记录（MySQL sys_emp 表）
+    // 通过 openid 反查员工身份（忽略前端传入的 empId，防止越权修改他人密码）
+    const wxContext = cloud.getWXContext() || {}
+    const openid = wxContext.OPENID || ''
+    if (!openid) {
+      return { code: -1, message: '登录状态失效，请重新登录', data: null }
+    }
+
     const emps = await query(
-      'SELECT `id`, `password`, `password_salt` FROM `sys_emp` WHERE `id` = {{empId}} LIMIT 1',
-      { empId }
+      'SELECT `id`, `password`, `password_salt` FROM `sys_emp` WHERE `_openid` = {{openid}} LIMIT 1',
+      { openid }
     )
     const emp = emps[0]
 
@@ -89,10 +95,10 @@ exports.main = async (event, context) => {
     // 更新密码和盐值
     await update(
       'UPDATE `sys_emp` SET `password` = {{newHash}}, `password_salt` = {{newSalt}}, `updated_at` = NOW() WHERE `id` = {{empId}}',
-      { newHash, newSalt, empId }
+      { newHash, newSalt, empId: emp.id }
     )
 
-    console.log('[changePassword] 密码修改成功, empId:', empId)
+    console.log('[changePassword] 密码修改成功, empId:', emp.id)
     return { code: 0, message: '密码修改成功', data: null }
   } catch (err) {
     console.error('修改密码失败:', err)

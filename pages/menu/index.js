@@ -18,9 +18,21 @@ Page({
   async _loadMenu() {
     try {
       this.setData({ loading: true })
-      
+
+      // 当前用户的部门，菜单必须与用户 location_id 一致
+      const app = getApp()
+      const userInfo = app.globalData.userInfo || {}
+      const location_id = userInfo.location_id
+
+      if (location_id == null || location_id === '') {
+        console.warn('[Menu] 用户没有部门ID，无法加载菜单')
+        wx.showToast({ title: '未找到部门信息', icon: 'none' })
+        this.setData({ loading: false })
+        return
+      }
+
       // 调用云函数获取当前轮换菜单
-      const res = await MenuAPI.getCurrentMenu()
+      const res = await MenuAPI.getCurrentMenu(location_id)
       
       if (res.result && res.result.code === 0) {
         const menuData = res.result.data

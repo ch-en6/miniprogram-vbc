@@ -1,6 +1,7 @@
 // pages/book/index.js — 月历报餐页（对齐原型 EmployeeBook）
 const { formatMonth, getWeekDay, isBookable, formatDate, compareDate } = require('../../utils/time')
 const { isPriceConfigValid, setCache, getPriceCacheKey } = require('../../utils/cache')
+const { MealOrderAPI, PriceConfigAPI } = require('../../services/api')
 
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 const WEEKDAYS_SHORT = ['日', '一', '二', '三', '四', '五', '六']
@@ -52,12 +53,7 @@ Page({
       }
 
       // 缓存没有，请求云函数
-      const res = await wx.cloud.callFunction({
-        name: 'getPriceConfig',
-        data: {
-          dept_id: dept_id
-        }
-      })
+      const res = await PriceConfigAPI.getConfig(dept_id)
 
       if (res.result && res.result.code === 0 && res.result.data) {
         app.globalData.priceConfig = res.result.data
@@ -96,11 +92,7 @@ Page({
     let monthOrders = {}
     try {
       const app = getApp()
-      const userInfo = app.globalData.userInfo || {}
-      const res = await wx.cloud.callFunction({
-        name: 'mealOrder',
-        data: { action: 'getMonth', month: monthStr, emp_id: userInfo.id }
-      })
+      const res = await MealOrderAPI.getMonth({ month: monthStr })
       if (res.result && res.result.code === 0 && res.result.data) {
         res.result.data.forEach(item => {
           monthOrders[item.date] = {
@@ -265,31 +257,19 @@ Page({
       if (isCancel) {
         // 删除报餐记录
         const app = getApp()
-        const userInfo = app.globalData.userInfo || {}
-        const res = await wx.cloud.callFunction({
-          name: 'mealOrder',
-          data: { action: 'remove', date: day.dateStr, emp_id: userInfo.id }
-        })
+        const res = await MealOrderAPI.remove({ date: day.dateStr })
         if (res.result && res.result.code !== 0) {
           throw new Error(res.result.message)
         }
       } else {
         // 保存/更新报餐记录
         const app = getApp()
-        const userInfo = app.globalData.userInfo || {}
-        const res = await wx.cloud.callFunction({
-          name: 'mealOrder',
-          data: {
-            action: 'save',
-            date: day.dateStr,
-            breakfast: day.breakfast,
-            lunch: day.lunch,
-            dinner: day.dinner,
-            emp_id: userInfo.id,
-            dept_id: userInfo.dept_id,
-            location_id: userInfo.location_id,
-            _openid: userInfo._openid,
-          }
+        const res = await MealOrderAPI.save({
+          date: day.dateStr,
+          breakfast: day.breakfast,
+          lunch: day.lunch,
+          dinner: day.dinner,
+          // 员工身份/部门/食堂由云函数按 openid 反查，前端不传 emp_id/dept_id/location_id/_openid
         })
         if (res.result && res.result.code !== 0) {
           throw new Error(res.result.message)
@@ -322,7 +302,10 @@ Page({
     } catch (err) {
       wx.hideLoading()
       console.error('[Book] 提交报餐失败:', err)
-      wx.showToast({ title: err.message || '操作失败', icon: 'none' })
+      // 失败后强制重新拉取当月数据刷新日历，保证界面与数据库真实状态一致。
+      // （save 内部可能发生"部分成功"，刷新后用户能看到真实数据再决定是否重试）
+      await this._buildCalendar()
+      wx.showToast({ title: err.message || '操作失败，请重试', icon: 'none' })
     }
   },
 })
