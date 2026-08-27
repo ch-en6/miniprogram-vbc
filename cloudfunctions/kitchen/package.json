@@ -1,0 +1,10 @@
+{
+  "name": "kitchen",
+  "version": "1.0.0",
+  "description": "食堂端报餐查询（云 MySQL，按角色关联食堂范围 location 过滤汇总/明细/搜索）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3",
+    "@cloudbase/node-sdk": "^3.18.3"
+  }
+}

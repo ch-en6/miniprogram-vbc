@@ -129,12 +129,12 @@ async function loadAndCachePriceConfig(dept_id) {
   const cached = getCachedPriceConfig(dept_id)
   if (cached) return cached
 
-  // 缓存过期、失效或不存在，从云函数拉取
+  // 缓存过期、失效或不存在，从云函数拉取（业务失败会 reject，返回 null 由调用方兜底）
   try {
-    const res = await PriceConfigAPI.getConfig(dept_id)
-    if (res.result && res.result.code === 0 && res.result.data) {
-      setCache(getPriceCacheKey(dept_id), res.result.data)
-      return res.result.data
+    const data = await PriceConfigAPI.getConfig(dept_id)
+    if (data) {
+      setCache(getPriceCacheKey(dept_id), data)
+      return data
     }
   } catch (err) {
     console.error('[Cache] loadPriceConfig error:', err)

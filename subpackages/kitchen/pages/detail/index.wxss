@@ -152,6 +152,43 @@
   border-radius: 100rpx;
 }
 
+/* 核销按钮（与 today 页风格一致） */
+.verify-btn {
+  flex: none;
+  width: 120rpx;
+  height: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 16rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #1989fa;
+  background: #f0f9ff;
+  border: 1px solid #1989fa;
+  border-radius: 100rpx;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.verify-btn--hover {
+  opacity: 0.7;
+}
+
+.verify-btn--done {
+  color: #07c160;
+  background: #f0faf2;
+  border-color: #07c160;
+}
+
+/* 非今日明细不显示核销按钮，用占位保持行对齐 */
+.verify-placeholder {
+  flex: none;
+  width: 120rpx;
+  height: 44rpx;
+  margin-left: 16rpx;
+}
+
 /* ─── 加载更多 / 已全部加载 ─── */
 .load-more, .no-more {
   text-align: center;

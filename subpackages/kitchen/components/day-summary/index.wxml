@@ -1,0 +1,59 @@
+<!-- day-summary：食堂工作台「今日/明日报餐」公共区块（日期信息行 + 三餐汇总 + 部门汇总 + 空状态） -->
+<view class="day-summary">
+  <!-- 日期信息行（可选截止状态标签，传 deadline 才显示） -->
+  <view class="date-info-bar">
+    <view class="date-info-main">
+      <text class="date-info-day">{{ day }}</text>
+      <text class="date-info-week">{{ week }}</text>
+    </view>
+    <text wx:if="{{ deadline }}" class="deadline-tag {{ deadlineExpired ? 'expired' : '' }}">{{ deadline }}</text>
+  </view>
+
+  <!-- 三餐汇总卡片 -->
+  <view class="meal-summary">
+    <view class="meal-card {{ item.type }}" wx:for="{{ mealSummary }}" wx:key="type">
+      <text class="meal-card__label">{{ item.label }}</text>
+      <view class="meal-card__nums">
+        <view class="num-item">
+          <text class="num-val">{{ item.headCount }}</text>
+          <text class="num-key">人数</text>
+        </view>
+        <view class="num-divider" />
+        <view class="num-item">
+          <text class="num-val">{{ item.totalQty }}</text>
+          <text class="num-key">份数</text>
+        </view>
+        <view class="num-divider" />
+        <view class="num-item">
+          <text class="num-val {{ item.familyQty > 0 ? 'num-val--highlight' : '' }}">{{ item.familyQty }}</text>
+          <text class="num-key">家属</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 部门汇总 + 明细入口 -->
+  <view class="dept-section" wx:if="{{ deptCards.length > 0 }}">
+    <view class="section-title-bar">
+      <text class="section-title">部门汇总</text>
+      <view class="view-detail-btn" bindtap="onDetailTap">
+        <text>明细</text>
+        <van-icon name="arrow" size="24rpx" color="#1989fa" />
+      </view>
+    </view>
+    <view class="dept-card" wx:for="{{ deptCards }}" wx:key="deptName">
+      <text class="dept-name">{{ item.deptName }}</text>
+      <view class="dept-meals">
+        <text class="dept-meal-item">早 {{ item.breakfast }}</text>
+        <text class="dept-meal-item">中 {{ item.lunch }}</text>
+        <text class="dept-meal-item">晚 {{ item.dinner }}</text>
+      </view>
+      <text class="dept-total">共 {{ item.total }} 份</text>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-wrap" wx:if="{{ deptCards.length === 0 }}">
+    <van-empty description="{{ emptyText }}" />
+  </view>
+</view>

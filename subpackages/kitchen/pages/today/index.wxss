@@ -1,4 +1,4 @@
-/* subpackages/kitchen/pages/today/index.wxss — 食堂今日页面（自定义导航栏 + 蓝白主题） */
+/* subpackages/kitchen/pages/today/index.wxss — 食堂今日页面（系统导航栏 + 蓝白主题） */
 
 .kitchen-page {
   min-height: 100vh;
@@ -11,64 +11,9 @@
   padding-bottom: 24rpx;
 }
 
-/* ─── 自定义导航栏 ─── */
-.custom-navbar {
-  position: relative;
-  background: #1989fa;
-  box-sizing: border-box;
-}
-
-.navbar-inner {
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24rpx;
-}
-
-.navbar-left {
-  width: 120rpx;
-  display: flex;
-  align-items: center;
-  gap: 6rpx;
-  padding: 8rpx 0;
-}
-
-.refresh-text {
-  font-size: 24rpx;
-  color: #fff;
-}
-
-.navbar-title {
-  flex: 1;
-  text-align: center;
-  font-size: 34rpx;
-  font-weight: 600;
-  color: #fff;
-}
-
-.navbar-right {
-  width: 120rpx;
-}
-
 /* ─── 报餐查询 Tab ─── */
 .search-tab-content {
   padding-top: 16rpx;
-}
-
-/* 截止状态徽章（明日报餐日期信息行内） */
-.deadline-tag {
-  font-size: 24rpx;
-  padding: 8rpx 20rpx;
-  border-radius: 100rpx;
-  background: rgba(255,255,255,0.25);
-  color: #fff;
-  font-weight: 600;
-}
-
-.deadline-tag.expired {
-  background: rgba(255,255,255,0.95);
-  color: #f56c6c;
 }
 
 .search-card {
@@ -84,31 +29,6 @@
   font-weight: 700;
   color: #374151;
   margin-bottom: 20rpx;
-}
-
-.search-mode-row {
-  display: flex;
-  gap: 16rpx;
-  margin-bottom: 20rpx;
-}
-
-.search-mode-chip {
-  display: flex;
-  align-items: center;
-  gap: 6rpx;
-  font-size: 24rpx;
-  color: #6b7280;
-  background: #f5f7fa;
-  padding: 8rpx 24rpx;
-  border-radius: 100rpx;
-  border: 1px solid #f5f7fa;
-}
-
-.search-mode-chip.active {
-  color: #1989fa;
-  background: #f0f9ff;
-  border-color: #1989fa;
-  font-weight: 600;
 }
 
 .search-input-row {
@@ -236,8 +156,10 @@
   gap: 16rpx;
 }
 
-.person-result {
-  margin-top: 0;
+.person-card {
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
 }
 
 .person-info-row {
@@ -257,8 +179,8 @@
   gap: 16rpx;
 }
 
-.person-name-lg {
-  font-size: 34rpx;
+.person-name {
+  font-size: 32rpx;
   font-weight: 700;
   color: #374151;
 }
@@ -272,29 +194,24 @@
   font-weight: 500;
 }
 
-.person-search-date {
+.person-phone {
   font-size: 24rpx;
   color: #9ca3af;
 }
 
-.person-phone-text {
-  font-size: 24rpx;
-  color: #9ca3af;
-}
-
-.person-detail-card {
+.person-meal-body {
   background: #fff;
   border: 1px solid #e5e7eb;
   border-top: none;
   border-radius: 0 0 24rpx 24rpx;
-  padding: 8rpx 24rpx 24rpx;
+  padding: 8rpx 24rpx 20rpx;
 }
 
 .person-meal-line {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20rpx 0;
+  padding: 18rpx 0;
   border-bottom: 1px dashed #f0f1f3;
 }
 
@@ -302,188 +219,103 @@
   border-bottom: none;
 }
 
-.person-date-label {
+/* 餐别标签（圆点 + 文字） */
+.meal-label-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.meal-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+}
+
+.meal-dot--breakfast {
+  background: #f5a623;
+}
+
+.meal-dot--lunch {
+  background: #1989fa;
+}
+
+.meal-dot--dinner {
+  background: #c8a6ff;
+}
+
+.meal-label-text {
   font-size: 28rpx;
   color: #374151;
   font-weight: 500;
 }
 
-.person-meal-status {
-  font-size: 26rpx;
-  color: #c0c4cc;
-  font-weight: 600;
+/* 份数信息 */
+.meal-info {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
 }
 
-.person-meal-status.booked {
+.meal-qty {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #374151;
+}
+
+.meal-qty--none {
+  color: #c0c4cc;
+  font-weight: 400;
+}
+
+.meal-family {
+  font-size: 22rpx;
+  color: #f5a623;
+  background: #fff8ed;
+  padding: 2rpx 10rpx;
+  border-radius: 8rpx;
+}
+
+/* 核销按钮 */
+.verify-btn {
+  flex: none;
+  width: 120rpx;
+  height: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin-left: 16rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #1989fa;
+  background: #f0f9ff;
+  border: 1px solid #1989fa;
+  border-radius: 100rpx;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.verify-btn--hover {
+  opacity: 0.7;
+}
+
+.verify-btn--done {
   color: #07c160;
+  background: #f0faf2;
+  border-color: #07c160;
+}
+
+/* 未报餐时右侧占位，保证与核销按钮对齐 */
+.verify-placeholder {
+  flex: none;
+  width: 120rpx;
+  height: 44rpx;
+  margin-left: 16rpx;
 }
 
 .search-empty-tip {
   padding-top: 120rpx;
-}
-
-/* ─── 日期信息行（Tab 内容顶部） ─── */
-.date-info-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 24rpx 24rpx 0;
-  padding: 24rpx 32rpx;
-  background: linear-gradient(135deg, #1989fa 0%, #4aa3ff 100%);
-  border-radius: 20rpx;
-  box-shadow: 0 8rpx 24rpx rgba(25, 137, 250, 0.25);
-}
-
-.date-info-main {
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
-}
-
-.date-info-day {
-  font-size: 40rpx;
-  color: #fff;
-  font-weight: 700;
-}
-
-.date-info-week {
-  font-size: 24rpx;
-  color: rgba(255,255,255,0.85);
-}
-
-/* ─── 三餐汇总卡片 ─── */
-.meal-summary {
-  padding: 24rpx;
-  display: flex;
-  flex-direction: column;
-  gap: 20rpx;
-}
-
-.meal-card {
-  background: #fff;
-  border-radius: 24rpx;
-  padding: 24rpx;
-  border-left: 6rpx solid #1989fa;
-  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.05);
-}
-
-.meal-card.breakfast { border-left-color: #f5a623; }
-.meal-card.lunch     { border-left-color: #1989fa; }
-.meal-card.dinner    { border-left-color: #c8a6ff; }
-
-.meal-card__label {
-  display: block;
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #374151;
-  margin-bottom: 20rpx;
-}
-
-.meal-card__nums {
-  display: flex;
-  align-items: center;
-}
-
-.num-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4rpx;
-}
-
-.num-val {
-  font-size: 56rpx;
-  font-weight: 900;
-  color: #374151;
-  line-height: 1;
-}
-
-.num-val--highlight {
-  color: #1989fa;
-}
-
-.num-key {
-  font-size: 22rpx;
-  color: #9ca3af;
-}
-
-.num-divider {
-  width: 1px;
-  height: 72rpx;
-  background: #e5e7eb;
-}
-
-/* ─── 部门汇总 ─── */
-.dept-section {
-  margin: 0 24rpx 24rpx;
-  background: #fff;
-  border-radius: 24rpx;
-  padding: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.05);
-}
-
-.section-title-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20rpx;
-}
-
-.section-title {
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #374151;
-}
-
-.view-detail-btn {
-  display: flex;
-  align-items: center;
-  gap: 4rpx;
-  color: #1989fa;
-  font-size: 26rpx;
-}
-
-.dept-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 24rpx 0;
-  border-bottom: 1px solid #f5f5f5;
-}
-
-.dept-card:last-child {
-  border-bottom: none;
-}
-
-.dept-name {
-  font-size: 28rpx;
-  color: #374151;
-  font-weight: 500;
-  width: 180rpx;
-}
-
-.dept-meals {
-  display: flex;
-  gap: 12rpx;
-  flex: 1;
-  justify-content: center;
-}
-
-.dept-meal-item {
-  font-size: 24rpx;
-  color: #6b7280;
-  background: #f5f7fa;
-  padding: 4rpx 16rpx;
-  border-radius: 8rpx;
-}
-
-.dept-total {
-  font-size: 26rpx;
-  font-weight: 600;
-  color: #1989fa;
-  text-align: right;
-  min-width: 100rpx;
 }
 
 /* ─── 公共 ─── */
@@ -493,9 +325,11 @@
   justify-content: center;
 }
 
-.empty-wrap {
-  padding-top: 80rpx;
-  margin: 0 24rpx;
+/* 个人中心「工作台」区块标题（day-summary 组件内同名样式相互隔离，互不影响） */
+.section-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #374151;
 }
 
 /* ─── 个人中心 Tab ─── */
@@ -614,13 +448,6 @@
   box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
 }
 
-.section-title {
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 12rpx;
-}
-
 .workspace-tags {
   display: flex;
   gap: 10rpx;
@@ -665,42 +492,6 @@
 .logout-text {
   font-size: 28rpx;
   color: #ee0a24;
-}
-
-.workspace-tags {
-  display: flex;
-  gap: 10rpx;
-  flex-wrap: nowrap;
-  margin-top: 20rpx;
-  align-items: stretch;
-}
-
-.workspace-tags .ws-btn {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  font-size: 24rpx;
-  border-radius: 8rpx;
-  padding: 12rpx 8rpx;
-  line-height: 1.3;
-  box-sizing: border-box;
-  white-space: normal;
-  word-break: break-all;
-}
-
-.workspace-tags .ws-btn-primary {
-  background: #1989fa;
-  color: #fff;
-  border: 1px solid #1989fa;
-}
-
-.workspace-tags .ws-btn-plain {
-  background: #fff;
-  color: #1989fa;
-  border: 1px solid #1989fa;
 }
 
 /* 换绑弹窗 */

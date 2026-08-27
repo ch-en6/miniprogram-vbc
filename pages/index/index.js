@@ -93,39 +93,33 @@ Page({
       const tomorrowStr = formatDate(tomorrow)
       const month = formatMonth(now)
 
-      // 获取当月记录
-      const res = await MealOrderAPI.getMonth({ month })
+      // 获取当月记录（业务失败会 reject，由 catch 兜底）
+      const records = (await MealOrderAPI.getMonth({ month })) || []
+      const todayRecord = records.find(r => r.date === today) || null
 
-      if (res.result && res.result.code === 0 && res.result.data) {
-        const records = res.result.data
-        const todayRecord = records.find(r => r.date === today) || null
-
-        // 明日可能在当月或下月
-        let tomorrowRecord = records.find(r => r.date === tomorrowStr) || null
-        if (!tomorrowRecord) {
-          const tomorrowMonth = formatMonth(tomorrow)
-          if (tomorrowMonth !== month) {
-            const res2 = await MealOrderAPI.getMonth({ month: tomorrowMonth })
-            if (res2.result && res2.result.code === 0 && res2.result.data) {
-              tomorrowRecord = res2.result.data.find(r => r.date === tomorrowStr) || null
-            }
-          }
+      // 明日可能在当月或下月
+      let tomorrowRecord = records.find(r => r.date === tomorrowStr) || null
+      if (!tomorrowRecord) {
+        const tomorrowMonth = formatMonth(tomorrow)
+        if (tomorrowMonth !== month) {
+          const tomorrowRecords = (await MealOrderAPI.getMonth({ month: tomorrowMonth })) || []
+          tomorrowRecord = tomorrowRecords.find(r => r.date === tomorrowStr) || null
         }
-
-        // 本月统计
-        const monthStat = { breakfast: 0, lunch: 0, dinner: 0 }
-        records.forEach(r => {
-          monthStat.breakfast += r.breakfast || 0
-          monthStat.lunch += r.lunch || 0
-          monthStat.dinner += r.dinner || 0
-        })
-
-        this.setData({
-          todayMeals: this._buildMealRows(todayRecord),
-          tomorrowMeals: this._buildMealRows(tomorrowRecord),
-          monthStat,
-        })
       }
+
+      // 本月统计
+      const monthStat = { breakfast: 0, lunch: 0, dinner: 0 }
+      records.forEach(r => {
+        monthStat.breakfast += r.breakfast || 0
+        monthStat.lunch += r.lunch || 0
+        monthStat.dinner += r.dinner || 0
+      })
+
+      this.setData({
+        todayMeals: this._buildMealRows(todayRecord),
+        tomorrowMeals: this._buildMealRows(tomorrowRecord),
+        monthStat,
+      })
     } catch (err) {
       console.error('[首页] 获取报餐数据失败:', err)
     }
@@ -140,20 +134,20 @@ Page({
       const userInfo = app.globalData.userInfo || {}
 
       // 调用云函数获取最新公告，优先传 location_id，无则传 dept_id 由云函数换算
-      const res = await NoticeAPI.getLatest({
+      // 无公告时 resolve null；业务失败会 reject，由 catch 兜底
+      const notice = await NoticeAPI.getLatest({
         location_id: userInfo.location_id || null,
         dept_id: userInfo.dept_id || null
       })
 
-      if (res.result && res.result.code === 0 && res.result.data) {
-        const notice = res.result.data
+      if (notice) {
         this.setData({
           announcement: notice.content || '',
           announcementObj: notice,
           announcements: [notice]
         })
       } else {
-        // 没有公告或出错
+        // 没有公告
         this.setData({
           announcement: '',
           announcementObj: {},
@@ -199,6 +193,7 @@ Page({
     } else if (roleCode === ROLE.KITCHEN) {
       url = '/subpackages/kitchen/pages/today/index'
     }
-    if (url) wx.navigateTo({ url })
+    // 工作台为独立工作区，使用 redirectTo 替换当前页，避免左上角出现返回箭头
+    if (url) wx.redirectTo({ url })
   },
 })

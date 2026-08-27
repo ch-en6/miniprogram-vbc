@@ -65,9 +65,9 @@ const STORAGE_KEYS = {
 // ─── 价格 ────────────────────────────────────────────────────
 /** 默认餐价（元），实际应从系统配置接口获取 */
 const DEFAULT_MEAL_PRICE = {
-  [MEAL_TYPE.BREAKFAST]: 5,
-  [MEAL_TYPE.LUNCH]:     10,
-  [MEAL_TYPE.DINNER]:    8,
+  [MEAL_TYPE.BREAKFAST]: 10,
+  [MEAL_TYPE.LUNCH]:     100,
+  [MEAL_TYPE.DINNER]:    200,
 }
 
 /** 家属餐加收比例（如 0.5 = 额外 50%） */

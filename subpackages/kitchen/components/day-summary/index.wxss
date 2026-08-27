@@ -1,0 +1,187 @@
+/* subpackages/kitchen/components/day-summary/index.wxss — 食堂工作台「今日/明日报餐」公共区块样式 */
+
+/* ─── 日期信息行 ─── */
+.date-info-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 24rpx 24rpx 0;
+  padding: 24rpx 32rpx;
+  background: linear-gradient(135deg, #1989fa 0%, #4aa3ff 100%);
+  border-radius: 20rpx;
+  box-shadow: 0 8rpx 24rpx rgba(25, 137, 250, 0.25);
+}
+
+.date-info-main {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.date-info-day {
+  font-size: 40rpx;
+  color: #fff;
+  font-weight: 700;
+}
+
+.date-info-week {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* 截止状态徽章 */
+.deadline-tag {
+  font-size: 24rpx;
+  padding: 8rpx 20rpx;
+  border-radius: 100rpx;
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  font-weight: 600;
+  flex: none;
+}
+
+.deadline-tag.expired {
+  background: rgba(255, 255, 255, 0.95);
+  color: #f56c6c;
+}
+
+/* ─── 三餐汇总卡片 ─── */
+.meal-summary {
+  padding: 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.meal-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  border-left: 6rpx solid #1989fa;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+
+.meal-card.breakfast { border-left-color: #f5a623; }
+.meal-card.lunch     { border-left-color: #1989fa; }
+.meal-card.dinner    { border-left-color: #c8a6ff; }
+
+.meal-card__label {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 20rpx;
+}
+
+.meal-card__nums {
+  display: flex;
+  align-items: center;
+}
+
+.num-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.num-val {
+  font-size: 56rpx;
+  font-weight: 900;
+  color: #374151;
+  line-height: 1;
+}
+
+.num-val--highlight {
+  color: #1989fa;
+}
+
+.num-key {
+  font-size: 22rpx;
+  color: #9ca3af;
+}
+
+.num-divider {
+  width: 1px;
+  height: 72rpx;
+  background: #e5e7eb;
+}
+
+/* ─── 部门汇总 ─── */
+.dept-section {
+  margin: 0 24rpx 24rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 24rpx 28rpx;
+  box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
+}
+
+.section-title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #374151;
+}
+
+.view-detail-btn {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  color: #1989fa;
+  font-size: 26rpx;
+}
+
+.dept-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.dept-card:last-child {
+  border-bottom: none;
+}
+
+.dept-name {
+  font-size: 28rpx;
+  color: #374151;
+  font-weight: 500;
+  width: 180rpx;
+}
+
+.dept-meals {
+  display: flex;
+  gap: 12rpx;
+  flex: 1;
+  justify-content: center;
+}
+
+.dept-meal-item {
+  font-size: 24rpx;
+  color: #6b7280;
+  background: #f5f7fa;
+  padding: 4rpx 16rpx;
+  border-radius: 8rpx;
+}
+
+.dept-total {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #1989fa;
+  text-align: right;
+  min-width: 100rpx;
+}
+
+/* ─── 空状态 ─── */
+.empty-wrap {
+  padding-top: 80rpx;
+  margin: 0 24rpx;
+}

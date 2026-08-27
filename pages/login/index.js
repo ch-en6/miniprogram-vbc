@@ -57,20 +57,15 @@ Page({
       }
 
       // 2. 调用云函数：校验账号密码 + 用 code 换 openid 并写入 sys_emp
-      const checkRes = await AuthAPI.checkLogin({ phone, password, loginCode: loginRes.code })
+      //    业务失败（未注册/已绑定/密码错误）以 code === 0 + allowed/pwdError 正常返回；
+      //    真实异常（参数缺失/云函数报错）才会 reject，由下方 catch 兜底
+      const data = await AuthAPI.checkLogin({ phone, password, loginCode: loginRes.code })
 
-      const result = checkRes.result
-      if (result.code !== 0) {
-        Toast.fail(result.message || '登录失败，请重试')
-        this.setData({ loading: false })
-        return
-      }
+      const { allowed, emp, pwdError } = data || {}
 
-      const { allowed, emp, pwdError } = result.data
-
-      // 3. 不允许登录：未注册 / 微信已绑定其他账号等（优先展示云函数返回的具体原因）
+      // 3. 不允许登录：未注册 / 微信已绑定其他账号等（展示云函数返回的具体原因）
       if (!allowed) {
-        Toast.fail({ message: result.message || '该账号未注册\n请联系管理员添加', duration: 3000 })
+        Toast.fail({ message: (data && data.message) || '该账号未注册\n请联系管理员添加', duration: 3000 })
         this.setData({ loading: false })
         return
       }
@@ -94,7 +89,7 @@ Page({
     } catch (err) {
       console.error('[Login Error]', err)
       this.setData({ loading: false })
-      Toast.fail(err.errMsg || '登录失败，请重试')
+      Toast.fail(err.message || '登录失败，请重试')
     }
   },
 

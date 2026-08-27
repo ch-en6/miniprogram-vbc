@@ -16,6 +16,8 @@ Page({
     },
     totalQty: 0,         // 区间总份数
     totalAmount: 0,      // 区间总费用
+    verifiedQty: 0,      // 区间已核销份数
+    unverifiedQty: 0,    // 区间未核销份数
     activeQuickRange: '', // '' | 'thisMonth' | 'thisWeek' | 'lastWeek' | 'lastMonth'
 
     // 筛选条件
@@ -214,103 +216,110 @@ Page({
     this.setData({ loading: true })
 
     try {
-      const res = await MealOrderAPI.getRange({
+      const rawData = (await MealOrderAPI.getRange({
         startDate: this.data.startDate,
         endDate: this.data.endDate,
+      })) || []
+
+      // 1. 过滤 qty > 0 的记录 + 餐别筛选；价格随每行快照携带
+      let records = []
+      rawData.forEach(r => {
+        const meals = [
+          { mealType: 'breakfast', qty: r.breakfast || 0, emp_price: r.breakfast_emp_price || 0, family_price: r.breakfast_family_price || 0,
+            verified: r.breakfast_verified || 0, verified_at: r.breakfast_verified_at || '', verified_by: r.breakfast_verified_by || '' },
+          { mealType: 'lunch',     qty: r.lunch || 0,     emp_price: r.lunch_emp_price || 0,     family_price: r.lunch_family_price || 0,
+            verified: r.lunch_verified || 0,     verified_at: r.lunch_verified_at || '',     verified_by: r.lunch_verified_by || '' },
+          { mealType: 'dinner',    qty: r.dinner || 0,    emp_price: r.dinner_emp_price || 0,    family_price: r.dinner_family_price || 0,
+            verified: r.dinner_verified || 0,    verified_at: r.dinner_verified_at || '',    verified_by: r.dinner_verified_by || '' },
+        ]
+        meals.forEach(m => {
+          if (m.qty > 0) {
+            if (!this.data.mealFilter || m.mealType === this.data.mealFilter) {
+              records.push({
+                date: r.date,
+                mealType: m.mealType,
+                qty: m.qty,
+                emp_price: m.emp_price,
+                family_price: m.family_price,
+                time: r.submitted_at || '',
+                verified: m.verified,
+                verified_at: m.verified_at,
+                verified_by: m.verified_by,
+              })
+            }
+          }
+        })
       })
 
-      if (res.result && res.result.code === 0 && res.result.data) {
-        const rawData = res.result.data
-
-        // 1. 过滤 qty > 0 的记录 + 餐别筛选；价格随每行快照携带
-        let records = []
-        rawData.forEach(r => {
-          const meals = [
-            { mealType: 'breakfast', qty: r.breakfast || 0, emp_price: r.breakfast_emp_price || 0, family_price: r.breakfast_family_price || 0 },
-            { mealType: 'lunch',     qty: r.lunch || 0,     emp_price: r.lunch_emp_price || 0,     family_price: r.lunch_family_price || 0 },
-            { mealType: 'dinner',    qty: r.dinner || 0,    emp_price: r.dinner_emp_price || 0,    family_price: r.dinner_family_price || 0 },
-          ]
-          meals.forEach(m => {
-            if (m.qty > 0) {
-              if (!this.data.mealFilter || m.mealType === this.data.mealFilter) {
-                records.push({
-                  date: r.date,
-                  mealType: m.mealType,
-                  qty: m.qty,
-                  emp_price: m.emp_price,
-                  family_price: m.family_price,
-                  time: r.submitted_at || '',
-                })
-              }
-            }
-          })
-        })
-
-        // 2. 按日期合并（同一天早午晚餐合成一条）
-        const grouped = {}
-        records.forEach(r => {
-          if (!grouped[r.date]) {
-            grouped[r.date] = {
-              date: r.date,
-              dateDisplay: r.date.slice(5),
-              weekDay: T.getWeekDay(r.date),
-              meals: {},
-              dayTotalQty: 0,
-              dayTotalAmount: 0,
-              lastTime: '',
-            }
+      // 2. 按日期合并（同一天早午晚餐合成一条）
+      const grouped = {}
+      records.forEach(r => {
+        if (!grouped[r.date]) {
+          grouped[r.date] = {
+            date: r.date,
+            dateDisplay: r.date.slice(5),
+            weekDay: T.getWeekDay(r.date),
+            meals: {},
+            dayTotalQty: 0,
+            dayTotalAmount: 0,
+            lastTime: '',
           }
-          const day = grouped[r.date]
-          const amount = this._calculateMealAmount(r)
-
-          day.meals[r.mealType] = {
-            qty: r.qty,
-            amount,
-          }
-          day.dayTotalQty += r.qty
-          day.dayTotalAmount += amount
-
-          // 格式化时间
-          const timeStr = this._formatTime(r.time)
-          if (timeStr > day.lastTime) day.lastTime = timeStr
-        })
-
-        const mergedRecords = Object.values(grouped).sort((a, b) => b.date.localeCompare(a.date))
-
-        // 3. 计算区间按餐别汇总（用于顶部卡片）
-        const mealSummary = {
-          breakfast: { qty: 0, amount: 0 },
-          lunch:     { qty: 0, amount: 0 },
-          dinner:    { qty: 0, amount: 0 },
         }
-        let totalQty = 0
-        let totalAmount = 0
-        records.forEach(r => {
-          const amount = this._calculateMealAmount(r)
-          const m = mealSummary[r.mealType]
-          if (m) {
-            m.qty += r.qty
-            m.amount += amount
-          }
-          totalQty += r.qty
-          totalAmount += amount
-        })
+        const day = grouped[r.date]
+        const amount = this._calculateMealAmount(r)
 
-        this.setData({
-          records: mergedRecords,
-          mealSummary,
-          totalQty,
-          totalAmount,
-          loading: false,
-        })
-      } else {
-        this.setData({ loading: false })
-        wx.showToast({ title: res.result?.message || '查询失败', icon: 'none' })
+        day.meals[r.mealType] = {
+          qty: r.qty,
+          amount,
+          verified: r.verified || 0,
+          verifiedAt: this._formatTime(r.verified_at),
+          verifiedBy: r.verified_by || '',
+        }
+        day.dayTotalQty += r.qty
+        day.dayTotalAmount += amount
+
+        // 格式化时间
+        const timeStr = this._formatTime(r.time)
+        if (timeStr > day.lastTime) day.lastTime = timeStr
+      })
+
+      const mergedRecords = Object.values(grouped).sort((a, b) => b.date.localeCompare(a.date))
+
+      // 3. 计算区间按餐别汇总（用于顶部卡片）
+      const mealSummary = {
+        breakfast: { qty: 0, amount: 0 },
+        lunch:     { qty: 0, amount: 0 },
+        dinner:    { qty: 0, amount: 0 },
       }
+      let totalQty = 0
+      let totalAmount = 0
+      let verifiedQty = 0
+      records.forEach(r => {
+        const amount = this._calculateMealAmount(r)
+        const m = mealSummary[r.mealType]
+        if (m) {
+          m.qty += r.qty
+          m.amount += amount
+        }
+        totalQty += r.qty
+        totalAmount += amount
+        if (r.verified) verifiedQty += r.qty
+      })
+      const unverifiedQty = totalQty - verifiedQty
+
+      this.setData({
+        records: mergedRecords,
+        mealSummary,
+        totalQty,
+        totalAmount,
+        verifiedQty,
+        unverifiedQty,
+        loading: false,
+      })
     } catch (err) {
       console.error('[Record] 加载记录失败:', err)
       this.setData({ loading: false })
-      wx.showToast({ title: '加载失败，请重试', icon: 'none' })
+      wx.showToast({ title: err.message || '加载失败，请重试', icon: 'none' })
     }
   },
 

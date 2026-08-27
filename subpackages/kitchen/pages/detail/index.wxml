@@ -55,6 +55,18 @@
             <text class="meal-qty">{{ meal.qty }} 份</text>
             <text class="meal-family" wx:if="{{ meal.familyQty > 0 }}">家 {{ meal.familyQty }}</text>
           </view>
+          <view
+            wx:if="{{ isToday }}"
+            class="verify-btn {{ meal.verified === 1 ? 'verify-btn--done' : '' }}"
+            hover-class="verify-btn--hover"
+            bindtap="onVerifyMeal"
+            data-user-id="{{ item.id }}"
+            data-meal="{{ meal.mealType }}"
+            data-verified="{{ meal.verified }}"
+          >
+            {{ item.verifyingMeal === meal.mealType ? '处理中…' : (meal.verified === 1 ? '已核销' : '核销') }}
+          </view>
+          <view wx:else class="verify-placeholder"></view>
         </view>
       </view>
     </view>
@@ -77,4 +89,7 @@
   <view class="loading-center" wx:if="{{ loading }}">
     <van-loading type="spinner" color="#1989fa" size="64rpx" />
   </view>
+
+  <!-- Vant Dialog 组件（函数式调用需要） -->
+  <van-dialog id="van-dialog" />
 </view>

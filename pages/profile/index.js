@@ -92,13 +92,8 @@ Page({
       return
     }
     try {
-      const res = await UserAPI.getDeptName(dept_id)
-      const result = res.result
-      if (result && result.code === 0 && result.data) {
-        this.setData({ deptName: result.data.dept_name || '—' })
-      } else {
-        this.setData({ deptName: '—' })
-      }
+      const data = await UserAPI.getDeptName(dept_id)
+      this.setData({ deptName: (data && data.dept_name) || '—' })
     } catch (err) {
       console.error('[profile] loadDeptName error:', err)
       this.setData({ deptName: '—' })
@@ -161,20 +156,16 @@ Page({
     this.setData({ pwdLoading: true })
 
     try {
-      const res = await UserAPI.changePassword({
+      // 业务失败会 reject，由 catch 兜底展示具体原因
+      await UserAPI.changePassword({
         oldPassword: oldPwd,
         newPassword: newPwd
       })
-      const result = res.result
-      if (result.code === 0) {
-        wx.showToast({ title: '密码修改成功', icon: 'success' })
-        this.setData({ showChangePwd: false, oldPwd: '', newPwd: '', confirmPwd: '' })
-      } else {
-        wx.showToast({ title: result.message || '修改失败', icon: 'none' })
-      }
+      wx.showToast({ title: '密码修改成功', icon: 'success' })
+      this.setData({ showChangePwd: false, oldPwd: '', newPwd: '', confirmPwd: '' })
     } catch (err) {
       console.error('[profile] changePassword error:', err)
-      wx.showToast({ title: '修改失败，请重试', icon: 'none' })
+      wx.showToast({ title: err.message || '修改失败，请重试', icon: 'none' })
     } finally {
       this.setData({ pwdLoading: false })
     }
@@ -250,7 +241,8 @@ Page({
     // } else if (isKitchen) {
     //   url = '/subpackages/kitchen/pages/today/index'
     // }
-    if (url) wx.navigateTo({ url })
+    // 工作台为独立工作区，使用 redirectTo 替换当前页，避免左上角出现返回箭头
+    if (url) wx.redirectTo({ url })
   },
 
   // ─── 退出登录 ────────────────────────────────────────────────

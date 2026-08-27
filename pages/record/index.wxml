@@ -82,11 +82,16 @@
       <text class="summary-total-label">合计</text>
       <text class="summary-total-value">{{totalQty}} 份 / ¥{{totalAmount}}</text>
     </view>
+    <view class="summary-verify">
+      <text class="summary-verify-item no">未核销 {{unverifiedQty}} 份</text>
+      <text class="summary-verify-item ok">已核销 {{verifiedQty}} 份</text>
+    </view>
   </view>
 
   <!-- 记录列表（按天合并） -->
   <view class="record-list" wx:if="{{!loading}}">
     <view class="record-item" wx:for="{{records}}" wx:key="date">
+      <!-- 头部：日期 + 星期 -->
       <view class="record-header">
         <view class="record-date-wrap">
           <text class="record-date">{{item.date}}</text>
@@ -94,42 +99,65 @@
         </view>
       </view>
 
-      <view class="record-body day-body">
+      <!-- 餐次明细（行内三段式分布参考食堂端） -->
+      <view class="record-meal-body">
         <!-- 早餐 -->
-        <view class="meal-row" wx:if="{{item.meals.breakfast}}">
-          <view class="meal-main">
-            <view class="meal-name-wrap">
-              <text class="meal-dot breakfast-dot"></text>
-              <text class="meal-name">早餐</text>
+        <view class="record-meal-line" wx:if="{{item.meals.breakfast}}">
+          <view class="meal-main-row">
+            <view class="meal-label-wrap">
+              <view class="meal-dot meal-dot--breakfast"></view>
+              <text class="meal-label-text">早餐</text>
             </view>
-            <text class="meal-total-qty">{{item.meals.breakfast.qty}} 份</text>
-            <text class="meal-total-amount">¥{{item.meals.breakfast.amount}}</text>
+            <view class="meal-info">
+              <text class="meal-qty">{{item.meals.breakfast.qty}} 份</text>
+              <text class="verify-tag {{item.meals.breakfast.verified ? 'verify-tag-ok' : 'verify-tag-no'}}">{{item.meals.breakfast.verified ? '已核销' : '未核销'}}</text>
+            </view>
+            <text class="meal-amount">¥{{item.meals.breakfast.amount}}</text>
+          </view>
+          <view class="meal-verify-row" wx:if="{{item.meals.breakfast.verified}}">
+            <text class="meal-verify-text">核销时间：{{item.meals.breakfast.verifiedAt}}</text>
+            <text class="meal-verify-text" wx:if="{{item.meals.breakfast.verifiedBy}}">核销人：{{item.meals.breakfast.verifiedBy}}</text>
           </view>
         </view>
         <!-- 午餐 -->
-        <view class="meal-row" wx:if="{{item.meals.lunch}}">
-          <view class="meal-main">
-            <view class="meal-name-wrap">
-              <text class="meal-dot lunch-dot"></text>
-              <text class="meal-name">午餐</text>
+        <view class="record-meal-line" wx:if="{{item.meals.lunch}}">
+          <view class="meal-main-row">
+            <view class="meal-label-wrap">
+              <view class="meal-dot meal-dot--lunch"></view>
+              <text class="meal-label-text">午餐</text>
             </view>
-            <text class="meal-total-qty">{{item.meals.lunch.qty}} 份</text>
-            <text class="meal-total-amount">¥{{item.meals.lunch.amount}}</text>
+            <view class="meal-info">
+              <text class="meal-qty">{{item.meals.lunch.qty}} 份</text>
+              <text class="verify-tag {{item.meals.lunch.verified ? 'verify-tag-ok' : 'verify-tag-no'}}">{{item.meals.lunch.verified ? '已核销' : '未核销'}}</text>
+            </view>
+            <text class="meal-amount">¥{{item.meals.lunch.amount}}</text>
+          </view>
+          <view class="meal-verify-row" wx:if="{{item.meals.lunch.verified}}">
+            <text class="meal-verify-text">核销时间：{{item.meals.lunch.verifiedAt}}</text>
+            <text class="meal-verify-text" wx:if="{{item.meals.lunch.verifiedBy}}">核销人：{{item.meals.lunch.verifiedBy}}</text>
           </view>
         </view>
         <!-- 晚餐 -->
-        <view class="meal-row" wx:if="{{item.meals.dinner}}">
-          <view class="meal-main">
-            <view class="meal-name-wrap">
-              <text class="meal-dot dinner-dot"></text>
-              <text class="meal-name">晚餐</text>
+        <view class="record-meal-line" wx:if="{{item.meals.dinner}}">
+          <view class="meal-main-row">
+            <view class="meal-label-wrap">
+              <view class="meal-dot meal-dot--dinner"></view>
+              <text class="meal-label-text">晚餐</text>
             </view>
-            <text class="meal-total-qty">{{item.meals.dinner.qty}} 份</text>
-            <text class="meal-total-amount">¥{{item.meals.dinner.amount}}</text>
+            <view class="meal-info">
+              <text class="meal-qty">{{item.meals.dinner.qty}} 份</text>
+              <text class="verify-tag {{item.meals.dinner.verified ? 'verify-tag-ok' : 'verify-tag-no'}}">{{item.meals.dinner.verified ? '已核销' : '未核销'}}</text>
+            </view>
+            <text class="meal-amount">¥{{item.meals.dinner.amount}}</text>
+          </view>
+          <view class="meal-verify-row" wx:if="{{item.meals.dinner.verified}}">
+            <text class="meal-verify-text">核销时间：{{item.meals.dinner.verifiedAt}}</text>
+            <text class="meal-verify-text" wx:if="{{item.meals.dinner.verifiedBy}}">核销人：{{item.meals.dinner.verifiedBy}}</text>
           </view>
         </view>
       </view>
 
+      <!-- 底部：当天合计 + 最后提交 -->
       <view class="record-footer">
         <view class="record-footer-row">
           <text class="record-total">当天合计 {{item.dayTotalQty}} 份 / ¥{{item.dayTotalAmount}}</text>

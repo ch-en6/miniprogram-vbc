@@ -111,7 +111,7 @@ exports.main = async (event, context) => {
           return {
             code: 0,
             message: '密码错误',
-            data: { allowed: true, emp: null, pwdError: true }
+            data: { allowed: true, emp: null, pwdError: true, message: '密码错误' }
           }
         }
       }
@@ -137,7 +137,7 @@ exports.main = async (event, context) => {
           return {
             code: 0,
             message: '该微信已绑定其他账号，如需换绑请联系管理员',
-            data: { allowed: false, pwdError: false, emp: null }
+            data: { allowed: false, pwdError: false, emp: null, message: '该微信已绑定其他账号，如需换绑请联系管理员' }
           }
         }
         // 未被他人占用，则写入 openid 完成绑定
@@ -193,7 +193,8 @@ exports.main = async (event, context) => {
         data: {
           allowed: false,
           pwdError: false,
-          emp: null
+          emp: null,
+          message: '该账号未注册，请联系管理员'
         }
       }
     }

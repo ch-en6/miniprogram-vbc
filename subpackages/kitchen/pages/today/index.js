@@ -1,20 +1,16 @@
-// subpackages/kitchen/pages/today/index.js — 食堂今日页面（自定义导航栏 + 报餐查询）
+// subpackages/kitchen/pages/today/index.js — 食堂今日页面（系统导航栏 + 报餐查询）
 const { KitchenAPI, UserAPI } = require('../../../../services/api')
-const { formatDate, formatDateCN } = require('../../../../utils/time')
+const { formatDate, formatDateCN, isBookable } = require('../../../../utils/time')
 const { MEAL_TYPE_ORDER, MEAL_TYPE_LABEL, ROLE } = require('../../../../utils/const')
+const { verifyMeal } = require('../../../../utils/verify')
 
 Page({
   data: {
-    // 自定义导航栏
-    statusBarHeight: 20,
-    navBarHeight: 64,
     safeBottom: 0, // iPhone 底部安全区
-    pageTitle: '报餐查询', // 顶部 navbar 标题，随 tab 变化
 
     activeTab: 'search',     // 'search' | 'today' | 'tomorrow' | 'profile'
     searchKeyword: '',
     searchFocus: false,
-    searchMode: 'phone',     // 'phone' | 'name' — 查询方式，默认手机号
     loading: true,
     personSearchResult: null,
     searchMealFilter: '',     // '' = 全天, 'breakfast', 'lunch', 'dinner'
@@ -70,33 +66,31 @@ Page({
     const todayFull = this._formatFullDate(today)
     const tomorrowFull = this._formatFullDate(tomorrow)
 
-    // 顶部 navbar 标题 = 当前 tab 名称
-    const pageTitle = this._getPageTitle(this.data.activeTab)
+    // 顶部导航栏标题 = 当前 tab 名称（与员工端一致，使用系统默认导航栏）
+    wx.setNavigationBarTitle({ title: this._getPageTitle(this.data.activeTab) })
 
     this.setData({
-      statusBarHeight: sysInfo.statusBarHeight,
-      navBarHeight: sysInfo.statusBarHeight + 44,
       safeBottom: sysInfo.safeArea ? Math.max(0, sysInfo.screenHeight - sysInfo.safeArea.bottom) : 0,
       todayDate: formatDate(today),
-      todayLabel: formatDateCN(formatDate(today)),
+      todayLabel: formatDateCN(today),
       todayDateFull: todayFull,
       todayDay: todayFull.split(' ')[0],
       todayWeek: todayFull.split(' ')[1],
       tomorrowDate: formatDate(tomorrow),
-      tomorrowLabel: formatDateCN(formatDate(tomorrow)),
+      tomorrowLabel: formatDateCN(tomorrow),
       tomorrowDateFull: tomorrowFull,
       tomorrowDay: tomorrowFull.split(' ')[0],
       tomorrowWeek: tomorrowFull.split(' ')[1],
       tomorrowDeadline: this._checkDeadline(tomorrow),
-      pageTitle,
     })
 
-    this._initUserInfo()
-    this._loadDeptName()
     this._loadAllData()
   },
 
   onShow() {
+    // 隐藏左上角「返回首页」按钮（非 tabBar 页面作为栈底时微信会显示该按钮）
+    wx.hideHomeButton()
+
     if (this.data.activeTab !== 'search') {
       this._loadAllData()
     }
@@ -104,10 +98,9 @@ Page({
     this._loadDeptName()
   },
 
-  // ─── 自定义导航栏刷新 ──────────────────────────────────────
+  // ─── 下拉刷新（替代原自定义导航栏的「刷新」按钮） ─────────────
 
-  onRefreshTap() {
-    wx.showToast({ title: '刷新中', icon: 'loading', duration: 500 })
+  onPullDownRefresh() {
     if (this.data.activeTab === 'search') {
       // 查询 tab：如果有已查询的结果，重新执行查询；否则加载汇总数据
       if (this.data.personSearchResult !== null && this.data.searchKeyword) {
@@ -118,6 +111,7 @@ Page({
     } else {
       this._loadAllData()
     }
+    setTimeout(() => wx.stopPullDownRefresh(), 500)
   },
 
   // ─── 数据加载 ───────────────────────────────────────────────
@@ -202,7 +196,7 @@ Page({
       isKitchen: roleCode === ROLE.KITCHEN,
       isDeptAdmin: roleCode === ROLE.DEPT_ADMIN,
       isSysAdmin: roleCode === ROLE.SYS_ADMIN,
-      showWorkspace: showWorkspace,
+      showWorkspace,
     })
   },
 
@@ -220,13 +214,8 @@ Page({
 
     // 2. 兜底：请求云函数（不写缓存，下次登录会重新带 dept_name）
     try {
-      const res = await UserAPI.getDeptName(dept_id)
-      const result = res.result
-      if (result.code === 0 && result.data) {
-        this.setData({ deptName: result.data.dept_name || '—' })
-      } else {
-        this.setData({ deptName: '—' })
-      }
+      const data = await UserAPI.getDeptName(dept_id)
+      this.setData({ deptName: (data && data.dept_name) || '—' })
     } catch (err) {
       console.error('[kitchen profile] loadDeptName error:', err)
       this.setData({ deptName: '—' })
@@ -238,26 +227,19 @@ Page({
     const year = date.getFullYear()
     const month = String(date.getMonth() + 1).padStart(2, '0')
     const day = String(date.getDate()).padStart(2, '0')
-    const weekDays = ['日', '一', '二', '三', '四', '五', '六']
-    const week = weekDays[date.getDay()]
+    const week = '日一二三四五六'[date.getDay()]
     return `${year}年${month}月${day}日 星期${week}`
   },
 
-  // 判断明日是否已过 17:00 截止时间
-  _checkDeadline(tomorrowDate) {
-    const now = new Date()
-    const deadline = new Date(tomorrowDate)
-    deadline.setDate(deadline.getDate() - 1) // 截止时间是前一天
-    deadline.setHours(17, 0, 0, 0)
-    return now > deadline ? '已截止' : '可报餐'
+  // 判断目标报餐日是否已过截止时间（截止 = 前一天 17:00，与 utils/time.isBookable 一致）
+  _checkDeadline(targetDate) {
+    return isBookable(targetDate) ? '可报餐' : '已截止'
   },
 
   onTabChange(e) {
     const tab = e.currentTarget.dataset.tab
-    this.setData({
-      activeTab: tab,
-      pageTitle: this._getPageTitle(tab),
-    })
+    this.setData({ activeTab: tab })
+    wx.setNavigationBarTitle({ title: this._getPageTitle(tab) })
     if (tab === 'today' || tab === 'tomorrow') {
       this._loadAllData()
     }
@@ -267,15 +249,6 @@ Page({
 
   onSearchInput(e) {
     this.setData({ searchKeyword: e.detail.value })
-  },
-
-  onSearchModeChange(e) {
-    const mode = e.currentTarget.dataset.mode
-    this.setData({
-      searchMode: mode,
-      searchKeyword: '',
-      personSearchResult: null,
-    })
   },
 
   onClearSearch() {
@@ -299,36 +272,50 @@ Page({
     const keyword = (this.data.searchKeyword || '').trim()
     if (!keyword) {
       this.setData({ personSearchResult: null })
-      const tip = this.data.searchMode === 'phone' ? '请输入手机号' : '请输入姓名'
-      wx.showToast({ title: tip, icon: 'none' })
+      wx.showToast({ title: '请输入姓名或手机号', icon: 'none' })
+      return
+    }
+    // 前端校验兜底：过短的关键词会大量误命中（如单个数字），至少 2 位再查询
+    if (keyword.length < 2) {
+      wx.showToast({ title: '请输入至少 2 个字符', icon: 'none' })
       return
     }
     this._doPersonSearch(keyword)
   },
 
   _doPersonSearch(keyword) {
-    const mode = this.data.searchMode
     const mealFilter = this.data.searchMealFilter
     const searchDate = this.data.todayDate
     const dateLabel = this.data.todayLabel
 
     this.setData({ loading: true })
 
-    const apiCall = mode === 'phone'
-      ? KitchenAPI.searchByPhone(keyword, searchDate, mealFilter || undefined)
-      : KitchenAPI.searchByName(keyword, searchDate, mealFilter || undefined)
+    const apiCall = KitchenAPI.searchByKeyword(keyword, searchDate, mealFilter || undefined)
 
-    apiCall.then((res) => {
-        const result = res.result || {}
-        if (result.code === 0 && result.data) {
-          const data = result.data
-          // 为每条记录添加手机号脱敏
-          const list = (data.list || []).map(item => ({
-            ...item,
-            phoneMasked: item.phone
-              ? item.phone.slice(0, 3) + '****' + item.phone.slice(-4)
-              : '',
-          }))
+    apiCall.then((data) => {
+        if (data) {
+          // 为每条记录添加手机号脱敏 + 核销状态兜底 + 家属餐数量（总份数减1，与报餐明细一致）
+          const list = (data.list || []).map(item => {
+            const breakfast = Number(item.breakfast) || 0
+            const lunch = Number(item.lunch) || 0
+            const dinner = Number(item.dinner) || 0
+            return {
+              ...item,
+              breakfast,
+              lunch,
+              dinner,
+              breakfast_family: Math.max(breakfast - 1, 0),
+              lunch_family: Math.max(lunch - 1, 0),
+              dinner_family: Math.max(dinner - 1, 0),
+              phoneMasked: item.phone
+                ? item.phone.slice(0, 3) + '****' + item.phone.slice(-4)
+                : '',
+              breakfast_verified: item.breakfast_verified === 1 ? 1 : 0,
+              lunch_verified: item.lunch_verified === 1 ? 1 : 0,
+              dinner_verified: item.dinner_verified === 1 ? 1 : 0,
+              verifyingMeal: '', // 当前正在核销的餐次（防重复点击）
+            }
+          })
           this.setData({
             personSearchResult: {
               found: data.found,
@@ -349,12 +336,41 @@ Page({
       })
       .catch((err) => {
         console.error('[Kitchen Search]', err)
-        wx.showToast({ title: '查询失败，请重试', icon: 'none' })
+        wx.showToast({ title: err.message || '查询失败，请重试', icon: 'none' })
         this.setData({
           personSearchResult: null,
           loading: false,
         })
       })
+  },
+
+  // ─── 核销 / 撤销核销 ───────────────────────────────────────
+
+  /**
+   * 点击核销按钮：未核销 -> 直接核销；已核销 -> 弹确认后撤销
+   */
+  onVerifyMeal(e) {
+    const { empId, meal, verified } = e.currentTarget.dataset
+    const result = this.data.personSearchResult
+    if (!result || !result.list) return
+    const idx = result.list.findIndex(it => String(it.emp_id) === String(empId))
+    if (idx === -1) return
+    const item = result.list[idx]
+
+    verifyMeal(this, {
+      empId,
+      date: result.date,
+      meal,
+      verified,
+      name: item.name,
+      isBusy: () => !!item.verifyingMeal,
+      setBusy: (m) => this.setData({ [`personSearchResult.list[${idx}].verifyingMeal`]: m }),
+      clearBusy: () => this.setData({ [`personSearchResult.list[${idx}].verifyingMeal`]: '' }),
+      onSuccess: (nv) => {
+        const field = `${meal}_verified`
+        this.setData({ [`personSearchResult.list[${idx}].${field}`]: nv })
+      },
+    })
   },
 
   // ─── 我的（换绑 + 修改密码） ─────────────────────────────────
@@ -404,21 +420,17 @@ Page({
     try {
       const app = getApp()
       const userInfo = app.globalData.userInfo || {}
-      const res = await UserAPI.changePassword({
+      // 业务失败会 reject，由 catch 兜底展示具体原因
+      await UserAPI.changePassword({
         empId: userInfo.id,
         oldPassword: oldPwd,
         newPassword: newPwd
       })
-      const result = res.result
-      if (result.code === 0) {
-        wx.showToast({ title: '密码修改成功', icon: 'success' })
-        this.setData({ showChangePwd: false, oldPwd: '', newPwd: '', confirmPwd: '' })
-      } else {
-        wx.showToast({ title: result.message || '修改失败', icon: 'none' })
-      }
+      wx.showToast({ title: '密码修改成功', icon: 'success' })
+      this.setData({ showChangePwd: false, oldPwd: '', newPwd: '', confirmPwd: '' })
     } catch (err) {
       console.error('[kitchen profile] changePassword error:', err)
-      wx.showToast({ title: '修改失败，请重试', icon: 'none' })
+      wx.showToast({ title: err.message || '修改失败，请重试', icon: 'none' })
     } finally {
       this.setData({ pwdLoading: false })
     }
@@ -429,19 +441,6 @@ Page({
   goEmployee() {
     wx.switchTab({ url: '/pages/index/index' })
   },
-
-  // goWorkbench() {
-  //   const { isSysAdmin, isDeptAdmin, isKitchen } = this.data
-  //   let url = '/pages/index/index'
-  //   if (isSysAdmin) {
-  //     url = '/subpackages/admin/pages/dept-manage/index'
-  //   } else if (isDeptAdmin) {
-  //     url = '/subpackages/dept/pages/workspace/index'
-  //   } else if (isKitchen) {
-  //     url = '/subpackages/kitchen/pages/today/index'
-  //   }
-  //   if (url) wx.navigateTo({ url })
-  // },
 
   // ─── 退出登录 ────────────────────────────────────────────────
 
@@ -461,14 +460,11 @@ Page({
     })
   },
 
-  onUnload() {
-    if (this._timer) clearInterval(this._timer)
-  },
-
   // ─── 跳转明细页 ────────────────────────────────────────────
 
   goDetail(e) {
-    const date = e.currentTarget.dataset.date || this.data.todayDate
+    // 兼容组件事件（e.detail.date）与历史 dataset 传参
+    const date = (e && e.detail && e.detail.date) || (e && e.currentTarget && e.currentTarget.dataset.date) || this.data.todayDate
     wx.navigateTo({
       url: `/subpackages/kitchen/pages/detail/index?date=${date}`,
     })

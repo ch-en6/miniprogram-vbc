@@ -31,18 +31,16 @@ Page({
         return
       }
 
-      // 调用云函数获取当前轮换菜单
-      const res = await MenuAPI.getCurrentMenu(location_id)
-      
-      if (res.result && res.result.code === 0) {
-        const menuData = res.result.data
-        
+      // 调用云函数获取当前轮换菜单（业务失败会 reject，由 catch 兜底）
+      const menuData = await MenuAPI.getCurrentMenu(location_id)
+
+      if (menuData && menuData.meals) {
         // 将meals数组转换为页面需要的格式
         const menuDays = this._formatMenuData(menuData.meals)
-        
+
         this.setData({ menuDays, loading: false })
       } else {
-        console.error('获取菜单失败:', res.result?.message)
+        console.error('获取菜单失败: 返回数据为空')
         wx.showToast({
           title: '未找到有效菜单',
           icon: 'none'
@@ -52,7 +50,7 @@ Page({
     } catch (err) {
       console.error('加载菜单异常:', err)
       wx.showToast({
-        title: '加载失败',
+        title: err.message || '加载失败',
         icon: 'none'
       })
       this.setData({ loading: false })

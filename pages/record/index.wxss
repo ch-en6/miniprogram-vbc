@@ -214,11 +214,39 @@
   color: #374151;
 }
 
-/* 记录列表 */
+/* 核销进度（区间统计卡） */
+.summary-verify {
+  display: flex;
+  justify-content: center;
+  gap: 16rpx;
+  padding-top: 12rpx;
+  margin-top: 12rpx;
+  border-top: 1px dashed #f0f1f3;
+}
+
+.summary-verify-item {
+  font-size: 22rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 100rpx;
+}
+
+.summary-verify-item.ok {
+  color: #07c160;
+  background: #e8f9f0;
+}
+
+.summary-verify-item.no {
+  color: #9ca3af;
+  background: #f4f5f7;
+}
+
+/* ─── 记录列表 ─── */
+/* 中间餐次行（早餐/午餐/晚餐）采用食堂端报餐明细的三段式分布 */
 .record-list {
   margin-top: 24rpx;
 }
 
+/* 每日一张卡片（原样式） */
 .record-item {
   background: #fff;
   border-radius: 24rpx;
@@ -227,6 +255,7 @@
   border: 1px solid rgba(229, 231, 235, 0.7);
 }
 
+/* 头部：日期 + 星期（原样式） */
 .record-header {
   display: flex;
   align-items: center;
@@ -256,84 +285,118 @@
   border-radius: 8rpx;
 }
 
-.record-date-full {
-  font-size: 24rpx;
-  color: #9ca3af;
+/* 餐次明细区（仅承载餐次行） */
+.record-meal-body {
+  margin-bottom: 8rpx;
 }
 
-/* 按天合并的餐别行 */
-.day-body {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-  margin-bottom: 16rpx;
-}
-
-.meal-row {
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
-  padding: 12rpx 0;
+/* 餐次行（三段式：餐别 | 份数+核销标签 | 金额） */
+.record-meal-line {
+  padding: 18rpx 0;
   border-bottom: 1px dashed #f0f1f3;
 }
 
-.meal-row:last-child {
+.record-meal-line:last-child {
   border-bottom: none;
 }
 
-.meal-main {
+.meal-main-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.meal-name-wrap {
+/* 餐别标签（圆点 + 文字） */
+.meal-label-wrap {
   display: flex;
   align-items: center;
-  gap: 8rpx;
-  min-width: 100rpx;
+  gap: 12rpx;
+  min-width: 110rpx;
 }
 
-/* 餐别圆点 */
 .meal-dot {
-  width: 12rpx;
-  height: 12rpx;
+  width: 16rpx;
+  height: 16rpx;
   border-radius: 50%;
 }
 
-.breakfast-dot {
-  background: #ff976a;
+.meal-dot--breakfast {
+  background: #f5a623;
 }
 
-.lunch-dot {
+.meal-dot--lunch {
   background: #1989fa;
 }
 
-.dinner-dot {
-  background: #07c160;
+.meal-dot--dinner {
+  background: #c8a6ff;
 }
 
-.meal-name {
-  font-size: 26rpx;
-  color: #6b7280;
-}
-
-.meal-total-qty {
+.meal-label-text {
   font-size: 28rpx;
   color: #374151;
-  font-weight: 700;
-  flex: 1;
-  text-align: center;
+  font-weight: 500;
 }
 
-.meal-total-amount {
+/* 份数 + 核销标签 */
+.meal-info {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex: 1;
+  justify-content: center;
+}
+
+.meal-qty {
   font-size: 28rpx;
-  color: #1989fa;
+  font-weight: 600;
+  color: #374151;
+}
+
+.meal-amount {
+  font-size: 28rpx;
   font-weight: 700;
+  color: #1989fa;
   min-width: 120rpx;
   text-align: right;
 }
 
+/* 核销状态标签 */
+.verify-tag {
+  font-size: 20rpx;
+  padding: 2rpx 12rpx;
+  border-radius: 100rpx;
+  line-height: 1.4;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.verify-tag-ok {
+  color: #07c160;
+  background: #e8f9f0;
+}
+
+.verify-tag-no {
+  color: #9ca3af;
+  background: #f4f5f7;
+}
+
+/* 核销明细（核销时间 / 核销人） */
+.meal-verify-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8rpx 24rpx;
+  margin-top: 8rpx;
+  padding-left: 28rpx;
+}
+
+.meal-verify-text {
+  font-size: 22rpx;
+  color: #9ca3af;
+}
+
+/* 底部：当天合计 + 最后提交（原样式） */
 .record-footer {
   padding-top: 16rpx;
   border-top: 1px solid #f0f1f3;

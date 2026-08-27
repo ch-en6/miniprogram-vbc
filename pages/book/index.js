@@ -52,21 +52,15 @@ Page({
         return
       }
 
-      // 缓存没有，请求云函数
-      const res = await PriceConfigAPI.getConfig(dept_id)
-
-      if (res.result && res.result.code === 0 && res.result.data) {
-        app.globalData.priceConfig = res.result.data
-        setCache(getPriceCacheKey(dept_id), res.result.data)
-        this.setData({ priceConfig: res.result.data })
-        console.log('[Book] 价格配置加载成功:', res.result.data)
-      } else {
-        console.error('[Book] 价格配置加载失败:', res.result?.message)
-        wx.showToast({ title: res.result?.message || '加载价格失败', icon: 'none' })
-      }
+      // 缓存没有，请求云函数（业务失败会 reject，由 catch 兜底提示）
+      const priceConfig = await PriceConfigAPI.getConfig(dept_id)
+      app.globalData.priceConfig = priceConfig
+      setCache(getPriceCacheKey(dept_id), priceConfig)
+      this.setData({ priceConfig })
+      console.log('[Book] 价格配置加载成功:', priceConfig)
     } catch (err) {
       console.error('[Book] 加载价格配置失败:', err)
-      wx.showToast({ title: '加载价格配置失败', icon: 'none' })
+      wx.showToast({ title: err.message || '加载价格配置失败', icon: 'none' })
     }
   },
 
@@ -91,17 +85,14 @@ Page({
     // 从云数据库加载当月报餐记录
     let monthOrders = {}
     try {
-      const app = getApp()
-      const res = await MealOrderAPI.getMonth({ month: monthStr })
-      if (res.result && res.result.code === 0 && res.result.data) {
-        res.result.data.forEach(item => {
-          monthOrders[item.date] = {
-            breakfast: item.breakfast || 0,
-            lunch: item.lunch || 0,
-            dinner: item.dinner || 0,
-          }
-        })
-      }
+      const orders = (await MealOrderAPI.getMonth({ month: monthStr })) || []
+      orders.forEach(item => {
+        monthOrders[item.date] = {
+          breakfast: item.breakfast || 0,
+          lunch: item.lunch || 0,
+          dinner: item.dinner || 0,
+        }
+      })
     } catch (err) {
       console.error('[Book] 加载报餐记录失败:', err)
     }
@@ -255,25 +246,16 @@ Page({
 
     try {
       if (isCancel) {
-        // 删除报餐记录
-        const app = getApp()
-        const res = await MealOrderAPI.remove({ date: day.dateStr })
-        if (res.result && res.result.code !== 0) {
-          throw new Error(res.result.message)
-        }
+        // 删除报餐记录（业务失败会 reject，抛给外层 catch 统一处理）
+        await MealOrderAPI.remove({ date: day.dateStr })
       } else {
-        // 保存/更新报餐记录
-        const app = getApp()
-        const res = await MealOrderAPI.save({
+        // 保存/更新报餐记录（员工身份/部门/食堂由云函数按 openid 反查，前端不传 emp_id/dept_id/location_id/_openid）
+        await MealOrderAPI.save({
           date: day.dateStr,
           breakfast: day.breakfast,
           lunch: day.lunch,
           dinner: day.dinner,
-          // 员工身份/部门/食堂由云函数按 openid 反查，前端不传 emp_id/dept_id/location_id/_openid
         })
-        if (res.result && res.result.code !== 0) {
-          throw new Error(res.result.message)
-        }
       }
 
       // 更新本地日历数据

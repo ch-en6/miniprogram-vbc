@@ -1,1 +1,17 @@
-{"navigationBarTitleText":"食堂今日报餐","navigationBarBackgroundColor":"#1989fa","navigationBarTextStyle":"white","navigationStyle":"custom","usingComponents":{"van-icon":"@vant/weapp/icon/index","van-loading":"@vant/weapp/loading/index","van-empty":"@vant/weapp/empty/index","van-field":"@vant/weapp/field/index","van-button":"@vant/weapp/button/index","van-cell":"@vant/weapp/cell/index","van-cell-group":"@vant/weapp/cell-group/index","van-dialog":"@vant/weapp/dialog/index"}}
+{
+    "navigationBarTitleText": "食堂工作台",
+    "enablePullDownRefresh": true,
+    "backgroundColor": "#f5f7fa",
+    "backgroundTextStyle": "dark",
+    "usingComponents": {
+        "day-summary": "/subpackages/kitchen/components/day-summary/index",
+        "van-icon": "@vant/weapp/icon/index",
+        "van-loading": "@vant/weapp/loading/index",
+        "van-empty": "@vant/weapp/empty/index",
+        "van-field": "@vant/weapp/field/index",
+        "van-button": "@vant/weapp/button/index",
+        "van-cell": "@vant/weapp/cell/index",
+        "van-cell-group": "@vant/weapp/cell-group/index",
+        "van-dialog": "@vant/weapp/dialog/index"
+    }
+}

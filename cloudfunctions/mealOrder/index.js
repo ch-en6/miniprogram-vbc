@@ -5,6 +5,8 @@
 //   前端 book 页面按 "每天三餐聚合" 展示（{ date, breakfast, lunch, dinner }）。
 //   聚合/拆分都在本函数内完成，book 页面只看到聚合形态。
 //
+// 本函数只服务员工侧（getRange/getMonth/save/remove）。
+//
 const cloud = require('wx-server-sdk')
 const cloudbaseSDK = require('@cloudbase/node-sdk')
 
@@ -179,13 +181,16 @@ async function actionGetRange(event) {
   }
 
   const rows = await query(
-    'SELECT `meal_date`, `meal_type`, `quantity`, `emp_price`, `family_price`, ' +
-    '       `submitted_at` ' +
-    'FROM `meal_order` ' +
-    'WHERE `emp_id` = {{emp_id}} ' +
-    '  AND `meal_date` BETWEEN {{startDate}} AND {{endDate}} ' +
-    '  AND `quantity` > 0 ' +
-    'ORDER BY `meal_date` ASC, `meal_type` ASC',
+    'SELECT mo.`meal_date`, mo.`meal_type`, mo.`quantity`, mo.`emp_price`, mo.`family_price`, ' +
+    '       mo.`submitted_at`, ' +
+    '       mo.`verified_status`, mo.`verified_at`, ' +
+    '       COALESCE(e.`name`, \'\') AS verified_by_name ' +
+    'FROM `meal_order` mo ' +
+    'LEFT JOIN `sys_emp` e ON e.`id` = mo.`verified_by` ' +
+    'WHERE mo.`emp_id` = {{emp_id}} ' +
+    '  AND mo.`meal_date` BETWEEN {{startDate}} AND {{endDate}} ' +
+    '  AND mo.`quantity` > 0 ' +
+    'ORDER BY mo.`meal_date` ASC, mo.`meal_type` ASC',
     { emp_id, startDate, endDate }
   )
 
@@ -200,6 +205,9 @@ async function actionGetRange(event) {
         breakfast_emp_price: 0, breakfast_family_price: 0,
         lunch_emp_price: 0, lunch_family_price: 0,
         dinner_emp_price: 0, dinner_family_price: 0,
+        breakfast_verified: 0, breakfast_verified_at: '', breakfast_verified_by: '',
+        lunch_verified: 0, lunch_verified_at: '', lunch_verified_by: '',
+        dinner_verified: 0, dinner_verified_at: '', dinner_verified_by: '',
         submitted_at: '',
       })
     }
@@ -209,6 +217,9 @@ async function actionGetRange(event) {
       bucket[name] = Number(r.quantity) || 0
       bucket[`${name}_emp_price`] = Number(r.emp_price) || 0
       bucket[`${name}_family_price`] = Number(r.family_price) || 0
+      bucket[`${name}_verified`] = Number(r.verified_status) === 1 ? 1 : 0
+      bucket[`${name}_verified_at`] = r.verified_at || ''
+      bucket[`${name}_verified_by`] = r.verified_by_name || ''
     }
     // 保留该日期最新的 submitted_at 作为最后提交时间展示
     const t = r.submitted_at || ''
@@ -449,14 +460,6 @@ async function actionRemove(event) {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// 兼容 kitchen 工作台 action（services/api.js KitchenAPI 仍引用）
-// 当前任务（book 页面）不涉及；返回空数据以避免云函数 not found。
-// ──────────────────────────────────────────────────────────────────
-async function actionKitchenStub() {
-  return { code: 0, message: 'success', data: [] }
-}
-
-// ──────────────────────────────────────────────────────────────────
 // 入口
 // ──────────────────────────────────────────────────────────────────
 exports.main = async (event, context) => {
@@ -467,10 +470,6 @@ exports.main = async (event, context) => {
       case 'getMonth':         return await actionGetMonth(event)
       case 'save':             return await actionSave(event)
       case 'remove':           return await actionRemove(event)
-      case 'getKitchenSummary':
-      case 'getKitchenDetail':
-      case 'searchByName':
-      case 'searchByPhone':    return await actionKitchenStub()
       default:
         return { code: -1, message: `未知 action: ${action}`, data: null }
     }
