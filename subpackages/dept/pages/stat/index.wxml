@@ -1,2 +1,90 @@
-<!--subpackages/dept/pages/stat/index.wxml-->
-<text>subpackages/dept/pages/stat/index.wxml</text>
+<!-- subpackages/dept/pages/stat/index.wxml — 报餐统计页 -->
+<view class="page-container">
+
+  <!-- 部门选择 -->
+  <view class="dept-selector" wx:if="{{departments.length > 1}}">
+    <text class="dept-label">当前部门：</text>
+    <picker mode="selector" range="{{departmentNames}}" value="{{currentDeptIndex}}" bindchange="onDeptChange">
+      <view class="dept-picker">{{departmentNames[currentDeptIndex]}} ▾</view>
+    </picker>
+  </view>
+
+  <!-- 明日报餐汇总卡片 -->
+  <view class="mini-card">
+    <view class="title-line">明日报餐汇总 <small>（截至今日）</small></view>
+    <view class="stat-grid">
+      <view class="stat">
+        <text class="stat-num">{{tomorrowStat.breakfast}}</text>
+        <text class="stat-label">早餐</text>
+      </view>
+      <view class="stat">
+        <text class="stat-num">{{tomorrowStat.lunch}}</text>
+        <text class="stat-label">午餐</text>
+      </view>
+      <view class="stat">
+        <text class="stat-num">{{tomorrowStat.dinner}}</text>
+        <text class="stat-label">晚餐</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 筛选条件 -->
+  <view class="filter-card mini-card">
+    <view class="filter-title">统计筛选</view>
+
+    <!-- 日期范围 -->
+    <view class="filter-row">
+      <text class="filter-label">日期范围</text>
+      <view class="filter-value">
+        <picker mode="date" value="{{startDate}}" bindchange="onStartDateChange">
+          <text class="date-text">{{startDate || '开始日期'}}</text>
+        </picker>
+        <text class="date-sep">至</text>
+        <picker mode="date" value="{{endDate}}" bindchange="onEndDateChange">
+          <text class="date-text">{{endDate || '结束日期'}}</text>
+        </picker>
+      </view>
+    </view>
+
+    <!-- 查询按钮 -->
+    <van-button type="primary" size="small" bindtap="onSearch" custom-class="filter-btn">查询</van-button>
+  </view>
+
+  <!-- 统计列表 -->
+  <view class="stat-list">
+    <view class="stat-item" wx:for="{{statList}}" wx:key="date">
+      <view class="stat-header">
+        <text class="stat-date">{{item.date}}</text>
+      </view>
+      <view class="stat-detail">
+        <view class="stat-meal">
+          <text class="meal-name">早餐</text>
+          <text class="meal-qty">{{item.breakfast}} 份</text>
+          <text class="meal-family" wx:if="{{item.breakfastFamily > 0}}">（家属 {{item.breakfastFamily}} 份）</text>
+        </view>
+        <view class="stat-meal">
+          <text class="meal-name">午餐</text>
+          <text class="meal-qty">{{item.lunch}} 份</text>
+          <text class="meal-family" wx:if="{{item.lunchFamily > 0}}">（家属 {{item.lunchFamily}} 份）</text>
+        </view>
+        <view class="stat-meal">
+          <text class="meal-name">晚餐</text>
+          <text class="meal-qty">{{item.dinner}} 份</text>
+          <text class="meal-family" wx:if="{{item.dinnerFamily > 0}}">（家属 {{item.dinnerFamily}} 份）</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 导出按钮 -->
+  <view class="export-bar">
+    <van-button type="primary" plain block bindtap="onExport">导出 Excel 报表</van-button>
+  </view>
+
+  <!-- 空状态 -->
+  <van-empty wx:if="{{statList.length === 0 && !loading}}" description="暂无统计数据" />
+
+  <!-- Toast -->
+  <van-toast id="van-toast" />
+  <van-dialog id="van-dialog" />
+</view>

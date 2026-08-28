@@ -1,1 +1,372 @@
-/* subpackages/dept/pages/workspace/index.wxss */
+/* subpackages/dept/pages/workspace/index.wxss — 部门管理员工作台
+   严格对齐原型 CSS，px → rpx（×2） */
+
+/* ── 基础变量 ── */
+page {
+  --brand: #1989fa;
+  --bg: #f4f6f9;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  background: var(--bg);
+}
+
+/* ── page-pad ── */
+.page-pad {
+  padding: 24rpx;
+  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
+}
+
+/* ── mini-card ── */
+.mini-card {
+  background: #fff;
+  border-radius: 28rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  border: 1rpx solid rgba(229, 231, 235, 0.7);
+}
+
+/* ── title-line ── */
+.title-line {
+  display: flex;
+  align-items: baseline;
+  gap: 12rpx;
+  margin: 0 0 16rpx;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #374151;
+}
+.title-small {
+  color: #9ca3af;
+  font-size: 22rpx;
+  font-weight: 400;
+}
+
+/* ── section-title ── */
+.section-title {
+  margin: 28rpx 4rpx 16rpx;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #374151;
+}
+
+/* ── stat-grid ── */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16rpx;
+}
+.stat {
+  background: #f7fbff;
+  border: 1rpx solid #e3f0ff;
+  border-radius: 24rpx;
+  padding: 20rpx 12rpx;
+  text-align: center;
+}
+.stat-num {
+  display: block;
+  font-size: 40rpx;
+  color: var(--brand);
+  font-weight: 700;
+  margin-bottom: 4rpx;
+}
+.stat-label {
+  font-size: 22rpx;
+  color: var(--muted);
+}
+
+/* ── dept-selector ── */
+.dept-selector {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 20rpx 24rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  margin-bottom: 24rpx;
+  font-size: 28rpx;
+}
+.dept-label {
+  color: var(--muted);
+  font-size: 26rpx;
+}
+.dept-picker {
+  color: var(--brand);
+  font-weight: 600;
+  font-size: 28rpx;
+}
+
+/* ── filter-card ── */
+.filter-card {
+  background: #fff;
+  border-radius: 28rpx;
+  padding: 28rpx;
+  margin-bottom: 24rpx;
+  border: 1rpx solid rgba(229, 231, 235, 0.7);
+}
+.filter-title {
+  font-weight: 600;
+  font-size: 28rpx;
+  margin-bottom: 20rpx;
+}
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+.filter-label {
+  color: var(--muted);
+  font-size: 26rpx;
+  white-space: nowrap;
+}
+.filter-value {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex: 1;
+}
+.date-input {
+  border: 1rpx solid var(--line);
+  border-radius: 16rpx;
+  padding: 8rpx 16rpx;
+  font-size: 26rpx;
+  color: var(--text);
+  background: #fff;
+}
+.date-sep {
+  color: var(--muted);
+  font-size: 26rpx;
+}
+.mt-10 { margin-top: 20rpx; }
+.ml-4 { margin-left: 8rpx; }
+
+/* ── stat-list ── */
+.stat-list {
+  margin-bottom: 24rpx;
+}
+.stat-item {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+}
+.stat-header {
+  font-weight: 600;
+  font-size: 28rpx;
+  margin-bottom: 16rpx;
+  color: var(--brand);
+}
+.stat-detail {
+  font-size: 26rpx;
+  line-height: 1.8;
+}
+.stat-meal {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+.meal-name {
+  width: 72rpx;
+  color: var(--muted);
+}
+.meal-qty {
+  font-weight: 600;
+}
+.meal-family {
+  color: #f59e0b;
+  font-size: 24rpx;
+}
+
+/* ── export-bar ── */
+.export-bar {
+  margin: 32rpx 0;
+}
+
+/* ── mini-actions ── */
+.mini-actions {
+  display: flex;
+  gap: 16rpx;
+  flex-wrap: wrap;
+  margin: 0 0 20rpx;
+}
+
+/* ── staff-list ── */
+.staff-list {
+  margin-top: 24rpx;
+}
+.staff-item {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+  font-size: 26rpx;
+}
+.staff-info {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin-bottom: 12rpx;
+}
+.staff-name {
+  font-weight: 600;
+}
+.staff-phone {
+  color: var(--muted);
+}
+.staff-dept {
+  color: var(--muted);
+  font-size: 24rpx;
+}
+.staff-status {
+  display: flex;
+  gap: 8rpx;
+  margin-bottom: 12rpx;
+}
+.staff-actions {
+  display: flex;
+  gap: 24rpx;
+  font-size: 24rpx;
+}
+.action-link {
+  color: var(--brand);
+}
+.action-link.danger {
+  color: #ee0a24;
+}
+
+/* ── 收费 Tab ── */
+.month-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  flex-wrap: wrap;
+}
+.month-input {
+  width: 320rpx;
+}
+.snapshot-bar {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  font-size: 26rpx;
+  padding: 20rpx 24rpx;
+  border-radius: 24rpx;
+  margin-bottom: 24rpx;
+}
+.snapshot-blue {
+  background: #ecf5ff;
+  color: #1989fa;
+}
+.snapshot-yellow {
+  background: #fffbe8;
+  color: #ed6a0c;
+}
+.snapshot-text {
+  flex: 1;
+}
+
+.billing-card {
+  padding: 24rpx 0 0;
+  overflow: hidden;
+}
+.billing-title {
+  padding: 0 24rpx 16rpx;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #374151;
+}
+.billing-scroll {
+  overflow-x: auto;
+}
+.billing-table {
+  min-width: 1200rpx;
+  width: 100%;
+}
+.tr {
+  display: flex;
+  align-items: center;
+  border-bottom: 1rpx solid #eef0f3;
+}
+.th {
+  font-size: 24rpx;
+  color: var(--muted);
+  font-weight: 600;
+  background: #fafafa;
+}
+.td {
+  flex: 1;
+  text-align: center;
+  font-size: 24rpx;
+  padding: 16rpx 8rpx;
+  color: #323233;
+}
+.td-amount {
+  font-weight: 600;
+  color: #e85d2a;
+}
+.tfoot {
+  background: #f5f7fa;
+  font-weight: 600;
+}
+.tfoot .td {
+  font-weight: 700;
+}
+.td-footer-label {
+  flex: 7;
+  text-align: right;
+  padding-right: 16rpx;
+}
+.tfoot .td-amount {
+  flex: 2;
+}
+
+/* ── workspace-tags ── */
+.workspace-tags {
+  display: flex;
+  gap: 16rpx;
+  flex-wrap: wrap;
+  margin-top: 20rpx;
+}
+
+/* ── btn-block ── */
+.btn-block {
+  margin: 24rpx 0;
+}
+
+/* ── phone-modal（换绑弹窗） ── */
+.phone-modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(17, 24, 39, 0.42);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 36rpx;
+}
+.phone-modal-card {
+  width: 100%;
+  max-height: 92%;
+  overflow: auto;
+  background: #fff;
+  border-radius: 36rpx;
+  padding: 28rpx 24rpx;
+  box-shadow: 0 36rpx 80rpx rgba(17, 24, 39, 0.24);
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+  font-weight: 700;
+  font-size: 30rpx;
+}
+.muted {
+  color: #6b7280;
+  font-size: 24rpx;
+}
+.rebind-tip {
+  margin-bottom: 20rpx;
+  line-height: 1.6;
+}

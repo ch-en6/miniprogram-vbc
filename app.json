@@ -30,6 +30,7 @@
       "root": "subpackages/admin",
       "name": "admin",
       "pages": [
+        "pages/workspace/index",
         "pages/dept-manage/index",
         "pages/permission/index",
         "pages/sys-config/index",

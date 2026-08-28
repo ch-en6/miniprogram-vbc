@@ -1,2 +1,82 @@
-<!--subpackages/dept/pages/billing/index.wxml-->
-<text>subpackages/dept/pages/billing/index.wxml</text>
+<!-- subpackages/dept/pages/billing/index.wxml — 月度收费统计页 -->
+<view class="page-container">
+
+  <!-- 部门选择 -->
+  <view class="dept-selector" wx:if="{{departments.length > 1}}">
+    <text class="dept-label">当前部门：</text>
+    <picker mode="selector" range="{{departmentNames}}" value="{{currentDeptIndex}}" bindchange="onDeptChange">
+      <view class="dept-picker">{{departmentNames[currentDeptIndex]}} ▾</view>
+    </picker>
+  </view>
+
+  <!-- 月份选择 -->
+  <view class="month-selector mini-card">
+    <text class="filter-label">选择月份</text>
+    <picker mode="date" fields="month" value="{{selectedMonth}}" bindchange="onMonthChange">
+      <view class="month-picker">{{selectedMonth || '请选择月份'}}</view>
+    </picker>
+    <van-button type="primary" size="small" bindtap="onQuery" custom-class="query-btn">查询</van-button>
+  </view>
+
+  <!-- 快照状态标识（Phase 3.3） -->
+  <view class="snapshot-bar mini-card" wx:if="{{hasQueried && isSnapshot}}">
+    <van-tag type="primary" size="small">已快照</van-tag>
+    <text class="snapshot-info">快照月份：{{snapshotMonth}}｜生成时间：{{snapshotTime}}｜操作人：{{snapshotBy}}</text>
+  </view>
+  <view class="snapshot-bar mini-card" wx:if="{{hasQueried && !isSnapshot}}">
+    <van-tag type="warning" size="small">实时查询</van-tag>
+    <text class="snapshot-info">当前数据为实时计算结果，尚未生成快照</text>
+  </view>
+
+  <!-- 收费明细表 -->
+  <view class="billing-table mini-card" wx:if="{{billingList.length > 0}}">
+    <view class="title-line">收费明细表 <small>（{{selectedMonth}}）</small></view>
+
+    <!-- 表头 -->
+    <view class="table-header">
+      <text class="col-seq">序号</text>
+      <text class="col-name">姓名</text>
+      <text class="col-meal">餐别</text>
+      <text class="col-qty">餐数</text>
+      <text class="col-price">标准价</text>
+      <text class="col-family">家属数</text>
+      <text class="col-emp-amount">员工金额</text>
+      <text class="col-fam-amount">家属金额</text>
+      <text class="col-amount">总金额</text>
+    </view>
+
+    <!-- 列表 -->
+    <view class="table-body">
+      <view class="table-row" wx:for="{{billingList}}" wx:key="id">
+        <text class="col-seq">{{index + 1}}</text>
+        <text class="col-name">{{item.name}}</text>
+        <text class="col-meal">{{item.mealLabel}}</text>
+        <text class="col-qty">{{item.qty}}</text>
+        <text class="col-price">¥{{item.empPrice}}</text>
+        <text class="col-family">{{item.family}}</text>
+        <text class="col-emp-amount">¥{{item.empAmount}}</text>
+        <text class="col-fam-amount">¥{{item.famAmount}}</text>
+        <text class="col-amount amount-highlight">¥{{item.amount}}</text>
+      </view>
+    </view>
+
+    <!-- 汇总 -->
+    <view class="table-footer">
+      <text class="footer-label">汇总</text>
+      <text class="footer-amount">¥ {{totalAmount}}</text>
+    </view>
+  </view>
+
+  <!-- 导出按钮 -->
+  <view class="export-bar" wx:if="{{billingList.length > 0}}">
+    <van-button type="primary" plain block bindtap="onExport">导出 Excel 报表</van-button>
+  </view>
+
+  <!-- 空状态 -->
+  <van-empty wx:if="{{billingList.length === 0 && !loading && hasQueried}}" description="暂无收费数据" />
+  <van-empty wx:if="{{!hasQueried}}" description="请选择月份并点击查询" />
+
+  <!-- Toast -->
+  <van-toast id="van-toast" />
+  <van-dialog id="van-dialog" />
+</view>
