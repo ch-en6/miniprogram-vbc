@@ -1,7 +1,6 @@
-// pages/profile/index.js — 个人中心
-const { ROLE } = require('../../utils/const')
-const QR = require('../../utils/qrcode')
-const { UserAPI } = require('../../services/api')
+// subpackages/dept/pages/profile/index.js — 部门工作台 · 我的
+const { ROLE } = require('../../../../utils/const')
+const { UserAPI } = require('../../../../services/api')
 
 Page({
   data: {
@@ -20,9 +19,6 @@ Page({
     newPwd: '',
     confirmPwd: '',
     pwdLoading: false,
-    // 订阅消息
-    // subscribed: false,
-    // templateIds: ['mock_template_id_1'],
   },
 
   onLoad() {
@@ -31,13 +27,12 @@ Page({
   },
 
   onShow() {
+    wx.hideHomeButton()
     this._initDisplay()
     this._loadDeptName()
   },
 
   onReady() {
-    // 页面初次渲染完成后生成二维码
-    // this._drawQRCode()
   },
 
   _initDisplay() {
@@ -93,15 +88,6 @@ Page({
       this.setData({ deptName: '—' })
     }
   },
-
-  // _drawQRCode() {
-  //   const { userInfo } = this.data
-  //   if (!userInfo || !userInfo._id) return
-
-  //   // 用员工ID生成二维码内容（工牌标识）
-  //   const qrContent = 'EMP:' + userInfo._id
-  //   QR.draw('qrCanvas', this, qrContent, 360)
-  // },
 
   // ─── 换绑手机号 ──────────────────────────────────────────────
 
@@ -165,62 +151,13 @@ Page({
     }
   },
 
-  // onNewPhoneInput(e) {
-  //   this.setData({ newPhone: e.detail })
-  // },
-
-  // onSmsInput(e) {
-  //   this.setData({ smsCode: e.detail })
-  // },
-
-  // sendSmsCode() {
-  //   const { newPhone } = this.data
-  //   if (!/^1[3-9]\d{9}$/.test(newPhone)) {
-  //     wx.showToast({ title: '请输入正确的手机号', icon: 'none' })
-  //     return
-  //   }
-  //   // TODO: 调用云函数发送短信验证码
-  //   wx.showToast({ title: '验证码已发送', icon: 'success' })
-  //   this._startCooldown()
-  // },
-
-  // _startCooldown() {
-  //   let count = 60
-  //   this.setData({ smsCooldown: count })
-  //   this._timer = setInterval(() => {
-  //     count -= 1
-  //     this.setData({ smsCooldown: count })
-  //     if (count <= 0) clearInterval(this._timer)
-  //   }, 1000)
-  // },
-
-  // onSubscribeMessage() {
-  //   const templateIds = this.data.templateIds
-  //   wx.requestSubscribeMessage({
-  //     tmplIds: templateIds,
-  //     success: (res) => {
-  //       const accepted = templateIds.filter(id => res[id] === 'accept')
-  //       if (accepted.length > 0) {
-  //         this.setData({ subscribed: true })
-  //         wx.showToast({ title: '订阅成功', icon: 'success' })
-  //       } else {
-  //         wx.showToast({ title: '已取消订阅', icon: 'none' })
-  //       }
-  //     },
-  //     fail: () => {
-  //       wx.showToast({ title: '授权失败，请重试', icon: 'none' })
-  //     },
-  //   })
-  // },
-
-  // confirmRebind() {
-  //   // TODO: 调用云函数换绑手机号
-  //   wx.showToast({ title: '换绑申请已提交', icon: 'success' })
-  //   this.setData({ showRebind: false })
-  // },
-
   // ─── 页面跳转 ────────────────────────────────────────────────
 
+  goEmployee() {
+    wx.switchTab({ url: '/pages/index/index' })
+  },
+
+  // 员工端
   goEmployee() {
     wx.switchTab({ url: '/pages/index/index' })
   },
@@ -228,11 +165,6 @@ Page({
   // 食堂工作台：跳转食堂管理分包
   goKitchenWorkbench() {
     wx.redirectTo({ url: '/subpackages/kitchen/pages/today/index' })
-  },
-
-  // 管理员工作台（部门管理员/系统管理员）
-  goDeptWorkbench() {
-    wx.redirectTo({ url: '/subpackages/dept/pages/stats/index' })
   },
 
   // ─── 退出登录 ────────────────────────────────────────────────

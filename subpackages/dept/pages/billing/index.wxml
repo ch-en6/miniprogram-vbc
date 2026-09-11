@@ -1,82 +1,83 @@
-<!-- subpackages/dept/pages/billing/index.wxml — 月度收费统计页 -->
-<view class="page-container">
+<!-- subpackages/dept/pages/billing/index.wxml — 部门工作台 · 收费管理（独立页） -->
+
+<view class="page-pad">
 
   <!-- 部门选择 -->
-  <view class="dept-selector" wx:if="{{departments.length > 1}}">
+  <view class="dept-selector">
     <text class="dept-label">当前部门：</text>
-    <picker mode="selector" range="{{departmentNames}}" value="{{currentDeptIndex}}" bindchange="onDeptChange">
-      <view class="dept-picker">{{departmentNames[currentDeptIndex]}} ▾</view>
+    <picker mode="selector" range="{{ depts }}" range-key="dept_name" value="{{ currentDeptIndex }}" bindchange="onDeptChange">
+      <text class="dept-picker">{{ depts[currentDeptIndex].dept_name }} ▾</text>
     </picker>
   </view>
 
   <!-- 月份选择 -->
-  <view class="month-selector mini-card">
+  <view class="mini-card month-row">
     <text class="filter-label">选择月份</text>
-    <picker mode="date" fields="month" value="{{selectedMonth}}" bindchange="onMonthChange">
-      <view class="month-picker">{{selectedMonth || '请选择月份'}}</view>
+    <picker mode="date" fields="month" value="{{ selectedMonth }}" end="{{ monthPickerEnd }}" bindchange="onMonthChange" class="month-picker">
+      <view class="month-picker-box">
+        <text class="month-picker-text">{{ selectedMonth }}</text>
+        <van-icon name="calendar-o" size="32rpx" color="#969799" />
+      </view>
     </picker>
-    <van-button type="primary" size="small" bindtap="onQuery" custom-class="query-btn">查询</van-button>
+    <van-button
+      type="primary"
+      size="small"
+      custom-style="width:112rpx;height:58rpx;padding:0;margin-left:16rpx;font-size:26rpx;flex-shrink:0;box-sizing:border-box;line-height:58rpx;"
+      bindtap="onQuery"
+    >查询</van-button>
   </view>
 
-  <!-- 快照状态标识（Phase 3.3） -->
-  <view class="snapshot-bar mini-card" wx:if="{{hasQueried && isSnapshot}}">
-    <van-tag type="primary" size="small">已快照</van-tag>
-    <text class="snapshot-info">快照月份：{{snapshotMonth}}｜生成时间：{{snapshotTime}}｜操作人：{{snapshotBy}}</text>
+  <!-- 查询加载态 -->
+  <view class="loading-wrap" wx:if="{{ billingLoading }}">
+    <van-loading type="spinner" color="#1989fa" size="24px">查询中...</van-loading>
   </view>
-  <view class="snapshot-bar mini-card" wx:if="{{hasQueried && !isSnapshot}}">
-    <van-tag type="warning" size="small">实时查询</van-tag>
-    <text class="snapshot-info">当前数据为实时计算结果，尚未生成快照</text>
+
+  <!-- 导出按钮（表格上方，与统计页一致） -->
+  <view class="export-bar" wx:if="{{ billingList.length > 0 }}">
+    <van-button type="primary" plain block icon="down" bindtap="onExportBilling">导出 Excel 报表</van-button>
   </view>
 
   <!-- 收费明细表 -->
-  <view class="billing-table mini-card" wx:if="{{billingList.length > 0}}">
-    <view class="title-line">收费明细表 <small>（{{selectedMonth}}）</small></view>
-
-    <!-- 表头 -->
-    <view class="table-header">
-      <text class="col-seq">序号</text>
-      <text class="col-name">姓名</text>
-      <text class="col-meal">餐别</text>
-      <text class="col-qty">餐数</text>
-      <text class="col-price">标准价</text>
-      <text class="col-family">家属数</text>
-      <text class="col-emp-amount">员工金额</text>
-      <text class="col-fam-amount">家属金额</text>
-      <text class="col-amount">总金额</text>
-    </view>
-
-    <!-- 列表 -->
-    <view class="table-body">
-      <view class="table-row" wx:for="{{billingList}}" wx:key="id">
-        <text class="col-seq">{{index + 1}}</text>
-        <text class="col-name">{{item.name}}</text>
-        <text class="col-meal">{{item.mealLabel}}</text>
-        <text class="col-qty">{{item.qty}}</text>
-        <text class="col-price">¥{{item.empPrice}}</text>
-        <text class="col-family">{{item.family}}</text>
-        <text class="col-emp-amount">¥{{item.empAmount}}</text>
-        <text class="col-fam-amount">¥{{item.famAmount}}</text>
-        <text class="col-amount amount-highlight">¥{{item.amount}}</text>
+  <view class="mini-card billing-card" wx:if="{{ billingList.length > 0 }}">
+    <view class="billing-title">收费明细表 <text class="title-small">（{{ selectedMonth }}）</text></view>
+    <scroll-view scroll-x class="billing-scroll">
+      <view class="billing-table">
+        <view class="tr th">
+          <text class="td">序号</text>
+          <text class="td">姓名</text>
+          <text class="td">餐别</text>
+          <text class="td">总餐数</text>
+          <text class="td">家属数</text>
+          <text class="td">员工价</text>
+          <text class="td">家属价</text>
+          <text class="td">员工金额</text>
+          <text class="td">家属金额</text>
+          <text class="td">总金额</text>
+        </view>
+        <view class="tr" wx:for="{{ billingList }}" wx:key="id">
+          <text class="td">{{ index + 1 }}</text>
+          <text class="td">{{ item.name }}</text>
+          <text class="td">{{ item.mealLabel }}</text>
+          <text class="td">{{ item.qty }}</text>
+          <text class="td">{{ item.family }}</text>
+          <text class="td">¥{{ item.empPrice }}</text>
+          <text class="td">¥{{ item.familyPrice }}</text>
+          <text class="td">¥{{ item.empAmount }}</text>
+          <text class="td">¥{{ item.famAmount }}</text>
+          <text class="td td-amount">¥{{ item.amount }}</text>
+        </view>
+        <view class="tr tfoot">
+          <text class="td td-footer-label">汇总</text>
+          <text class="td td-amount">¥ {{ totalAmount }}</text>
+        </view>
       </view>
-    </view>
-
-    <!-- 汇总 -->
-    <view class="table-footer">
-      <text class="footer-label">汇总</text>
-      <text class="footer-amount">¥ {{totalAmount}}</text>
-    </view>
+    </scroll-view>
   </view>
 
-  <!-- 导出按钮 -->
-  <view class="export-bar" wx:if="{{billingList.length > 0}}">
-    <van-button type="primary" plain block bindtap="onExport">导出 Excel 报表</van-button>
-  </view>
-
-  <!-- 空状态 -->
-  <van-empty wx:if="{{billingList.length === 0 && !loading && hasQueried}}" description="暂无收费数据" />
-  <van-empty wx:if="{{!hasQueried}}" description="请选择月份并点击查询" />
-
-  <!-- Toast -->
-  <van-toast id="van-toast" />
-  <van-dialog id="van-dialog" />
+  <van-empty wx:if="{{ !billingLoading && billingList.length === 0 && hasQueried }}" description="暂无收费数据" />
+  <van-empty wx:if="{{ !billingLoading && !hasQueried }}" description="请选择月份并点击查询" />
 </view>
+
+<!-- 底部导航：员工 / 统计 / 收费 / 我的 -->
+<dept-tabbar active="billing" />
+<van-toast id="van-toast" />

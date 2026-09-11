@@ -1,0 +1,284 @@
+/* subpackages/dept/pages/stats/index.wxss — 统计查询页 */
+page {
+  background: #f5f6f8;
+  --brand: #1989fa;
+  --brand-dark: #0570db;
+  --text-1: #323233;
+  --text-2: #646566;
+  --text-3: #969799;
+  --line: #ebedf0;
+}
+
+/* 页面容器：底部为固定 Tab 栏预留空间 */
+.page-pad {
+  padding: 24rpx 24rpx calc(140rpx + env(safe-area-inset-bottom));
+}
+
+/* ── 通用卡片（覆盖 app.wxss 的默认间距） ── */
+.mini-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
+}
+
+/* ── 部门选择 ── */
+.dept-selector {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  padding: 20rpx 24rpx;
+  border-radius: 24rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
+}
+
+.dept-label {
+  font-size: 26rpx;
+  color: var(--text-3);
+  margin-right: 12rpx;
+}
+
+.dept-picker {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--brand);
+}
+
+/* ── 筛选条件卡片 ── */
+.filter-card {
+  padding: 8rpx 24rpx 16rpx;
+}
+
+/* 日期范围 + 两个日期 + 查询按钮固定单行不换行 */
+.filter-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  padding: 16rpx 0;
+}
+
+.filter-label {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text-1);
+  margin-right: 12rpx;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.filter-value {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.date-picker {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 日期输入框：缩小字号与内边距，保证与标签、按钮同行 */
+.date-input {
+  display: block;
+  font-size: 24rpx;
+  color: var(--text-1);
+  background: #f5f6f8;
+  border-radius: 8rpx;
+  padding: 8rpx 10rpx;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.date-sep {
+  font-size: 22rpx;
+  color: var(--text-3);
+  margin: 0 8rpx;
+  flex-shrink: 0;
+}
+
+/* 查询按钮尺寸通过 van-button 的 custom-style 内联控制（见 wxml），此处不再重复定义 */
+
+/* ── 快捷日期范围 ── */
+.quick-row {
+  display: flex;
+  gap: 16rpx;
+  padding: 8rpx 0 16rpx;
+}
+
+.quick-btn {
+  flex: 1;
+  text-align: center;
+  font-size: 26rpx;
+  color: var(--text-2);
+  background: #f5f6f8;
+  border-radius: 999rpx;
+  padding: 12rpx 0;
+}
+
+.quick-btn--active {
+  background: #ecf5ff;
+  color: var(--brand);
+  font-weight: 600;
+}
+
+/* ── 加载状态 ── */
+.loading-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 80rpx 0;
+}
+
+/* ── 导出按钮 ── */
+.export-bar {
+  margin: 8rpx 0 20rpx;
+}
+
+/* ── 统计列表 ── */
+.stat-list {
+  margin-top: 8rpx;
+}
+
+/* 日期卡片：1px 边框分节，对齐 kitchen 报餐查询 person-card 风格 */
+.stat-item {
+  margin-bottom: 20rpx;
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+
+.stat-item--hover {
+  opacity: 0.9;
+}
+
+/* 头部（日期 + 星期 + 合计）：白底圆角顶，下边框与餐次区衔接 */
+.stat-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-bottom: none;
+  border-radius: 24rpx 24rpx 0 0;
+}
+
+.stat-info-main {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.stat-date {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #374151;
+}
+
+/* 星期标签：蓝底胶囊（对齐 person-dept-tag） */
+.stat-weekday {
+  font-size: 22rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 100rpx;
+  background: #eef4ff;
+  color: #1989fa;
+  font-weight: 500;
+}
+
+.stat-total-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.stat-total {
+  font-size: 26rpx;
+  color: #646566;
+  font-weight: 500;
+}
+
+.stat-arrow {
+  font-size: 30rpx;
+  color: #c0c4cc;
+}
+
+/* ── 三餐明细：白底圆角底，行间虚线分隔（对齐 person-meal-body） ── */
+.stat-meal-body {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-top: none;
+  border-radius: 0 0 24rpx 24rpx;
+  padding: 8rpx 24rpx 12rpx;
+}
+
+.stat-meal-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18rpx 0;
+  border-bottom: 1px dashed #f0f1f3;
+}
+
+.stat-meal-line:last-child {
+  border-bottom: none;
+}
+
+.meal-label-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.meal-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+}
+
+/* 圆点配色对齐 kitchen：早餐橙 / 午餐蓝 / 晚餐紫 */
+.meal-dot--breakfast {
+  background: #f5a623;
+}
+
+.meal-dot--lunch {
+  background: #1989fa;
+}
+
+.meal-dot--dinner {
+  background: #c8a6ff;
+}
+
+.meal-label-text {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #374151;
+}
+
+.meal-info {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.meal-qty {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #374151;
+}
+
+.meal-qty--none {
+  font-size: 26rpx;
+  font-weight: 400;
+  color: #9ca3af;
+}
+
+/* 家属份数：橙色胶囊背景（对齐 kitchen meal-family） */
+.meal-family {
+  font-size: 22rpx;
+  color: #f5a623;
+  background: #fff8ed;
+  padding: 2rpx 12rpx;
+  border-radius: 100rpx;
+}

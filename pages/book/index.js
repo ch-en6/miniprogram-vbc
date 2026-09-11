@@ -32,8 +32,10 @@ Page({
 
   /**
    * 加载价格配置：优先从 app 缓存读取，缓存没有再请求云函数
+   * @param {{silent?: boolean}} [opts] - silent=true 时失败不弹 toast（提交前静默重试用）
+   * @returns {Promise<boolean>} 是否成功拿到价格配置
    */
-  async _loadPriceConfig() {
+  async _loadPriceConfig({ silent = false } = {}) {
     try {
       const app = getApp()
       const userInfo = app.globalData.userInfo || {}
@@ -41,15 +43,15 @@ Page({
       
       if (!dept_id) {
         console.warn('[Book] 用户没有部门ID，无法加载价格配置')
-        wx.showToast({ title: '未找到部门信息', icon: 'none' })
-        return
+        if (!silent) wx.showToast({ title: '未找到部门信息', icon: 'none' })
+        return false
       }
 
       // 优先从 app 全局缓存读取（校验有效期，避免跨天/改价后仍用旧价格）
       if (app.globalData.priceConfig && isPriceConfigValid(app.globalData.priceConfig)) {
         this.setData({ priceConfig: app.globalData.priceConfig })
         console.log('[Book] 价格配置从缓存加载:', app.globalData.priceConfig)
-        return
+        return true
       }
 
       // 缓存没有，请求云函数（业务失败会 reject，由 catch 兜底提示）
@@ -58,9 +60,11 @@ Page({
       setCache(getPriceCacheKey(dept_id), priceConfig)
       this.setData({ priceConfig })
       console.log('[Book] 价格配置加载成功:', priceConfig)
+      return true
     } catch (err) {
       console.error('[Book] 加载价格配置失败:', err)
-      wx.showToast({ title: err.message || '加载价格配置失败', icon: 'none' })
+      if (!silent) wx.showToast({ title: err.message || '加载价格配置失败', icon: 'none' })
+      return false
     }
   },
 
@@ -158,13 +162,17 @@ Page({
     let message = '【餐费】\n每餐第 1 份按员工餐标准收费，超过 1 份的部分按家属餐标准收费。\n\n'
     
     if (config) {
-      message += `早餐：员工 ${config.breakfast?.emp_price || 100} 元，家属 ${config.breakfast?.family_price || 1000} 元\n`
-      message += `午餐：员工 ${config.lunch?.emp_price || 100} 元，家属 ${config.lunch?.family_price || 1000} 元\n`
-      message += `晚餐：员工 ${config.dinner?.emp_price || 100} 元，家属 ${config.dinner?.family_price || 1000} 元\n\n`
+      const mealLabel = { breakfast: '早餐', lunch: '午餐', dinner: '晚餐' }
+      ;['breakfast', 'lunch', 'dinner'].forEach(meal => {
+        const c = config[meal]
+        const label = mealLabel[meal]
+        message += c
+          ? `${label}：员工 ${c.emp_price} 元，家属 ${c.family_price} 元\n`
+          : `${label}：未配置价格\n`
+      })
+      message += '\n'
     } else {
-      message += '早餐：员工 100 元，家属 1000 元\n'
-      message += '午餐：员工 100 元，家属 1000 元\n'
-      message += '晚餐：员工 100 元，家属 1000 元\n\n'
+      message += '未读取到有效的价格配置，请联系管理员配置价格。\n\n'
     }
     
     message += '\n\n将数量减为 0 即取消该餐报餐，截止时间前可修改。'
@@ -243,6 +251,18 @@ Page({
     const isFirstBook = !day.hasMeal && !isCancel
 
     wx.showLoading({ title: isCancel ? '取消中...' : '保存中...' })
+
+    // 保存/修改报餐涉及计费，必须已读取到有效价格配置，否则不允许写入（取消报餐无需价格，不受影响）
+    if (!isCancel && !isPriceConfigValid(this.data.priceConfig)) {
+      // 兜底：静默重新拉取一次价格配置（失败时不重复弹 toast，由下方统一提示）
+      await this._loadPriceConfig({ silent: true })
+      if (!isPriceConfigValid(this.data.priceConfig)) {
+        console.error('[Book] 价格配置未就绪，拒绝写入报餐:', day.dateStr)
+        wx.hideLoading()
+        wx.showToast({ title: '价格配置未就绪，报餐失败，请联系管理员配置价格', icon: 'none' })
+        return
+      }
+    }
 
     try {
       if (isCancel) {

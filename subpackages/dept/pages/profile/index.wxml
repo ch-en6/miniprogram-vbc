@@ -1,4 +1,4 @@
-<!-- pages/profile/index.wxml — 个人中心 -->
+<!-- subpackages/dept/pages/profile/index.wxml — 部门工作台 · 我的 -->
 <view class="page-pad">
 
   <!-- 员工信息卡片 -->
@@ -35,23 +35,12 @@
     </view>
   </view>
 
-  <!-- 消息通知设置 -->
-  <!-- <van-cell-group inset title="消息通知">
-    <van-cell title="报餐提醒" is-link bindtap="onSubscribeMessage">
-      <view slot="right-icon">
-        <text class="subscribe-status">{{subscribed ? '已订阅' : '未订阅'}}</text>
-        <van-icon name="arrow" color="#969799" />
-      </view>
-    </van-cell>
-    <van-cell title="订阅消息说明" label="订阅后将在报餐截止前收到微信提醒" />
-  </van-cell-group> -->
-
   <!-- 工作台切换（仅部门管理员/系统管理员可见） -->
   <view class="mini-card" wx:if="{{ showWorkspace }}">
     <view class="section-title" style="margin-top: 0;">工作台</view>
     <view class="workspace-tags">
+      <view class="ws-btn ws-btn-plain" bindtap="goEmployee">员工端</view>
       <view class="ws-btn ws-btn-plain" bindtap="goKitchenWorkbench">食堂工作台</view>
-      <view class="ws-btn ws-btn-plain" bindtap="goDeptWorkbench">管理员工作台</view>
     </view>
   </view>
 
@@ -124,3 +113,6 @@
   <!-- Vant Dialog 组件 -->
   <van-dialog id="van-dialog" />
 </view>
+
+<!-- 底部导航：员工 / 统计 / 收费 / 我的 -->
+<dept-tabbar active="profile" />

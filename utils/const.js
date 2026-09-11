@@ -62,16 +62,9 @@ const STORAGE_KEYS = {
   CACHE_TIMESTAMP:    'cache_timestamp',  // 缓存写入时间戳
 }
 
-// ─── 价格 ────────────────────────────────────────────────────
-/** 默认餐价（元），实际应从系统配置接口获取 */
-const DEFAULT_MEAL_PRICE = {
-  [MEAL_TYPE.BREAKFAST]: 10,
-  [MEAL_TYPE.LUNCH]:     100,
-  [MEAL_TYPE.DINNER]:    200,
-}
-
-/** 家属餐加收比例（如 0.5 = 额外 50%） */
-const FAMILY_MEAL_SURCHARGE_RATE = 0.5
+// ─── 查询限制 ────────────────────────────────────────────────
+/** 日期区间查询最大跨度（天），需与云函数限制保持一致 */
+const MAX_RANGE_DAYS = 92
 
 // ─── 分页 ────────────────────────────────────────────────────
 const PAGE_SIZE = 20
@@ -91,8 +84,7 @@ module.exports = {
   BOOK_DEADLINE_HOUR,
   BOOK_DEADLINE_MINUTE,
   STORAGE_KEYS,
-  DEFAULT_MEAL_PRICE,
-  FAMILY_MEAL_SURCHARGE_RATE,
+  MAX_RANGE_DAYS,
   PAGE_SIZE,
   MONTH_FORMAT,
   DATE_FORMAT,

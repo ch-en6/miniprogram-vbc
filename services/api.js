@@ -140,6 +140,133 @@ const KitchenAPI = {
    */
   verifyMeal: ({ empId, date, mealType, verified }) =>
     call('kitchen', { action: 'verifyMeal', emp_id: empId, date, meal_type: mealType, verified }),
+  /**
+   * 统计页：按日期范围统计每日三餐报餐份数（含家属份数）
+   * @param {{ startDate: string, endDate: string, deptId?: number|string }} params - YYYY-MM-DD
+   * @returns {Promise<{range: {startDate: string, endDate: string}, days: Array, summary: object}>}
+   *   days 元素: { date, weekday, breakfast, lunch, dinner, breakfastFamily, lunchFamily, dinnerFamily, total }
+   */
+  getStatRange: ({ startDate, endDate, deptId }) =>
+    call('kitchen', { action: 'getStatRange', startDate, endDate, dept_id: deptId || 0 }),
+  /**
+   * 统计页：导出人员×日期维度的用餐登记表
+   * @param {{ startDate: string, endDate: string, deptId?: number|string, deptName?: string }} params - YYYY-MM-DD
+   *   deptName 用于 Excel 标题与文件名展示
+   * @returns {Promise<{filename: string, content: string}>} content 为 xlsx 文件的 base64
+   */
+  exportPersonStatRange: ({ startDate, endDate, deptId, deptName }) =>
+    call('kitchenExport', { action: 'exportPersonStatRange', startDate, endDate, dept_id: deptId || 0, deptName }),
+  /**
+   * 部门统计页：获取当前用户角色管理的食堂及归属食堂的部门列表
+   * @returns {Promise<{locations: Array, depts: Array}>}
+   */
+  getMyDepts: () => call('deptAdmin', { action: 'getMyDepts' }),
+  /**
+   * 收费管理：查询某部门某月收费账单（数据源 meal_order，按 人×餐别 聚合计费）
+   * @param {{ month: string, deptId: number|string }} params - month 格式 YYYY-MM
+   * @returns {Promise<{month: string, dept_id: number, dept_name: string, list: Array, totalAmount: number}>}
+   *   list 元素: { id, name, mealLabel, qty, family, empPrice, familyPrice, empAmount, famAmount, amount }
+   */
+  getMonthBilling: ({ month, deptId }) =>
+    call('deptAdmin', { action: 'getMonthBilling', month, dept_id: deptId }),
+  /**
+   * 收费管理：导出某部门某月「伙食自交情况表」（Excel）
+   * @param {{ month: string, deptId: number|string, deptName?: string, exportTime?: string }} params
+   *   - month 格式 YYYY-MM（标题、文件名、数据范围）
+   *   - deptName 用于 Excel 标题（缺省时云函数取库表）
+   *   - exportTime 客户端本地导出时间 YYYY-MM-DD，用于表名下方日期展示（缺省用云函数当前时间）
+   * @returns {Promise<{filename: string, content: string}>} content 为 xlsx 文件的 base64
+   */
+  exportMonthBilling: ({ month, deptId, deptName, exportTime }) =>
+    call('kitchenExport', {
+      action: 'exportMonthBilling',
+      month,
+      dept_id: deptId || 0,
+      deptName,
+      exportTime,
+    }),
+  /**
+   * 员工管理：按部门 + 关键字查询员工列表（受当前角色管理范围约束）
+   * @param {{ deptId?: number|string, keyword?: string }} [params]
+   *   deptId = 0 或不传表示角色范围内全部部门
+   * @returns {Promise<{list: Array}>}
+   *   list 元素: { id, name, phone, dept_id, dept_name, role_id, role_name,
+   *             role_code, status, has_openid, created_at, updated_at }
+   *   role_code: 'employee' 普通员工 / 'kitchen' 食堂员工
+   */
+  getStaffList: (params = {}) => {
+    const { deptId, keyword } = params || {}
+    return call('deptAdmin', {
+      action: 'getStaffList',
+      dept_id: Number(deptId) || 0,
+      keyword: keyword || '',
+    })
+  },
+  /**
+   * 员工管理：新增员工
+   * @param {{ name: string, phone: string, deptId: number|string, status?: 0|1, roleId?: number|string }} params
+   * @returns {Promise<{id: number, password: string}>} password 为后端生成的初始密码（仅返回一次）
+   */
+  addStaff: ({ name, phone, deptId, status, roleId }) =>
+    call('deptAdmin', {
+      action: 'addStaff',
+      name,
+      phone,
+      dept_id: Number(deptId) || 0,
+      status: Number(status) === 0 ? 0 : 1,
+      role_id: Number(roleId) || 0,
+    }),
+  /**
+   * 员工管理：编辑员工基础信息 + 身份（roleId）
+   *   roleId 不传 = 保持原身份；0 = 转普通员工（写全局 employee 角色）；>0 = 转食堂员工
+   * @param {{ id: number|string, name: string, phone: string, deptId: number|string,
+   *           status: 0|1, roleId?: number|string }} params
+   * @returns {Promise<*>}
+   */
+  updateStaff: ({ id, name, phone, deptId, status, roleId }) => {
+    const payload = {
+      action: 'updateStaff',
+      id: Number(id) || 0,
+      name,
+      phone,
+      dept_id: Number(deptId) || 0,
+      status: Number(status) === 0 ? 0 : 1,
+    }
+    // 显式传 roleId（含 0）才提交身份变更；不传表示保持原身份（后端兼容旧调用）
+    if (roleId !== undefined && roleId !== null && String(roleId) !== '') {
+      payload.role_id = Number(roleId)
+    }
+    return call('deptAdmin', payload)
+  },
+  /**
+   * 员工管理：解绑员工微信（清空 _openid）
+   * @param {{ id: number|string }} params
+   * @returns {Promise<*>}
+   */
+  unbindStaffWechat: ({ id }) =>
+    call('deptAdmin', { action: 'unbindStaffWechat', id: Number(id) || 0 }),
+  /**
+   * 员工管理：重置员工密码（返回新密码明文，仅一次）
+   * @param {{ id: number|string }} params
+   * @returns {Promise<{password: string}>}
+   */
+  resetStaffPassword: ({ id }) =>
+    call('deptAdmin', { action: 'resetStaffPassword', id: Number(id) || 0 }),
+  /**
+   * 员工管理：查询 deptId 部门当前操作者可分配的角色（添加/编辑员工选身份用）
+   * @param {{ deptId: number|string, roleId?: number|string }} params
+   *   roleId: 编辑中员工的当前身份，后端会回补该项（preserved=true）保证下拉能回显原身份
+   * @returns {Promise<{list: Array<{role_id: number, role_code: string,
+   *                                 role_name: string, preserved?: boolean}>,
+   *                     operator_code: string}>}
+   *   operator_code: 操作者角色 code（deptAdmin / sysAdmin），供前端决定 UI
+   */
+  getAssignableRoles: ({ deptId, roleId }) =>
+    call('deptAdmin', {
+      action: 'getAssignableRoles',
+      dept_id: Number(deptId) || 0,
+      role_id: Number(roleId) || 0,
+    }),
 }
 
 // ═══════════════════════════════════════════════════════════

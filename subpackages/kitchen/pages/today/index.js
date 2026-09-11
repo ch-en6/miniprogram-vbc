@@ -13,7 +13,7 @@ Page({
     searchFocus: false,
     loading: true,
     personSearchResult: null,
-    searchMealFilter: '',     // '' = 全天, 'breakfast', 'lunch', 'dinner'
+    searchMealFilter: '',     // '' = 全部, 'breakfast', 'lunch', 'dinner'
 
     // 今日数据
     todayDate: '',
@@ -42,9 +42,6 @@ Page({
     userInfo: {},
     phoneMasked: '',
     deptName: '',
-    isKitchen: false,
-    isDeptAdmin: false,
-    isSysAdmin: false,
     // 换绑
     showRebind: false,
     // 修改密码
@@ -193,9 +190,6 @@ Page({
     this.setData({
       userInfo,
       phoneMasked,
-      isKitchen: roleCode === ROLE.KITCHEN,
-      isDeptAdmin: roleCode === ROLE.DEPT_ADMIN,
-      isSysAdmin: roleCode === ROLE.SYS_ADMIN,
       showWorkspace,
     })
   },
@@ -440,6 +434,11 @@ Page({
 
   goEmployee() {
     wx.switchTab({ url: '/pages/index/index' })
+  },
+
+  // 管理员工作台
+  goDeptWorkbench() {
+    wx.redirectTo({ url: '/subpackages/dept/pages/stats/index' })
   },
 
   // ─── 退出登录 ────────────────────────────────────────────────

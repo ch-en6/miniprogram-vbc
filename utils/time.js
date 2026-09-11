@@ -177,6 +177,26 @@ function getDatesInMonth(month) {
 const WEEK_DAYS = ['日', '一', '二', '三', '四', '五', '六']
 
 /**
+ * 获取某一周（周一至周日）的起止日期
+ * @param {string|Date} [date] - 该周内的任意一天，默认今天
+ * @param {number} [offsetWeeks=0] - 相对偏移周数，-1 表示上一周
+ * @returns {{ start: string, end: string }}
+ */
+function getWeekRange(date, offsetWeeks) {
+  const offset = offsetWeeks || 0
+  const current = toDate(date || new Date())
+  const day = current.getDay() || 7 // 周日 getDay()=0，转为 7
+  const monday = new Date(current)
+  monday.setDate(current.getDate() - day + 1 + offset * 7)
+  const sunday = new Date(monday)
+  sunday.setDate(monday.getDate() + 6)
+  return {
+    start: formatDate(monday),
+    end: formatDate(sunday),
+  }
+}
+
+/**
  * 获取日期对应星期的中文名
  * @param {string|Date} date
  * @returns {string} e.g. "周三"
@@ -214,6 +234,7 @@ module.exports = {
   nextMonth,
   compareDate,
   getDatesInMonth,
+  getWeekRange,
   getWeekDay,
   toDate,
 }

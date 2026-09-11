@@ -1,1 +1,6 @@
-{ "navigationBarTitleText": "加载中...", "usingComponents": {} }
+{
+  "navigationBarTitleText": "员工管理",
+  "usingComponents": {
+    "dept-tabbar": "../../components/dept-tabbar/index"
+  }
+}

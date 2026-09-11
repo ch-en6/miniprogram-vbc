@@ -1,6 +1,8 @@
-// 云函数 - 食堂端报餐查询（@cloudbase/node-sdk 访问云 MySQL）
+// 云函数 - 食堂端报餐核销 + 部门统计（@cloudbase/node-sdk 访问云 MySQL）
 //
-// 职责：食堂工作台按"角色管理的食堂范围"查询报餐汇总 / 明细 / 人员搜索。
+// 职责：
+//   1) 食堂工作台：按"角色管理的食堂范围"查询报餐汇总 / 明细 / 人员搜索 / 核销。
+//   2) 部门统计页：按部门统计每日三餐份数（getStatRange）。
 //
 // 权限模型：
 //   食堂侧：openid -> sys_emp.role_id -> sys_role_location(多对多) -> location_id[]
@@ -33,6 +35,7 @@ const NAME_TO_MEAL_TYPE = {
   lunch: 1,
   dinner: 2,
 }
+
 
 // ──────────────────────────────────────────────────────────────────
 // 权限解析：根据 openid 反查角色关联的食堂 location_id 列表
@@ -69,6 +72,21 @@ async function resolveRoleLocations(openid) {
     { role_id: roleId }
   )
   return rows.map(r => Number(r.location_id)).filter(id => id > 0)
+}
+
+/**
+ * 根据角色关联的食堂，解析其下全部部门 id 列表
+ *   resolveRoleLocations -> sys_dept.location_id IN (食堂) -> dept_id[]
+ */
+async function resolveRoleDeptIds(openid) {
+  const locations = await resolveRoleLocations(openid)
+  if (!locations.length) return []
+  const { ph, params } = buildLocClause(locations)
+  const deptRows = await query(
+    'SELECT `id` FROM `sys_dept` WHERE `location_id` IN (' + ph + ')',
+    params
+  )
+  return deptRows.map(r => Number(r.id)).filter(id => id > 0)
 }
 
 /**
@@ -224,10 +242,131 @@ async function actionGetKitchenSummary(event) {
 }
 
 // ──────────────────────────────────────────────────────────────────
+// 统计页公共数据源：按日期范围拉取三餐份数（含家属份数）
+//   入参：{ startDate: 'YYYY-MM-DD', endDate: 'YYYY-MM-DD' }
+//   校验：范围最长 92 天（约一个季度），防止超大查询
+//   返回：{ err?: string, data?: { range, days, summary } }
+//   days: [{ date, weekday, breakfast, lunch, dinner,
+//            breakfastFamily, lunchFamily, dinnerFamily, total }]（日期倒序）
+//   summary: { breakfast, breakfastFamily, lunch, lunchFamily, dinner,
+//              dinnerFamily, total }
+// ──────────────────────────────────────────────────────────────────
+const WEEK_CN = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+
+function emptySummary() {
+  return {
+    breakfast: 0, breakfastFamily: 0,
+    lunch: 0, lunchFamily: 0,
+    dinner: 0, dinnerFamily: 0,
+    total: 0,
+  }
+}
+
+async function fetchStatRangeData(event) {
+  const startDate = ymd(event.startDate)
+  const endDate = ymd(event.endDate)
+  if (!startDate || !endDate) {
+    return { err: '缺少日期范围参数' }
+  }
+  if (startDate > endDate) {
+    return { err: '开始日期不能晚于结束日期' }
+  }
+  const spanDays = Math.round((new Date(endDate) - new Date(startDate)) / 86400000) + 1
+  if (spanDays > 92) {
+    return { err: '查询范围过大，最多支持 92 天' }
+  }
+
+  const wxContext = cloud.getWXContext() || {}
+  //   openid -> role_id -> location_id[]（角色关联食堂）-> sys_dept 归属这些食堂的部门
+  const deptIds = await resolveRoleDeptIds(wxContext.OPENID || '')
+  if (!deptIds.length) {
+    return { data: { range: { startDate, endDate }, days: [], summary: emptySummary() } }
+  }
+  const { ph: deptPh, params: deptScopeParams } = buildLocClause(deptIds)
+
+  // 指定部门（可选）：dept_id > 0 时只统计该部门（须在角色范围内）
+  const deptId = Number(event.dept_id) || 0
+  let deptWhere = ''
+  let deptParams = {}
+  if (deptId > 0) {
+    deptWhere = ' AND e.`dept_id` = {{dept_id}} '
+    deptParams = { dept_id: deptId }
+  }
+
+  // 按 日期+餐次 分组；quantity > 0 为有效报餐行
+  const rows = await query(
+    'SELECT mo.`meal_date`, mo.`meal_type`, COUNT(*) AS head_count, SUM(mo.`quantity`) AS total_qty ' +
+    'FROM `meal_order` mo ' +
+    'LEFT JOIN `sys_emp` e ON e.`id` = mo.`emp_id` ' +
+    'WHERE mo.`meal_date` BETWEEN {{startDate}} AND {{endDate}} ' +
+    '  AND mo.`quantity` > 0 ' +
+    '  AND e.`dept_id` IN (' + deptPh + ') ' +
+    deptWhere +
+    'GROUP BY mo.`meal_date`, mo.`meal_type` ' +
+    'ORDER BY mo.`meal_date` ASC',
+    { startDate, endDate, ...deptScopeParams, ...deptParams }
+  )
+
+  // 组装每日三餐（家属份数 = 份数 - 人数，每人每餐至少 1 份）
+  const dayMap = new Map()
+  rows.forEach(r => {
+    const name = MEAL_TYPE_NAME[r.meal_type]
+    if (!name) return
+    const d = r.meal_date
+    if (!dayMap.has(d)) {
+      dayMap.set(d, {
+        date: d, breakfast: 0, lunch: 0, dinner: 0,
+        breakfastFamily: 0, lunchFamily: 0, dinnerFamily: 0,
+      })
+    }
+    const item = dayMap.get(d)
+    const qty = Number(r.total_qty) || 0
+    const head = Number(r.head_count) || 0
+    item[name] = qty
+    item[name + 'Family'] = Math.max(0, qty - head)
+  })
+
+  const days = Array.from(dayMap.values())
+    .map(item => ({
+      ...item,
+      weekday: WEEK_CN[new Date(item.date).getDay()],
+      total: item.breakfast + item.lunch + item.dinner,
+    }))
+    .sort((a, b) => (a.date < b.date ? 1 : -1)) // 日期倒序，最新在前
+
+  // 汇总
+  const summary = emptySummary()
+  days.forEach(item => {
+    summary.breakfast += item.breakfast
+    summary.breakfastFamily += item.breakfastFamily
+    summary.lunch += item.lunch
+    summary.lunchFamily += item.lunchFamily
+    summary.dinner += item.dinner
+    summary.dinnerFamily += item.dinnerFamily
+  })
+  summary.total = summary.breakfast + summary.lunch + summary.dinner
+
+  return { data: { range: { startDate, endDate }, days, summary } }
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Action: getStatRange
+//   入参：{ startDate, endDate, dept_id? }
+//   出参：{ range, days, summary }（结构见 fetchStatRangeData）
+// ──────────────────────────────────────────────────────────────────
+async function actionGetStatRange(event) {
+  const result = await fetchStatRangeData(event)
+  if (result.err) return { code: -1, message: result.err, data: null }
+  return { code: 0, message: 'success', data: result.data }
+}
+
+// ──────────────────────────────────────────────────────────────────
 // Action: getKitchenDetail
 //   入参：{ date, page = 1, page_size = 20, keyword?, meal_type? }
 //   meal_type 为前端餐次字符串 'breakfast'|'lunch'|'dinner'
-//   出参：{ list: [{ user_id, name, phone, dept_name, meal_type, qty }], total, total_qty }
+//   出参：{ list: [{ user_id, name, phone, dept_name, meal_type, qty }], total, total_people, total_qty }
+//   total         = 记录数（每人每餐一行）
+//   total_people  = 去重后的人数（前端"共 X 人"用）
 //   语义：当日明细按"每人每餐一行"展开，支持 姓名/部门/手机号 模糊搜索、餐次筛选、分页
 // ──────────────────────────────────────────────────────────────────
 async function actionGetKitchenDetail(event) {
@@ -239,7 +378,7 @@ async function actionGetKitchenDetail(event) {
   const wxContext = cloud.getWXContext() || {}
   const locations = await resolveRoleLocations(wxContext.OPENID || '')
   if (!locations.length) {
-    return { code: 0, message: 'success', data: { list: [], total: 0, total_qty: 0 } }
+    return { code: 0, message: 'success', data: { list: [], total: 0, total_people: 0, total_qty: 0 } }
   }
   const { ph: locPh, params: locParams } = buildLocClause(locations)
 
@@ -271,13 +410,15 @@ async function actionGetKitchenDetail(event) {
     'LEFT JOIN `sys_emp` e ON e.`id` = mo.`emp_id` ' +
     'LEFT JOIN `sys_dept` d ON d.`id` = e.`dept_id` '
 
-  // 1. 汇总（总行数 + 总份数）
+  // 1. 汇总（总行数 + 去重人数 + 总份数）
   const aggRows = await query(
-    'SELECT COUNT(*) AS total, IFNULL(SUM(mo.`quantity`), 0) AS total_qty ' +
+    'SELECT COUNT(*) AS total, COUNT(DISTINCT mo.`emp_id`) AS total_people, ' +
+    'IFNULL(SUM(mo.`quantity`), 0) AS total_qty ' +
     JOIN_SQL + whereSql,
     { ...params, ...locParams }
   )
   const total = aggRows.length ? Number(aggRows[0].total) || 0 : 0
+  const total_people = aggRows.length ? Number(aggRows[0].total_people) || 0 : 0
   const total_qty = aggRows.length ? Number(aggRows[0].total_qty) || 0 : 0
 
   // 2. 分页明细（meal_type 转为前端字符串，供 MEAL_TYPE_LABEL 映射）
@@ -301,7 +442,7 @@ async function actionGetKitchenDetail(event) {
     verified: Number(r.verified) === 1 ? 1 : 0,
   }))
 
-  return { code: 0, message: 'success', data: { list, total, total_qty } }
+  return { code: 0, message: 'success', data: { list, total, total_people, total_qty } }
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -493,6 +634,7 @@ exports.main = async (event, context) => {
       case 'getKitchenDetail':  return await actionGetKitchenDetail(event)
       case 'searchByKeyword':   return await actionSearchByKeyword(event)
       case 'verifyMeal':        return await actionVerifyMeal(event)
+      case 'getStatRange':      return await actionGetStatRange(event)
       default:
         return { code: -1, message: `未知 action: ${action}`, data: null }
     }

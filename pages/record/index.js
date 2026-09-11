@@ -1,9 +1,7 @@
 // pages/record/index.js — 报餐记录页（云开发模式）
 const T = require('../../utils/time')
+const { MAX_RANGE_DAYS } = require('../../utils/const')
 const { MealOrderAPI } = require('../../services/api')
-
-// 筛选时间跨度上限（天），与云函数 mealOrder/getRange 保持一致（最近半年）
-const MAX_RANGE_DAYS = 183
 
 Page({
   data: {
@@ -76,44 +74,19 @@ Page({
   // ─── 快捷日期范围 ────────────────────────────────────────────
 
   _getThisMonthRange() {
-    const now = new Date()
-    const year = now.getFullYear()
-    const month = now.getMonth() + 1
-    return {
-      start: `${year}-${String(month).padStart(2, '0')}-01`,
-      end: `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`,
-    }
+    return T.getMonthRange(T.formatMonth(new Date()))
   },
 
   _getThisWeekRange() {
-    const now = new Date()
-    const day = now.getDay() || 7 // 周日 = 0 → 7
-    const monday = new Date(now)
-    monday.setDate(now.getDate() - day + 1)
-    const sunday = new Date(monday)
-    sunday.setDate(monday.getDate() + 6)
-    return { start: T.formatDate(monday), end: T.formatDate(sunday) }
+    return T.getWeekRange()
   },
 
   _getLastWeekRange() {
-    const thisWeek = this._getThisWeekRange()
-    const monday = T.toDate(thisWeek.start)
-    monday.setDate(monday.getDate() - 7)
-    const sunday = new Date(monday)
-    sunday.setDate(monday.getDate() + 6)
-    return { start: T.formatDate(monday), end: T.formatDate(sunday) }
+    return T.getWeekRange(new Date(), -1)
   },
 
   _getLastMonthRange() {
-    const now = new Date()
-    const year = now.getFullYear()
-    const month = now.getMonth() // 0-based, so this is "last month" when -1
-    const lastMonth = new Date(year, month - 1, 1)
-    const lastMonthEnd = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0)
-    return {
-      start: T.formatDate(lastMonth),
-      end: T.formatDate(lastMonthEnd),
-    }
+    return T.getMonthRange(T.prevMonth(T.formatMonth(new Date())))
   },
 
   onQuickRange(e) {
@@ -152,7 +125,7 @@ Page({
       endDate,
       activeQuickRange: '',
       pickerStart: startDate,
-      pickerEnd: endDate || '2030-12-31',
+      pickerEnd: endDate || '2035-12-31',
     })
   },
 
@@ -184,7 +157,7 @@ Page({
     this._loadRecords()
   },
 
-  // 校验时间区间：开始 ≤ 结束，且跨度不超过一年（366 天）
+  // 校验时间区间：开始 ≤ 结束，且跨度不超过 92 天
   _validateRange() {
     const { startDate, endDate } = this.data
     if (!startDate || !endDate) {
@@ -197,7 +170,7 @@ Page({
     }
     const days = Math.round((T.toDate(endDate) - T.toDate(startDate)) / 86400000) + 1
     if (days > MAX_RANGE_DAYS) {
-      wx.showToast({ title: '查询区间不能超过半年', icon: 'none' })
+      wx.showToast({ title: '查询区间最多支持一季度', icon: 'none' })
       return false
     }
     return true

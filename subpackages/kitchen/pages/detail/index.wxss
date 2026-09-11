@@ -6,12 +6,39 @@
   padding-bottom: 80rpx;
 }
 
-/* ─── 搜索栏自定义操作按钮 ─── */
-.search-action-btn {
+/* ─── 搜索栏 + 餐别筛选：同一白卡（不分块），搜索框同部门工作台员工管理页 ─── */
+.filter-card {
+  box-sizing: border-box;
+  background: #fff;
+  border-radius: 24rpx;
+  margin: 16rpx 24rpx 0;
+  padding: 16rpx 24rpx 0;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
+}
+
+.search-row {
+  display: flex;
+  align-items: center;
+}
+
+.search-box {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  background: #f5f6f8;
+  border-radius: 8rpx;
+  padding: 12rpx 20rpx;
+  margin-right: 16rpx;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
   font-size: 28rpx;
-  color: #1989fa;
-  font-weight: 600;
-  padding: 10rpx 16rpx;
+  color: #374151;
+  margin: 0 12rpx;
 }
 
 /* ─── 汇总行 ─── */

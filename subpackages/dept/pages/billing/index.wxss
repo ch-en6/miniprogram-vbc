@@ -1,179 +1,171 @@
-/* subpackages/dept/pages/billing/index.wxss — 月度收费统计页样式 */
-.page-container {
-  padding: 20rpx 24rpx 40rpx;
-  min-height: 100vh;
-  background: #f7f8fa;
+/* subpackages/dept/pages/billing/index.wxss — 收费管理页 */
+page {
+  background: #f5f6f8;
+  --brand: #1989fa;
+  --brand-dark: #0570db;
+  --text-1: #323233;
+  --text-2: #646566;
+  --text-3: #969799;
+  --line: #ebedf0;
 }
 
-/* 部门选择器 */
+/* 页面容器：底部为固定 Tab 栏预留空间 */
+.page-pad {
+  padding: 24rpx 24rpx calc(140rpx + env(safe-area-inset-bottom));
+}
+
+/* ── 通用卡片（覆盖 app.wxss 的默认间距） ── */
+.mini-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
+}
+
+/* ── 部门选择 ── */
 .dept-selector {
   display: flex;
   align-items: center;
-  margin-bottom: 20rpx;
-}
-.dept-label {
-  font-size: 28rpx;
-  color: #323233;
-  margin-right: 16rpx;
-}
-.dept-picker {
-  font-size: 28rpx;
-  color: #1989fa;
-  font-weight: 500;
+  background: #fff;
+  padding: 20rpx 24rpx;
+  border-radius: 24rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
 }
 
-/* 月份选择器 */
-.month-selector {
-  display: flex;
-  align-items: center;
-  padding: 24rpx;
-  background: #fff;
-  border-radius: 16rpx;
-  margin-bottom: 20rpx;
+.dept-label {
+  font-size: 26rpx;
+  color: var(--text-3);
+  margin-right: 12rpx;
 }
+
+.dept-picker {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--brand);
+}
+
+/* ── 月份选择行 ── */
 .filter-label {
   font-size: 28rpx;
-  color: #323233;
-  margin-right: 16rpx;
+  font-weight: 600;
+  color: var(--text-1);
+  flex-shrink: 0;
   white-space: nowrap;
 }
+
+.month-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
 .month-picker {
+  margin-left: 16rpx;
   flex: 1;
-  font-size: 28rpx;
-  color: #1989fa;
-  margin-right: 16rpx;
-}
-.query-btn {
-  margin-left: auto;
+  min-width: 0;
 }
 
-/* 快照状态栏 */
-.snapshot-bar {
-  display: flex;
-  align-items: center;
-  padding: 16rpx 24rpx;
-  background: #fff;
-  border-radius: 16rpx;
-  margin-bottom: 20rpx;
-}
-.snapshot-info {
-  font-size: 22rpx;
-  color: #969799;
-  margin-left: 12rpx;
-  flex: 1;
-}
-
-/* 收费明细表 */
-.billing-table {
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 24rpx;
-  margin-bottom: 20rpx;
-  overflow-x: auto;
-}
-.title-line {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #323233;
-  margin-bottom: 20rpx;
-}
-.title-line small {
-  font-size: 24rpx;
-  font-weight: 400;
-  color: #969799;
-  margin-left: 8rpx;
-}
-
-/* 表格 */
-.table-header,
-.table-row {
-  display: flex;
-  align-items: center;
-  padding: 16rpx 0;
-  border-bottom: 1rpx solid #ebedf0;
-}
-.table-header {
-  font-size: 22rpx;
-  color: #969799;
-  font-weight: 500;
-  background: #fafafa;
-  margin: 0 -24rpx;
-  padding: 16rpx 24rpx;
-}
-.table-row {
-  font-size: 24rpx;
-  color: #323233;
-}
-
-.col-seq {
-  width: 60rpx;
-  text-align: center;
-  flex-shrink: 0;
-}
-.col-name {
-  width: 80rpx;
-  flex-shrink: 0;
-}
-.col-meal {
-  width: 80rpx;
-  flex-shrink: 0;
-}
-.col-qty {
-  width: 70rpx;
-  text-align: center;
-  flex-shrink: 0;
-}
-.col-price {
-  width: 100rpx;
-  text-align: right;
-  flex-shrink: 0;
-}
-.col-family {
-  width: 80rpx;
-  text-align: center;
-  flex-shrink: 0;
-}
-.col-emp-amount {
-  width: 110rpx;
-  text-align: right;
-  flex-shrink: 0;
-}
-.col-fam-amount {
-  width: 110rpx;
-  text-align: right;
-  flex-shrink: 0;
-}
-.col-amount {
-  width: 110rpx;
-  text-align: right;
-  flex-shrink: 0;
-  font-weight: 600;
-}
-.amount-highlight {
-  color: #ee0a24;
-}
-
-/* 汇总行 */
-.table-footer {
+.month-picker-box {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24rpx 0 0;
-  margin-top: 16rpx;
-  border-top: 2rpx solid #323233;
-}
-.footer-label {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #323233;
-}
-.footer-amount {
-  font-size: 36rpx;
-  font-weight: 700;
-  color: #ee0a24;
+  gap: 8rpx;
+  width: 100%;
+  background: #f5f6f8;
+  border-radius: 8rpx;
+  padding: 12rpx 20rpx;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 
-/* 导出按钮 */
+.month-picker-text {
+  font-size: 28rpx;
+  color: var(--text-1);
+  white-space: nowrap;
+}
+
+/* ── 加载状态 ── */
+.loading-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 80rpx 0;
+}
+
+/* ── 收费明细表 ── */
+.billing-card {
+  padding: 24rpx 24rpx 12rpx;
+}
+
+.billing-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--text-1);
+  margin-bottom: 16rpx;
+}
+
+.title-small {
+  font-size: 24rpx;
+  font-weight: 400;
+  color: var(--text-3);
+}
+
+.billing-scroll {
+  width: 100%;
+}
+
+.billing-table {
+  display: flex;
+  flex-direction: column;
+  min-width: 900rpx;
+}
+
+.tr {
+  display: flex;
+  align-items: center;
+  border-bottom: 1rpx solid var(--line);
+}
+
+.tr:last-child {
+  border-bottom: none;
+}
+
+.th {
+  background: #f5f6f8;
+}
+
+.td {
+  flex: 1;
+  min-width: 90rpx;
+  padding: 16rpx 8rpx;
+  text-align: center;
+  font-size: 24rpx;
+  color: var(--text-2);
+}
+
+.th .td {
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.td-amount {
+  color: #ee0a24;
+  font-weight: 600;
+}
+
+.tfoot {
+  border-top: 2rpx solid var(--line);
+}
+
+.td-footer-label {
+  flex: 3;
+  text-align: right;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+/* ── 导出按钮 ── */
 .export-bar {
-  padding: 0 0 20rpx;
+  margin: 8rpx 0 20rpx;
 }

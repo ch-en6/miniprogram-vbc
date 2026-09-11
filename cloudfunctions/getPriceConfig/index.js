@@ -68,18 +68,31 @@ exports.main = async (event, context) => {
       { dept_id }
     )
 
-    // 按餐次组装，未配置的餐次置为 null（前端有默认价兜底）
+    // 按餐次组装，未配置 / 价格字段为空或无效的餐次置为 null
     const config = {}
     ;['breakfast', 'lunch', 'dinner'].forEach(meal => {
       const row = rows.find(r => MEAL_TYPE_MAP[r.meal_type] === meal)
-      config[meal] = row
-        ? {
-            emp_price: Number(row.emp_price) || 100,
-            family_price: Number(row.family_price) || 1000,
-            start_date: formatDate(row.start_date),
-            end_date: formatDate(row.end_date),
-          }
-        : null
+      if (!row) {
+        config[meal] = null
+        return
+      }
+      const emp = Number(row.emp_price)
+      const fam = Number(row.family_price)
+      // 记录存在但价格字段为 NULL / 非数值 → 该餐次视为未读到有效价格，返回 null
+      if (row.emp_price == null || row.family_price == null || isNaN(emp) || isNaN(fam)) {
+        console.warn(
+          '[getPriceConfig] 价格配置记录价格字段为空/无效，该餐次视为未配置:',
+          JSON.stringify(row)
+        )
+        config[meal] = null
+        return
+      }
+      config[meal] = {
+        emp_price: emp,
+        family_price: fam,
+        start_date: formatDate(row.start_date),
+        end_date: formatDate(row.end_date),
+      }
     })
 
     return {

@@ -1,212 +1,484 @@
-/* subpackages/dept/pages/staff/index.wxss — 员工管理页样式 */
+/* subpackages/dept/pages/staff/index.wxss — 员工管理页 */
 
-.page-container {
-  min-height: 100vh;
-  background: #f4f6f9;
-  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
+page {
+  background: #f5f6f8;
+  --brand: #1989fa;
+  --brand-dark: #0570db;
+  --text-1: #323233;
+  --text-2: #646566;
+  --text-3: #969799;
+  --line: #ebedf0;
 }
 
-/* 部门选择器 */
+/* 页面容器：底部为固定 Tab 栏预留空间 */
+.page-pad {
+  padding: 24rpx 24rpx calc(140rpx + env(safe-area-inset-bottom));
+}
+
+/* ── 部门选择 ── */
 .dept-selector {
   display: flex;
   align-items: center;
-  padding: 24rpx;
   background: #fff;
-  border-bottom: 1px solid #f0f1f3;
+  padding: 20rpx 24rpx;
+  border-radius: 24rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
 }
 
 .dept-label {
   font-size: 26rpx;
-  color: #6b7280;
-  margin-right: 16rpx;
+  color: var(--text-3);
+  margin-right: 12rpx;
 }
 
 .dept-picker {
-  font-size: 28rpx;
-  color: #1989fa;
+  font-size: 30rpx;
   font-weight: 600;
+  color: var(--brand);
 }
 
-/* 搜索栏 */
-.search-bar {
-  padding: 16rpx 24rpx;
+/* ── 搜索 + 操作工具卡（与统计/收费页的筛选卡同风格：白卡 + 灰底方块 + 蓝色按钮） ── */
+.tool-card {
   background: #fff;
+  border-radius: 24rpx;
+  padding: 16rpx 24rpx 20rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
 }
 
-/* 操作按钮 */
-.action-bar {
+/* ── 搜索行：方形灰底输入(占满) + 右侧查询按钮，尺寸对齐收费页日期选择框 ── */
+.tool-search-row {
   display: flex;
-  gap: 16rpx;
-  padding: 16rpx 24rpx;
-  background: #fff;
-  border-bottom: 1px solid #f0f1f3;
+  align-items: center;
 }
 
-/* 员工列表 */
+.search-box {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  background: #f5f6f8;
+  border-radius: 8rpx;
+  padding: 12rpx 20rpx;
+  margin-right: 16rpx;
+  min-width: 0;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: var(--text-1);
+  margin: 0 12rpx;
+  min-width: 0;
+}
+
+/* 操作按钮行：等分并排，按钮形态对齐工作台 .ws-btn-plain（方形白底 + 1px 蓝框 + 蓝字） */
+.tool-actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 20rpx;
+}
+
+.ws-btn-style {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 24rpx;
+  line-height: 1.3;
+  border-radius: 8rpx;
+  padding: 12rpx 0;
+  box-sizing: border-box;
+  background: #fff;
+  color: #1989fa;
+  border: 1px solid #1989fa;
+}
+
+.ws-btn-style-hover {
+  background: #ecf5ff;
+}
+
+/* 停用部门：新增员工按钮置灰不可用 */
+.ws-btn-style-disabled {
+  background: #f7f8fa;
+  color: #c8c9cc;
+  border-color: #e5e5e5;
+}
+
+/* ── 员工列表 ── */
 .staff-list {
-  padding: 16rpx 24rpx 0;
+  margin-top: 8rpx;
 }
 
 .staff-item {
   background: #fff;
   border-radius: 24rpx;
   padding: 24rpx;
-  margin-bottom: 16rpx;
-  border: 1px solid rgba(229, 231, 235, 0.7);
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
 }
 
-.staff-info {
-  margin-bottom: 12rpx;
+/* 第一行：左（姓名 + 部门胶囊）右（角色名） */
+.staff-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.staff-head-left {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  flex: 1;
+  min-width: 0;
 }
 
 .staff-name {
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #374151;
-  margin-bottom: 8rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+/* 角色名：右上角（原手机号位置，右对齐） */
+.staff-role {
+  font-size: 26rpx;
+  color: var(--text-3);
+  margin-left: 16rpx;
+  flex-shrink: 0;
+}
+
+/* 第二行：手机号（姓名下方） */
+.staff-phone-row {
+  margin-top: 8rpx;
 }
 
 .staff-phone {
   font-size: 26rpx;
-  color: #6b7280;
-  margin-bottom: 4rpx;
+  color: var(--text-3);
 }
 
-.staff-dept {
-  font-size: 24rpx;
-  color: #9ca3af;
+.staff-dept-tag {
+  display: flex;
+  align-items: center;
+  font-size: 22rpx;
+  font-weight: 500;
+  line-height: 1;
+  padding: 8rpx 16rpx;
+  border-radius: 100rpx;
+  background: #fff8ed;
+  color: #f5a623;
+  flex-shrink: 0;
 }
 
+/* 第二行：左（状态徽章）右（编辑按钮） */
 .staff-status {
   display: flex;
-  gap: 8rpx;
-  margin-bottom: 16rpx;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16rpx;
 }
 
-.staff-actions {
+.status-left {
   display: flex;
-  gap: 24rpx;
-  padding-top: 16rpx;
-  border-top: 1px solid #f0f1f3;
+  align-items: center;
+  gap: 12rpx;
+  min-width: 0;
 }
 
-.action-link {
-  font-size: 24rpx;
-  color: #1989fa;
+/* 状态胶囊：浅底深字全圆角（与部门标签 staff-dept-tag 同风格）
+   启用=浅绿深绿 / 禁用=浅红深红 / 已绑定=浅蓝深蓝 / 未绑定=浅灰深灰 */
+.badge {
+  display: flex;
+  align-items: center;
+  font-size: 22rpx;
+  font-weight: 500;
+  line-height: 1;
+  padding: 8rpx 16rpx;
+  border-radius: 100rpx;
+  flex-shrink: 0;
 }
 
-.action-link.danger {
+.badge-green {
+  background: #e8f7ef;
+  color: #07c160;
+}
+
+.badge-red {
+  background: #fef0f0;
   color: #ee0a24;
 }
 
-/* 弹窗 */
-.modal-card {
-  padding: 40rpx 32rpx;
+.badge-blue {
+  background: #eef4ff;
+  color: #1989fa;
+}
+
+.badge-gray {
+  background: #f2f3f5;
+  color: #969799;
+}
+
+/* 编辑按钮：样式对齐「新增员工/批量导入」（方形白底 + 1px 蓝框 + 蓝字） */
+.staff-edit-btn {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 24rpx;
+  line-height: 1.3;
+  border-radius: 8rpx;
+  padding: 12rpx 30rpx;
+  box-sizing: border-box;
+  background: #fff;
+  color: #1989fa;
+  border: 1px solid #1989fa;
+  white-space: nowrap;
+}
+
+.staff-edit-btn-hover {
+  background: #ecf5ff;
+}
+
+.ml-4 {
+  margin-left: 8rpx;
+}
+
+/* 空 / 加载中 */
+.empty-wrap {
+  padding: 80rpx 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+}
+
+/* ─────────── 表单弹窗（底部弹出） ─────────── */
+.form-sheet {
+  background: #fff;
+  padding: 32rpx 0 0;
+  border-radius: 32rpx 32rpx 0 0;
+  /* 为底部安全区域预留空间 */
   padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
 }
 
-.modal-title {
+.form-title {
+  text-align: center;
   font-size: 32rpx;
-  font-weight: 700;
-  color: #374151;
-  margin-bottom: 32rpx;
-  text-align: center;
-}
-
-.modal-actions {
-  display: flex;
-  gap: 24rpx;
-  margin-top: 32rpx;
-}
-
-.modal-actions van-button {
-  flex: 1;
-}
-
-/* 加载状态 */
-.load-more, .no-more {
-  text-align: center;
-  padding: 32rpx;
-  font-size: 26rpx;
-  color: #1989fa;
-}
-
-.no-more {
-  color: #ccc;
-}
-
-/* 批量导入预览弹窗（Phase 4.5 增强） */
-.import-summary {
-  font-size: 26rpx;
-  color: #323233;
-  margin-bottom: 20rpx;
-  padding: 16rpx;
-  background: #f7f8fa;
-  border-radius: 12rpx;
-}
-
-.import-error-count {
-  color: #ee0a24;
   font-weight: 600;
-}
-
-.import-list {
-  max-height: 600rpx;
-  overflow-y: auto;
+  color: var(--text-1);
   margin-bottom: 24rpx;
 }
 
-.import-item {
-  background: #f9fafb;
-  border-radius: 16rpx;
-  padding: 20rpx;
-  margin-bottom: 16rpx;
-  border: 1px solid #e5e7eb;
+.form-group {
+  margin: 0 24rpx 16rpx !important;
 }
 
-.import-item-error {
-  background: #fff5f5;
-  border-color: #ee0a24;
-}
-
-.import-row-index {
-  font-size: 22rpx;
-  color: #969799;
-  margin-bottom: 8rpx;
-  font-weight: 500;
-}
-
-.import-row {
+.form-row {
   display: flex;
   align-items: center;
-  margin-bottom: 8rpx;
-}
-
-.import-label {
-  font-size: 24rpx;
-  color: #6b7280;
-  width: 120rpx;
-}
-
-.import-value {
-  font-size: 24rpx;
-  color: #374151;
-  font-weight: 500;
-}
-
-.import-error-detail {
-  font-size: 22rpx;
-  color: #ee0a24;
-  margin-top: 12rpx;
-  padding: 12rpx;
+  justify-content: space-between;
   background: #fff;
-  border-radius: 8rpx;
+  margin: 0 24rpx;
+  padding: 28rpx 24rpx;
+  border-radius: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.form-label {
+  font-size: 28rpx;
+  color: var(--text-1);
+  flex-shrink: 0;
+}
+
+.form-picker {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8rpx;
 }
 
-.error-text {
-  flex: 1;
+.form-picker-text {
+  font-size: 28rpx;
+  line-height: 1;
+  color: var(--text-1);
+  max-width: 360rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.form-picker-arrow {
+  font-size: 24rpx;
+  line-height: 1;
+  color: var(--text-3);
+}
+
+/* 员工身份：可分配角色下拉（复用上方 .form-picker 样式，与「所属部门」同款） */
+
+.form-role-tip {
+  margin: -6rpx 32rpx 20rpx;
+  padding-left: 8rpx;
+  font-size: 22rpx;
+  color: var(--text-3);
   line-height: 1.5;
+}
+
+/* 管理级身份锁定提示（占满剩余空间并右对齐，与「所属部门」「账号状态」的取值位置保持一致） */
+.form-role-locked {
+  flex: 1;
+  min-width: 0;
+  padding-left: 20rpx;
+  text-align: right;
+  font-size: 26rpx;
+  color: var(--text-3);
+  line-height: 2;
+}
+
+.form-actions {
+  display: flex;
+  gap: 24rpx;
+  padding: 16rpx 24rpx 0;
+}
+
+.form-btn {
+  flex: 1;
+}
+
+/* 编辑弹窗：更多操作（重置密码 / 解绑微信） */
+.extra-section-title {
+  font-size: 24rpx;
+  color: var(--text-3);
+  margin: 24rpx 32rpx 12rpx;
+}
+
+.extra-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  margin: 0 24rpx 16rpx;
+  padding: 24rpx;
+  border-radius: 16rpx;
+}
+
+.extra-action-hover {
+  background: #f2f3f5;
+}
+
+.extra-action-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  flex: 1;
+  margin-right: 16rpx;
+}
+
+.extra-action-name {
+  font-size: 28rpx;
+  color: var(--text-1);
+}
+
+.extra-action-name.danger {
+  color: #ee0a24;
+}
+
+.extra-action-desc {
+  font-size: 24rpx;
+  color: var(--text-3);
+}
+
+/* ─────────── 初始密码 / 重置密码展示弹窗 ─────────── */
+.password-sheet {
+  width: 600rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 40rpx 32rpx 32rpx;
+  box-sizing: border-box;
+  /* 让密码卡片按内容自适应宽度后居中 */
+  text-align: center;
+}
+
+.password-title {
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--text-1);
+  margin-bottom: 12rpx;
+}
+
+.password-name {
+  text-align: center;
+  font-size: 26rpx;
+  color: var(--text-2);
+  margin-bottom: 24rpx;
+}
+
+/* 宽度按内容自适应（inline-flex），由 .password-sheet 的 text-align 居中，
+   左右刚好包裹"密码 + 复制按钮"，不撑满整行 */
+.password-card {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  box-sizing: border-box;
+  background: #f5f6f8;
+  border: 1rpx dashed var(--brand);
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  margin-bottom: 16rpx;
+  /* 兜底：任何情况下内容都不允许溢出卡片边框 */
+  overflow: hidden;
+}
+
+.password-text {
+  flex: none;
+  white-space: nowrap;
+  font-size: 36rpx;
+  font-weight: 700;
+  letter-spacing: 4rpx;
+  color: var(--brand);
+  font-family: monospace;
+}
+
+/* 复制按钮：用 view 自绘。
+   不用 van-button 的原因：其根节点是原生 button，自带 min-width: 60px 与
+   margin-left/right: auto，在这个 flex 行里会挤压文字并溢出卡片边界 */
+.password-copy {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 52rpx;
+  padding: 0 18rpx;
+  margin-left: 16rpx;
+  border: 1rpx solid var(--brand);
+  border-radius: 8rpx;
+  background: #fff;
+  color: var(--brand);
+}
+
+.password-copy-hover {
+  background: #ecf5ff;
+}
+
+.password-copy-text {
+  margin-left: 6rpx;
+  font-size: 24rpx;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.password-tip {
+  text-align: center;
+  font-size: 24rpx;
+  color: var(--text-3);
+  margin-bottom: 24rpx;
+}
+
+.password-ok {
+  /* 显式居中（尺寸由 custom-style 指定；原生 button 默认左右 margin auto） */
+  display: block;
+  margin: 8rpx auto 0;
 }

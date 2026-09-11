@@ -324,6 +324,8 @@ async function actionSave(event) {
   }
 
   // 1. 加载该部门当日启用的价格（按 meal_type 取当前生效记录）
+  //    价格字段为 NULL 或非数值的记录视为无效，不入 priceMap，
+  //    等价于"该餐次未读到有效价格"，由下方 2.1 校验统一拦截为失败。
   const priceRows = await query(
     'SELECT `meal_type`, `emp_price`, `family_price` FROM `price_config` ' +
     'WHERE `dept_id` = {{dept_id}} AND `status` = 1 ' +
@@ -332,31 +334,58 @@ async function actionSave(event) {
   )
   const priceMap = new Map()
   priceRows.forEach(r => {
-    priceMap.set(Number(r.meal_type), {
-      emp_price: Number(r.emp_price) || 100,
-      family_price: Number(r.family_price) || 1000,
-    })
+    const emp = Number(r.emp_price)
+    const fam = Number(r.family_price)
+    if (r.emp_price == null || r.family_price == null || isNaN(emp) || isNaN(fam)) {
+      console.warn(
+        '[mealOrder] 价格配置记录价格字段为空/无效，忽略该餐次配置:',
+        JSON.stringify(r)
+      )
+      return
+    }
+    priceMap.set(Number(r.meal_type), { emp_price: emp, family_price: fam })
   })
 
   // 2. 按数量拆分：>0 走 upsert，==0 走删除
   //    注意：参数名不能用 date（与 SQL 保留字 DATE 冲突，SDK 解析失败），用 day 代替
-  const toUpsert = []
+  const toUpsert = [] // { meal_type, quantity }
   const toDelete = []
   for (const name of MEAL_NAMES) {
     const meal_type = NAME_TO_MEAL_TYPE[name]
     const quantity = quantities[name]
-    const price = priceMap.get(meal_type) || { emp_price: 100, family_price: 1000 }
     if (quantity === 0) {
       toDelete.push(meal_type)
     } else {
-      toUpsert.push({
-        meal_type,
-        quantity,
-        emp_price: price.emp_price,
-        family_price: price.family_price,
-      })
+      toUpsert.push({ meal_type, quantity })
     }
   }
+
+  // 2.1 写入前强制校验价格配置（服务端兜底，防绕过前端直接调用）：
+  //     任一缺失（部门未配置 / 已停用 / 不在有效期内 / 记录存在但价格字段为 NULL 或非数值）
+  //     → 拒绝整单写入，报餐失败，避免用默认价错误落库导致后续计费错误。
+  if (toUpsert.length > 0) {
+    const missing = toUpsert
+      .filter(u => !priceMap.has(u.meal_type))
+      .map(u => MEAL_TYPE_NAME[u.meal_type] || u.meal_type)
+    if (missing.length > 0) {
+      console.error(
+        '[mealOrder] 价格配置缺失，拒绝写入报餐. dept_id:', dept_id,
+        'date:', date, 'missing meals:', missing.join(',')
+      )
+      return {
+        code: -1,
+        message: '价格配置未就绪，报餐失败，请联系管理员配置价格',
+        data: null,
+      }
+    }
+  }
+
+  // 2.2 配置校验通过后填充价格快照：此时每个餐次必然命中 priceMap（has 已过滤），
+  toUpsert.forEach(u => {
+    const price = priceMap.get(u.meal_type)
+    u.emp_price = price.emp_price
+    u.family_price = price.family_price
+  })
 
   const summary = { upserted: 0, deleted: 0 }
   let failedStep = '' // 部分失败时标记步骤：'upsert' | 'delete'

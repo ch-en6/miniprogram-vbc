@@ -1,0 +1,10 @@
+{
+  "name": "deptAdmin",
+  "version": "1.0.0",
+  "description": "部门管理后台：部门列表/月度收费/员工管理（云 MySQL，openid -> 角色 -> 食堂 -> 部门 数据域隔离）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3",
+    "@cloudbase/node-sdk": "^3.18.3"
+  }
+}

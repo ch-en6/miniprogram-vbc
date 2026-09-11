@@ -1,6 +1,5 @@
 // pages/index/index.js — 员工首页
 const { formatDate, formatMonth, getBookDeadlineInfo } = require('../../utils/time')
-const { ROLE } = require('../../utils/const')
 const { MealOrderAPI, NoticeAPI } = require('../../services/api')
 
 Page({
@@ -23,9 +22,6 @@ Page({
     todayDateStr: '',
     tomorrowDateStr: '',
     monthStat: { breakfast: 0, lunch: 0, dinner: 0 },
-    isDeptAdmin: false,
-    isSysAdmin: false,
-    isKitchen: false,
   },
 
   onLoad() {
@@ -46,17 +42,11 @@ Page({
     const deadlineInfo = getBookDeadlineInfo()
     const heroSub = `今天是 ${dateStr}，次日报餐截止：${deadlineInfo.isPast ? '已截止' : '今天 ' + deadlineInfo.deadlineTime}`
 
-    // 角色判断
-    const roleCode = app.globalData.roleCode || 'employee'
-    const isDeptAdmin = roleCode === ROLE.DEPT_ADMIN
-    const isSysAdmin = roleCode === ROLE.SYS_ADMIN
-    const isKitchen = roleCode === ROLE.KITCHEN
-
     const dNow = new Date()
     const dTomorrow = new Date(dNow)
     dTomorrow.setDate(dTomorrow.getDate() + 1)
     this.setData({
-      heroSub, isDeptAdmin, isSysAdmin, isKitchen,
+      heroSub,
       todayDateStr: formatDate(dNow),
       tomorrowDateStr: formatDate(dTomorrow),
     })
@@ -180,20 +170,5 @@ Page({
 
   goBook() {
     wx.switchTab({ url: '/pages/book/index' })
-  },
-
-  goWorkbench() {
-    const app = getApp()
-    const roleCode = app.globalData.roleCode || 'employee'
-    let url
-    if (roleCode === ROLE.SYS_ADMIN) {
-      url = '/subpackages/admin/pages/dept-manage/index'
-    } else if (roleCode === ROLE.DEPT_ADMIN) {
-      url = '/subpackages/dept/pages/workspace/index'
-    } else if (roleCode === ROLE.KITCHEN) {
-      url = '/subpackages/kitchen/pages/today/index'
-    }
-    // 工作台为独立工作区，使用 redirectTo 替换当前页，避免左上角出现返回箭头
-    if (url) wx.redirectTo({ url })
   },
 })

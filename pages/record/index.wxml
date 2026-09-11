@@ -6,33 +6,34 @@
     <view class="filter-title">筛选条件</view>
 
     <!-- 时间区间 -->
-    <view class="filter-row">
-      <text class="filter-label-sm">时间区间</text>
-      <view class="date-range-row">
-        <picker mode="date" value="{{startDate}}" end="{{pickerEnd}}" bindchange="onStartDateChange">
-          <text class="date-text">{{startDate || '开始日期'}}</text>
+    <view class="filter-row filter-row--range">
+      <text class="filter-label">日期范围</text>
+      <view class="filter-value">
+        <picker mode="date" value="{{startDate}}" end="{{pickerEnd}}" bindchange="onStartDateChange" class="date-picker">
+          <text class="date-input">{{startDate || '开始日期'}}</text>
         </picker>
         <text class="date-sep">至</text>
-        <picker mode="date" value="{{endDate}}" start="{{pickerStart}}" bindchange="onEndDateChange">
-          <text class="date-text">{{endDate || '结束日期'}}</text>
+        <picker mode="date" value="{{endDate}}" start="{{pickerStart}}" bindchange="onEndDateChange" class="date-picker">
+          <text class="date-input">{{endDate || '结束日期'}}</text>
         </picker>
       </view>
-      <view class="quick-tags-inline">
-        <text class="quick-link {{activeQuickRange === 'thisMonth' ? 'active' : ''}}" bindtap="onQuickRange" data-type="thisMonth">本月</text>
-        <text class="quick-link {{activeQuickRange === 'lastMonth' ? 'active' : ''}}" bindtap="onQuickRange" data-type="lastMonth">上月</text>
-        <text class="quick-link {{activeQuickRange === 'thisWeek' ? 'active' : ''}}" bindtap="onQuickRange" data-type="thisWeek">本周</text>
-        <text class="quick-link {{activeQuickRange === 'lastWeek' ? 'active' : ''}}" bindtap="onQuickRange" data-type="lastWeek">上周</text>
-      </view>
+    </view>
+    <!-- 快捷日期范围 -->
+    <view class="quick-row">
+      <view class="quick-btn {{activeQuickRange === 'thisMonth' ? 'quick-btn--active' : ''}}" bindtap="onQuickRange" data-type="thisMonth">本月</view>
+      <view class="quick-btn {{activeQuickRange === 'lastMonth' ? 'quick-btn--active' : ''}}" bindtap="onQuickRange" data-type="lastMonth">上月</view>
+      <view class="quick-btn {{activeQuickRange === 'thisWeek' ? 'quick-btn--active' : ''}}" bindtap="onQuickRange" data-type="thisWeek">本周</view>
+      <view class="quick-btn {{activeQuickRange === 'lastWeek' ? 'quick-btn--active' : ''}}" bindtap="onQuickRange" data-type="lastWeek">上周</view>
     </view>
 
     <!-- 餐别筛选 -->
-    <view class="filter-row">
-      <text class="filter-label-sm">餐别</text>
-      <view class="filter-tags">
-        <view class="filter-tag {{mealFilter === '' ? 'active' : ''}}" bindtap="onMealFilter" data-meal="">全部</view>
-        <view class="filter-tag {{mealFilter === 'breakfast' ? 'active' : ''}}" bindtap="onMealFilter" data-meal="breakfast">早餐</view>
-        <view class="filter-tag {{mealFilter === 'lunch' ? 'active' : ''}}" bindtap="onMealFilter" data-meal="lunch">午餐</view>
-        <view class="filter-tag {{mealFilter === 'dinner' ? 'active' : ''}}" bindtap="onMealFilter" data-meal="dinner">晚餐</view>
+    <view class="filter-row--meal">
+      <text class="filter-label">餐别</text>
+      <view class="meal-btns">
+        <view class="quick-btn {{mealFilter === '' ? 'quick-btn--active' : ''}}" bindtap="onMealFilter" data-meal="">全部</view>
+        <view class="quick-btn {{mealFilter === 'breakfast' ? 'quick-btn--active' : ''}}" bindtap="onMealFilter" data-meal="breakfast">早餐</view>
+        <view class="quick-btn {{mealFilter === 'lunch' ? 'quick-btn--active' : ''}}" bindtap="onMealFilter" data-meal="lunch">午餐</view>
+        <view class="quick-btn {{mealFilter === 'dinner' ? 'quick-btn--active' : ''}}" bindtap="onMealFilter" data-meal="dinner">晚餐</view>
       </view>
     </view>
 

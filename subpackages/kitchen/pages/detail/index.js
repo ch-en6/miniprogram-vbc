@@ -40,7 +40,7 @@ Page({
   },
 
   onSearchInput(e) {
-    this.setData({ searchKey: e.detail })
+    this.setData({ searchKey: e.detail.value })
   },
 
   onSearch() {
@@ -91,7 +91,7 @@ Page({
       this.setData({
         list: combinedList,
         mergedList,
-        total: res?.total || newList.length,
+        total: res?.total_people || res?.total || newList.length,
         totalQty: res?.total_qty || 0,
         hasMore: newList.length >= PAGE_SIZE,
         page: refresh ? 2 : page + 1,

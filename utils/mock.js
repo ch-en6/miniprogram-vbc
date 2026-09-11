@@ -147,7 +147,7 @@ const mockDeptPrices = {
   4: { name: '运营部', breakfast: { emp: 5, fam: 8 }, lunch: { emp: 10, fam: 15 }, dinner: { emp: 8, fam: 12 } },
 }
 
-// ─── 月度收费明细（按部门、按月份快照） ─────────────────────────
+// ─── 月度收费明细（按部门、按月份列示） ─────────────────────────
 // 字段说明：
 //   name: 姓名
 //   mealLabel: 餐别（早餐/午餐/晚餐）
@@ -170,14 +170,6 @@ const mockBillingList = [
   { id: 7, name: '王五', mealLabel: '午餐', qty: 12, empPrice: 9, famPrice: 14, family: 11, empAmount: 9, famAmount: 154, amount: 163 },
 ]
 
-// ─── 月度快照状态 ──────────────────────────────────────────────
-const mockBillingSnapshot = {
-  isSnapshot: true,
-  snapshotTime: '2026-06-20 14:30:00',
-  snapshotBy: '管理员老王',
-  snapshotMonth: '2026-06',
-}
-
 module.exports = {
   mockTodayStatus,
   mockMonthStat,
@@ -190,5 +182,4 @@ module.exports = {
   mockStaffList,
   mockDeptPrices,
   mockBillingList,
-  mockBillingSnapshot,
 }

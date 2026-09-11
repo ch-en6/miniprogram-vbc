@@ -16,76 +16,89 @@
   margin-bottom: 20rpx;
 }
 
-/* 小字灰色标签（时间区间 / 餐别） */
-.filter-label-sm {
-  font-size: 24rpx;
-  color: #9ca3af;
-  display: block;
-  margin-bottom: 12rpx;
-}
-
-/* 日期范围行 — 选择器 + 快捷同行 */
-.date-range-row {
+/* 餐别筛选行 */
+.filter-row--meal {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 12rpx 16rpx;
-  padding: 0;
-  margin-bottom: 12rpx;
+  gap: 12rpx;
+  margin-bottom: 0;
 }
 
-.date-text {
-  font-size: 26rpx;
-  color: #374151;
-  padding: 8rpx 16rpx;
-  background: #f7fbff;
-  border-radius: 8rpx;
-  border: 1px solid #e3f0ff;
-}
-
-.date-sep {
-  color: #9ca3af;
-  font-size: 24rpx;
-}
-
-/* 快捷日期 — 文字链接风格 */
-.quick-tags-inline {
+.meal-btns {
+  flex: 1;
+  min-width: 0;
   display: flex;
-  gap: 10rpx;
-  margin-left: 0;
+  gap: 16rpx;
 }
 
-.quick-link {
+/* 餐别按钮 */
+/* ── 日期范围 + 快捷 ── */
+.filter-row--range {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 0;
+}
+
+.filter-label {
   font-size: 24rpx;
-  margin-right: 20rpx;
-  margin-top: 10rpx;
-  color: #9ca3af;
+  color: #6b7280;
   white-space: nowrap;
 }
 
-.quick-link.active {
-  color: #1989fa;
-  font-weight: 600;
+.filter-value {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  flex: 1;
+  min-width: 0;
 }
 
-.filter-tags {
+.date-picker {
+  flex: 1;
+  min-width: 0;
+}
+
+.date-input {
+  display: block;
+  border: 1rpx solid #e5e7eb;
+  border-radius: 12rpx;
+  padding: 6rpx 6rpx;
+  font-size: 24rpx;
+  color: #1f2937;
+  background: #fff;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.date-sep {
+  color: #6b7280;
+  font-size: 24rpx;
+}
+
+.quick-row {
   display: flex;
   gap: 16rpx;
-  flex-wrap: wrap;
+  margin: 20rpx 0;
 }
 
-.filter-tag {
+.quick-btn {
+  flex: 1;
+  text-align: center;
+  padding: 6rpx 0;
   font-size: 24rpx;
   color: #6b7280;
-  padding: 8rpx 24rpx;
-  background: #f7fbff;
-  border-radius: 100rpx;
-  border: 1px solid #e3f0ff;
+  background: #f5f7fa;
+  border: 1rpx solid #e5e7eb;
+  border-radius: 12rpx;
+  transition: all 0.15s ease;
 }
 
-.filter-tag.active {
+.quick-btn--active {
   color: #1989fa;
-  background: #eaf5ff;
+  background: #ecf5ff;
   border-color: #1989fa;
   font-weight: 600;
 }

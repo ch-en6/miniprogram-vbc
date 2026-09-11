@@ -1,36 +1,55 @@
 <view class="kitchen-detail-page">
-  <!-- 搜索栏 -->
-  <van-search
-    value="{{ searchKey }}"
-    placeholder="搜索姓名 / 手机号 / 部门"
-    bind:search="onSearch"
-    bind:change="onSearchInput"
-    bind:clear="onSearchClear"
-    show-action
-    use-action-slot
-    background="#f5f6f8"
-  >
-    <view slot="action" class="search-action-btn" bindtap="onSearch">搜索</view>
-  </van-search>
+  <!-- 搜索栏 + 餐别筛选：合并为同一白卡，不再分块（搜索框样式同部门工作台员工管理页） -->
+  <view class="filter-card">
+    <!-- 搜索行 -->
+    <view class="search-row">
+      <view class="search-box">
+        <van-icon name="search" size="16px" color="#969799" />
+        <input
+          class="search-input"
+          type="text"
+          value="{{ searchKey }}"
+          placeholder="请输入姓名 / 手机号 / 部门"
+          placeholder-style="color:#969799;font-size:28rpx;"
+          confirm-type="search"
+          bindinput="onSearchInput"
+          bindconfirm="onSearch"
+        />
+        <van-icon
+          wx:if="{{ searchKey }}"
+          name="clear"
+          size="14px"
+          color="#c8c9cc"
+          bindtap="onSearchClear"
+        />
+      </view>
+      <van-button
+        type="primary"
+        size="mini"
+        custom-style="width:112rpx;height:58rpx;padding:0;font-size:26rpx;flex-shrink:0;box-sizing:border-box;line-height:58rpx;"
+        bindtap="onSearch"
+      >查询</van-button>
+    </view>
 
-  <!-- 筛选Tab -->
-  <van-tabs
-    active="{{ activeMeal }}"
-    color="#1989fa"
-    title-active-color="#1989fa"
-    bind:change="onMealTabChange"
-    sticky
-    offset-top="112"
-  >
-    <van-tab title="全部" name="all" />
-    <van-tab title="早餐" name="breakfast" />
-    <van-tab title="午餐" name="lunch" />
-    <van-tab title="晚餐" name="dinner" />
-  </van-tabs>
+    <!-- 筛选Tab（全部 / 早 / 中 / 晚） -->
+    <van-tabs
+      active="{{ activeMeal }}"
+      color="#1989fa"
+      title-active-color="#1989fa"
+      bind:change="onMealTabChange"
+      sticky
+      offset-top="112"
+    >
+      <van-tab title="全部" name="all" />
+      <van-tab title="早餐" name="breakfast" />
+      <van-tab title="午餐" name="lunch" />
+      <van-tab title="晚餐" name="dinner" />
+    </van-tabs>
+  </view>
 
   <!-- 汇总行 -->
   <view class="summary-bar" wx:if="{{ !loading }}">
-    <text class="summary-text">共 {{ total }} 条，合计 {{ totalQty }} 份</text>
+    <text class="summary-text">共 {{ total }} 人，合计 {{ totalQty }} 份</text>
   </view>
 
   <!-- ═══ 列表：始终使用 mergedList ═══ -->

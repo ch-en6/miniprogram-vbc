@@ -1,4 +1,4 @@
-// subpackages/admin/pages/billing-snapshot/index.js
+// subpackages/admin/pages/workspace/index.js
 Page({
 
   /**

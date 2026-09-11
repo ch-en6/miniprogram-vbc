@@ -142,7 +142,7 @@ exports.main = async (event, context) => {
         }
         // 未被他人占用，则写入 openid 完成绑定
         await update(
-          'UPDATE `sys_emp` SET `_openid` = {{openid}} WHERE `id` = {{id}}',
+          'UPDATE `sys_emp` SET `_openid` = {{openid}}, `updated_at` = NOW() WHERE `id` = {{id}}',
           { openid, id: emp.id }
         )
         console.log('[checkLogin] openid 已写入 sys_emp:', emp.id)

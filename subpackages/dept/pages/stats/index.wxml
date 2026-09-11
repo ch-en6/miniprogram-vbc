@@ -1,0 +1,117 @@
+<!-- subpackages/dept/pages/stats/index.wxml — 部门工作台 · 统计查询（独立页） -->
+
+<view class="page-pad">
+
+  <!-- 部门选择 -->
+  <view class="dept-selector">
+    <text class="dept-label">当前部门：</text>
+    <picker mode="selector" range="{{ depts }}" range-key="dept_name" value="{{ currentDeptIndex }}" bindchange="onDeptChange">
+      <text class="dept-picker">{{ depts[currentDeptIndex].dept_name }} ▾</text>
+    </picker>
+  </view>
+
+  <!-- 筛选条件 -->
+  <view class="filter-card mini-card">
+    <view class="filter-row">
+      <text class="filter-label">日期范围</text>
+      <view class="filter-value">
+        <picker mode="date" value="{{ startDate }}" end="{{ pickerEnd }}" bindchange="onStartDateChange" class="date-picker">
+          <text class="date-input">{{ startDate }}</text>
+        </picker>
+        <text class="date-sep">至</text>
+        <picker mode="date" value="{{ endDate }}" start="{{ pickerStart }}" bindchange="onEndDateChange" class="date-picker">
+          <text class="date-input">{{ endDate }}</text>
+        </picker>
+      </view>
+      <van-button
+        type="primary"
+        size="mini"
+        custom-style="width:112rpx;height:58rpx;padding:0;margin-left:16rpx;font-size:26rpx;flex-shrink:0;box-sizing:border-box;line-height:58rpx;"
+        bindtap="onSearch"
+      >查询</van-button>
+    </view>
+    <!-- 快捷日期范围 -->
+    <view class="quick-row">
+      <view class="quick-btn {{ quickType === 'curMonth' ? 'quick-btn--active' : '' }}" bindtap="onQuickRange" data-type="curMonth">本月</view>
+      <view class="quick-btn {{ quickType === 'prevMonth' ? 'quick-btn--active' : '' }}" bindtap="onQuickRange" data-type="prevMonth">上月</view>
+      <view class="quick-btn {{ quickType === 'curWeek' ? 'quick-btn--active' : '' }}" bindtap="onQuickRange" data-type="curWeek">本周</view>
+      <view class="quick-btn {{ quickType === 'prevWeek' ? 'quick-btn--active' : '' }}" bindtap="onQuickRange" data-type="prevWeek">上周</view>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading-wrap" wx:if="{{ statLoading }}">
+    <van-loading type="spinner" color="#1989fa" size="24px">加载中...</van-loading>
+  </view>
+
+  <!-- 空状态 -->
+  <van-empty wx:elif="{{ hasQueried && statList.length === 0 }}" description="暂无统计数据" />
+
+  <!-- 数据区：导出按钮 + 统计列表 -->
+  <block wx:else>
+  <view class="export-bar" wx:if="{{ statList.length > 0 }}">
+    <van-button type="primary" plain block icon="down" bindtap="onExport">导出 Excel 报表</van-button>
+  </view>
+
+  <view class="stat-list">
+    <view
+      class="stat-item"
+      wx:for="{{ statList }}"
+      wx:key="date"
+      hover-class="stat-item--hover"
+      hover-stay-time="120"
+      bindtap="onItemTap"
+      data-date="{{ item.date }}"
+    >
+      <!-- 头部：日期 + 星期标签 + 当日合计 -->
+      <view class="stat-info-row">
+        <view class="stat-info-main">
+          <text class="stat-date">{{ item.date }}</text>
+          <text class="stat-weekday">{{ item.weekday }}</text>
+        </view>
+        <view class="stat-total-wrap">
+          <text class="stat-total">共 {{ item.total }} 份</text>
+          <text class="stat-arrow">›</text>
+        </view>
+      </view>
+
+      <!-- 三餐明细 -->
+      <view class="stat-meal-body">
+        <view class="stat-meal-line">
+          <view class="meal-label-wrap">
+            <view class="meal-dot meal-dot--breakfast"></view>
+            <text class="meal-label-text">早餐</text>
+          </view>
+          <view class="meal-info">
+            <text class="meal-qty {{ item.breakfast > 0 ? '' : 'meal-qty--none' }}">{{ item.breakfast > 0 ? item.breakfast + ' 份' : '未报餐' }}</text>
+            <text class="meal-family" wx:if="{{ item.breakfastFamily > 0 }}">家 {{ item.breakfastFamily }}</text>
+          </view>
+        </view>
+        <view class="stat-meal-line">
+          <view class="meal-label-wrap">
+            <view class="meal-dot meal-dot--lunch"></view>
+            <text class="meal-label-text">午餐</text>
+          </view>
+          <view class="meal-info">
+            <text class="meal-qty {{ item.lunch > 0 ? '' : 'meal-qty--none' }}">{{ item.lunch > 0 ? item.lunch + ' 份' : '未报餐' }}</text>
+            <text class="meal-family" wx:if="{{ item.lunchFamily > 0 }}">家 {{ item.lunchFamily }}</text>
+          </view>
+        </view>
+        <view class="stat-meal-line">
+          <view class="meal-label-wrap">
+            <view class="meal-dot meal-dot--dinner"></view>
+            <text class="meal-label-text">晚餐</text>
+          </view>
+          <view class="meal-info">
+            <text class="meal-qty {{ item.dinner > 0 ? '' : 'meal-qty--none' }}">{{ item.dinner > 0 ? item.dinner + ' 份' : '未报餐' }}</text>
+            <text class="meal-family" wx:if="{{ item.dinnerFamily > 0 }}">家 {{ item.dinnerFamily }}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+  </block>
+</view>
+
+<!-- 底部导航：员工 / 统计 / 收费 / 我的 -->
+<dept-tabbar active="stats" />

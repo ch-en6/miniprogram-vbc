@@ -1,7 +1,6 @@
 {
   "navigationBarTitleText": "报餐明细",
   "usingComponents": {
-    "van-search": "@vant/weapp/search/index",
     "van-tabs": "@vant/weapp/tabs/index",
     "van-tab": "@vant/weapp/tab/index",
     "van-loading": "@vant/weapp/loading/index",

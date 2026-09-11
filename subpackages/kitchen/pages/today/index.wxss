@@ -34,51 +34,31 @@
 .search-input-row {
   display: flex;
   align-items: center;
-  gap: 8rpx;
   margin-bottom: 20rpx;
 }
 
+/* 灰底方形搜索框（与部门工作台员工管理页搜索框样式一致） */
 .search-input-wrap {
   flex: 1;
   min-width: 0;
   display: flex;
   align-items: center;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8rpx;
-  height: 60rpx;
-  padding: 0 16rpx;
   box-sizing: border-box;
+  background: #f5f6f8;
+  border-radius: 8rpx;
+  padding: 12rpx 20rpx;
+  margin-right: 16rpx;
 }
 
 .search-input {
   flex: 1;
   min-width: 0;
-  height: 60rpx;
-  line-height: 60rpx;
   font-size: 28rpx;
   color: #374151;
   background: transparent;
-}
-
-.search-input .input-placeholder {
-  color: #9ca3af;
-}
-
-.search-clear {
-  flex: none;
-  margin-left: 12rpx;
-  padding: 8rpx;
-}
-
-.search-btn {
-  flex: none !important;
-  width: 160rpx !important;
-  min-width: 160rpx !important;
-  height: 60rpx !important;
-  padding: 0 !important;
-  font-size: 26rpx !important;
-  border-radius: 8rpx !important;
+  margin: 0 12rpx;
+  height: 40rpx;
+  line-height: 40rpx;
 }
 
 .meal-filter-row {
