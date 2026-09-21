@@ -1,9 +1,9 @@
 {
-  "navigationBarTitleText": "统计查询",
+  "navigationBarTitleText": "公告管理",
   "enablePullDownRefresh": true,
   "backgroundColor": "#f5f6f8",
   "backgroundTextStyle": "dark",
   "usingComponents": {
-    "dept-tabbar": "/subpackages/dept/components/dept-tabbar/index"
+    "dept-tabbar": "../../components/dept-tabbar/index"
   }
 }

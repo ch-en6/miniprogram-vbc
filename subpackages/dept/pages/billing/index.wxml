@@ -2,6 +2,8 @@
 
 <view class="page-pad">
 
+  <block wx:if="{{ hasPermission }}">
+
   <!-- 部门选择 -->
   <view class="dept-selector">
     <text class="dept-label">当前部门：</text>
@@ -76,8 +78,12 @@
 
   <van-empty wx:if="{{ !billingLoading && billingList.length === 0 && hasQueried }}" description="暂无收费数据" />
   <van-empty wx:if="{{ !billingLoading && !hasQueried }}" description="请选择月份并点击查询" />
+
+  </block>
+
+  <!-- 无部门权限时显示空态 -->
+  <van-empty wx:else description="当前账号暂无管理的部门" image="search" />
 </view>
 
-<!-- 底部导航：员工 / 统计 / 收费 / 我的 -->
 <dept-tabbar active="billing" />
 <van-toast id="van-toast" />

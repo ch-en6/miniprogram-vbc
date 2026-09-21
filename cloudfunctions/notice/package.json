@@ -1,0 +1,10 @@
+{
+  "name": "notice",
+  "version": "1.0.0",
+  "description": "公告服务：管理端公告的查询 / 新增 / 编辑 / 删除（云 MySQL sys_notice 表）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3",
+    "@cloudbase/node-sdk": "^3.18.3"
+  }
+}

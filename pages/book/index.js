@@ -18,16 +18,37 @@ Page({
     ],
     // 价格配置（从云数据库读取）
     priceConfig: null,
+    // 当前食堂是否启用
+    locationEnabled: true,
   },
 
   onLoad() {
     this._currentDate = new Date()
     this._loadPriceConfig()
+    this._loadLocationStatus()
     this._buildCalendar()
   },
 
   async onShow() {
+    await this._loadLocationStatus()
     await this._buildCalendar()
+  },
+
+  /**
+   * 加载当前食堂启用状态：食堂停用（status = 0）时禁止报餐
+   * @returns {Promise<boolean>} 当前食堂是否可报餐
+   */
+  async _loadLocationStatus() {
+    try {
+      const res = (await MealOrderAPI.getLocationStatus()) || {}
+      const locationEnabled = res.enabled !== false
+      this.setData({ locationEnabled })
+      return locationEnabled
+    } catch (err) {
+      // 查询失败不阻断报餐（云函数 save 会二次兜底拦截），维持上一次的判定结果
+      console.error('[Book] 加载食堂状态失败:', err)
+      return this.data.locationEnabled
+    }
   },
 
   /**
@@ -249,6 +270,13 @@ Page({
     const isCancel = total === 0
     const isModify = day.hasMeal && !isCancel
     const isFirstBook = !day.hasMeal && !isCancel
+
+    // 食堂停用（sys_location.status = 0）时禁止新增/修改报餐；
+    // 取消报餐（数量全为 0）仍放行，保证停用后员工可撤销既有报餐。
+    if (!isCancel && !this.data.locationEnabled) {
+      wx.showToast({ title: '当前食堂已停用，暂不支持报餐', icon: 'none' })
+      return
+    }
 
     wx.showLoading({ title: isCancel ? '取消中...' : '保存中...' })
 

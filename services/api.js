@@ -62,6 +62,11 @@ const MealOrderAPI = {
    * @returns {Promise<*>}
    */
   remove: (params) => call('mealOrder', { action: 'remove', ...params }),
+  /**
+   * 获取当前员工所属食堂的启用状态
+   * @returns {Promise<{ location_id: number, enabled: boolean }>} enabled=true 表示可报餐
+   */
+  getLocationStatus: () => call('mealOrder', { action: 'getLocationStatus' }),
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -77,15 +82,58 @@ const PriceConfigAPI = {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 菜单云函数模块
+// 菜单云函数模块（云函数：menu）
 // ═══════════════════════════════════════════════════════════
 const MenuAPI = {
   /**
-   * 获取当前轮换菜单（自动根据时间范围轮换，且仅返回当前用户部门的菜单）
-   * @param {number|string} locationId - 当前用户的 location_id（部门/食堂）
+   * 获取当前轮换菜单（自动根据时间范围轮换，且仅返回该食堂的菜单）
+   * @param {number|string} locationId - 目标食堂/部门 location_id
    * @returns {Promise<{plan: object, meals: Array}>} 菜单对象（含 meals 数组）
+   *   meals 元素: { bf, lunch, dinner }，index 0 对应周一
    */
-  getCurrentMenu: (locationId) => call('getMenuList', { location_id: locationId }),
+  getCurrentMenu: (locationId) =>
+    call('menu', { action: 'getCurrentMenu', location_id: locationId }),
+  /**
+   * 菜单配置：查询某食堂的菜单计划列表（受当前角色管理范围约束）
+   * @param {{ locationId: number|string }} params
+   * @returns {Promise<{location_id: number, list: Array}>}
+   *   list 元素: { id, name, status, start_date, end_date, location_id, dish_count }
+   */
+  getMenuPlans: ({ locationId }) =>
+    call('menu', { action: 'getMenuPlans', location_id: Number(locationId) || 0 }),
+  /**
+   * 菜单配置：查询菜单计划详情（含 7 天 × 3 餐菜品网格）
+   * @param {{ id: number|string }} params
+   * @returns {Promise<{id, name, status, start_date, end_date, location_id, days}>}
+   *   days 元素: { day_of_week: 1~7, label, bf, lunch, dinner }
+   */
+  getMenuPlanDetail: ({ id }) =>
+    call('menu', { action: 'getMenuPlanDetail', id: Number(id) || 0 }),
+  /**
+   * 菜单配置：新增/更新菜单计划（菜品明细按传入网格整体重写）
+   * @param {{ id?: number|string, name: string, locationId: number|string, status: 0|1,
+   *           startDate: string, endDate: string,
+   *           days: Array<{ day_of_week: number, bf: string, lunch: string, dinner: string }> }} params
+   * @returns {Promise<{id: number}>}
+   */
+  saveMenuPlan: ({ id, name, locationId, status, startDate, endDate, days }) =>
+    call('menu', {
+      action: 'saveMenuPlan',
+      id: Number(id) || 0,
+      name,
+      location_id: Number(locationId) || 0,
+      status: Number(status) === 0 ? 0 : 1,
+      start_date: startDate,
+      end_date: endDate,
+      days: Array.isArray(days) ? days : [],
+    }),
+  /**
+   * 菜单配置：删除菜单计划（连带删除其全部菜品明细）
+   * @param {{ id: number|string }} params
+   * @returns {Promise<*>}
+   */
+  deleteMenuPlan: ({ id }) =>
+    call('menu', { action: 'deleteMenuPlan', id: Number(id) || 0 }),
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -274,11 +322,53 @@ const KitchenAPI = {
 // ═══════════════════════════════════════════════════════════
 const NoticeAPI = {
   /**
-   * 获取最新公告（云函数，按 location/dept 换算归属）
+   * 获取最新公告
    * @param {object} [params]
+   * @param {number} [params.location_id] 优先按 location_id 过滤
+   * @param {number} [params.dept_id] 未传 location_id 时按 dept_id 反查 sys_dept.location_id
    * @returns {Promise<object|null>} 公告对象；无公告时 resolve null
    */
-  getLatest: (params = {}) => call('getLatestNotice', params),
+  getLatest: (params = {}) => call('notice', { action: 'getLatestNotice', ...params }),
+  /**
+   * 公告管理：查询某食堂的公告列表（含草稿，按发布时间倒序；受当前角色管理范围约束）
+   * @param {object} params
+   * @param {number|string} params.locationId      归属食堂 id
+   * @param {string} [params.keyword='']           标题 / 正文模糊匹配关键词，最大 50 字符（截断）
+   * @param {0|1|'all'} [params.status='all']      'all'=不按状态过滤，1=已发布，0=草稿
+   * @returns {Promise<{location_id: number, list: Array}>}
+   *   list 元素: { id, title, content, status, publish_time, created_by,
+   *                created_by_name, created_at, updated_at, location_id }
+   */
+  getNoticeList: ({ locationId, keyword = '', status = 'all' } = {}) =>
+    call('notice', {
+      action: 'getNoticeList',
+      location_id: Number(locationId) || 0,
+      keyword: String(keyword || ''),
+      status,
+    }),
+  /**
+   * 公告管理：新增 / 编辑公告（id 为空或 0 表示新增）
+   * @param {{ id?: number|string, title: string, content: string, status: number,
+   *           locationId: number|string, publishTime?: string }} params
+   *   status: 1=发布，0=草稿；publishTime 留空且发布时由后端取当前时间
+   * @returns {Promise<{id: number}>}
+   */
+  saveNotice: ({ id = 0, title, content, status, locationId, publishTime = '' }) =>
+    call('notice', {
+      action: 'saveNotice',
+      id: Number(id) || 0,
+      title: title || '',
+      content: content || '',
+      status: Number(status) === 1 ? 1 : 0,
+      location_id: Number(locationId) || 0,
+      publish_time: publishTime || '',
+    }),
+  /**
+   * 公告管理：删除公告
+   * @param {{ id: number|string }} params
+   * @returns {Promise<null>}
+   */
+  deleteNotice: ({ id }) => call('notice', { action: 'deleteNotice', id: Number(id) || 0 }),
 }
 
 module.exports = {

@@ -114,5 +114,4 @@
   <van-dialog id="van-dialog" />
 </view>
 
-<!-- 底部导航：员工 / 统计 / 收费 / 我的 -->
 <dept-tabbar active="profile" />

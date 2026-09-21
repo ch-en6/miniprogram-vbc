@@ -19,21 +19,18 @@ const cloudbase = cloudbaseSDK.init({
 })
 const models = cloudbase.models
 
-// meal_type 数值 -> 前端餐次字符串（与 getPriceConfig 保持一致）
 const MEAL_TYPE_NAME = {
   0: 'breakfast',
   1: 'lunch',
   2: 'dinner',
 }
 
-// 前端餐次字符串 -> meal_type 数值
 const NAME_TO_MEAL_TYPE = {
   breakfast: 0,
   lunch: 1,
   dinner: 2,
 }
 
-// 餐次列表（用于遍历 save 时的三次插入/更新/删除）
 const MEAL_NAMES = ['breakfast', 'lunch', 'dinner']
 
 /**
@@ -137,6 +134,21 @@ async function resolveEmpIdentity(openid) {
     }
   }
   return identity
+}
+
+/**
+ * 食堂是否启用（sys_location.status = 1）
+ * @param {number} locationId
+ * @returns {Promise<boolean>}
+ */
+async function isLocationEnabled(locationId) {
+  if (!locationId || locationId <= 0) return false
+  const rows = await query(
+    'SELECT `status` FROM `sys_location` WHERE `id` = {{id}} LIMIT 1',
+    { id: locationId }
+  )
+  if (!rows.length) return false
+  return Number(rows[0].status) === 1
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -322,6 +334,13 @@ async function actionSave(event) {
     lunch: Number(event.lunch) || 0,
     dinner: Number(event.dinner) || 0,
   }
+  const hasBooking = quantities.breakfast > 0 || quantities.lunch > 0 || quantities.dinner > 0
+  if (hasBooking && location_id && !(await isLocationEnabled(location_id))) {
+    console.warn(
+      '[mealOrder] 当前食堂已停用，拒绝报餐. location_id:', location_id, 'date:', date
+    )
+    return { code: -1, message: '当前食堂已停用，暂不支持报餐', data: null }
+  }
 
   // 1. 加载该部门当日启用的价格（按 meal_type 取当前生效记录）
   //    价格字段为 NULL 或非数值的记录视为无效，不入 priceMap，
@@ -489,16 +508,35 @@ async function actionRemove(event) {
 }
 
 // ──────────────────────────────────────────────────────────────────
+// Action: getLocationStatus
+//   入参：无（身份/食堂由 openid 反查）
+//   出参：{ location_id, enabled }，enabled=true 表示当前食堂可报餐
+//   语义：供员工端报餐页在提交前预判，食堂停用（status = 0）时禁止报餐；
+//        未归属食堂（location_id 为空）视为可用，保持原有报餐能力。
+// ──────────────────────────────────────────────────────────────────
+async function actionGetLocationStatus() {
+  const wxContext = cloud.getWXContext() || {}
+  const identity = await resolveEmpIdentity(wxContext.OPENID || '')
+  if (!identity) {
+    return { code: -1, message: '登录状态失效，请重新登录', data: null }
+  }
+  const location_id = identity.location_id || 0
+  const enabled = location_id ? await isLocationEnabled(location_id) : true
+  return { code: 0, message: 'success', data: { location_id, enabled } }
+}
+
+// ──────────────────────────────────────────────────────────────────
 // 入口
 // ──────────────────────────────────────────────────────────────────
 exports.main = async (event, context) => {
   const { action } = event || {}
   try {
     switch (action) {
-      case 'getRange':         return await actionGetRange(event)
-      case 'getMonth':         return await actionGetMonth(event)
-      case 'save':             return await actionSave(event)
-      case 'remove':           return await actionRemove(event)
+      case 'getRange':            return await actionGetRange(event)
+      case 'getMonth':            return await actionGetMonth(event)
+      case 'getLocationStatus':   return await actionGetLocationStatus()
+      case 'save':                return await actionSave(event)
+      case 'remove':              return await actionRemove(event)
       default:
         return { code: -1, message: `未知 action: ${action}`, data: null }
     }

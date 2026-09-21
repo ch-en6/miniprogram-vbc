@@ -18,6 +18,7 @@ Page({
     statList: [],
     statLoading: false,
     hasQueried: false,
+    hasPermission: true, 
   },
 
   async onShow() {
@@ -27,20 +28,26 @@ Page({
     const s = state.stats
     // 本页记忆过部门则恢复，否则用默认（用户所在部门优先）
     const idx = typeof s.deptIndex === 'number' ? s.deptIndex : store.defaultDeptIndex()
+    const depts = state.depts || []
     this.setData({
-      depts: state.depts,
+      depts,
       currentDeptIndex: idx,
       startDate: s.startDate,
       endDate: s.endDate,
       quickType: s.quickType,
       pickerStart: s.pickerStart,
       pickerEnd: s.pickerEnd,
+      hasPermission: depts.length > 0,
     })
     this._ensureFreshList()
   },
 
   // 结果与当前条件一致则先秒显缓存再静默刷新；否则带加载态查询
   _ensureFreshList() {
+    if (!this.data.hasPermission) {
+      this.setData({ statList: [], statLoading: false, hasQueried: false })
+      return
+    }
     const s = state.stats
     const key = this._resultKey()
     const cached = s.hasQueried && s.resultKey === key
@@ -182,8 +189,23 @@ Page({
     })
   },
 
+  // ── 下拉刷新：按当前生效条件（部门 + 日期区间）重查 ──
+  async onPullDownRefresh() {
+    // 强制重拉部门/食堂列表（启用/停用状态可能已被修改）并同步页面
+    await store.refreshDepts()
+    const depts = state.depts || []
+    this.setData({ depts, hasPermission: depts.length > 0 })
+    if (!this.data.hasPermission) {
+      wx.stopPullDownRefresh()
+      return
+    }
+    await this._loadStatList(true)
+    wx.stopPullDownRefresh()
+  },
+
   // 加载统计列表；silent=true 时不展示加载态（用于缓存命中后的静默刷新）
   _loadStatList(silent) {
+    if (!this.data.hasPermission) return
     const { startDate, endDate } = this.data
     if (!startDate || !endDate) return
     const { depts, currentDeptIndex } = this.data
@@ -192,7 +214,7 @@ Page({
 
     if (!silent) this.setData({ statLoading: true })
 
-    KitchenAPI.getStatRange({ startDate, endDate, deptId })
+    return KitchenAPI.getStatRange({ startDate, endDate, deptId })
       .then(res => {
         const statList = (res && res.days) || []
         this.setData({ statList, statLoading: false, hasQueried: true })
@@ -218,6 +240,10 @@ Page({
   },
 
   onExport() {
+    if (!this.data.hasPermission) {
+      wx.showToast({ title: '当前账号暂无管理任何部门', icon: 'none' })
+      return
+    }
     const { startDate, endDate, depts, currentDeptIndex, statList } = this.data
     if (!statList || statList.length === 0) {
       wx.showToast({ title: '暂无数据可导出', icon: 'none' })

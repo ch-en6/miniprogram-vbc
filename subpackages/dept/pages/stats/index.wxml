@@ -2,6 +2,8 @@
 
 <view class="page-pad">
 
+  <block wx:if="{{ hasPermission }}">
+
   <!-- 部门选择 -->
   <view class="dept-selector">
     <text class="dept-label">当前部门：</text>
@@ -111,7 +113,11 @@
     </view>
   </view>
   </block>
+
+  </block>
+
+  <!-- 无部门权限时显示空态 -->
+  <van-empty wx:else description="当前账号暂无管理的部门" image="search" />
 </view>
 
-<!-- 底部导航：员工 / 统计 / 收费 / 我的 -->
 <dept-tabbar active="stats" />

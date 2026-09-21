@@ -1,0 +1,233 @@
+<!-- subpackages/dept/pages/menu/index.wxml — 部门工作台 · 菜单配置 -->
+<view class="page-pad">
+
+  <!-- 当前食堂 -->
+  <view class="dept-selector" wx:if="{{ hasPermission }}">
+    <text class="dept-label">当前食堂：</text>
+    <picker
+      mode="selector"
+      range="{{ locations }}"
+      range-key="name"
+      value="{{ currentLocationIndex }}"
+      bindchange="onLocationChange"
+    >
+      <text class="dept-picker">{{ locations[currentLocationIndex].name }} ▾</text>
+    </picker>
+  </view>
+
+  <!-- 操作卡 -->
+  <view class="tool-card" wx:if="{{ hasPermission }}">
+    <view class="tool-actions">
+      <!-- 当前所选食堂停用（sys_location.status=0）时禁用新增：与员工页「新增员工」同款交互 -->
+      <view
+        class="ws-btn-style ws-btn-primary {{ canAddPlan ? '' : 'ws-btn-style-disabled' }}"
+        hover-class="{{ canAddPlan ? 'ws-btn-primary-hover' : 'none' }}"
+        bindtap="onAddPlan"
+      >新增菜单计划</view>
+    </view>
+  </view>
+
+  <!-- 菜单计划列表 -->
+  <view class="plan-list" wx:if="{{ hasPermission && planList.length }}">
+    <view
+      class="plan-item"
+      wx:for="{{ planList }}"
+      wx:key="id"
+    >
+      <view class="plan-head">
+        <text class="plan-name">{{ item.name }}</text>
+        <view class="plan-badges">
+          <view class="{{ item.status === 1 ? 'badge badge-green' : 'badge badge-gray' }}">
+            {{ item.status === 1 ? '启用' : '停用' }}
+          </view>
+          <view class="badge badge-active" wx:if="{{ item.is_active }}">当前生效</view>
+          <view class="badge badge-blue" wx:elif="{{ item.in_range }}">有效期内</view>
+          <view class="badge badge-orange" wx:elif="{{ item.not_started }}">未开始</view>
+          <view class="badge badge-red" wx:elif="{{ item.expired }}">已过期</view>
+        </view>
+      </view>
+      <view class="plan-period">
+        <van-icon name="calendar-o" size="14px" color="#969799" />
+        <text class="plan-period-text">{{ item.start_date }} 至 {{ item.end_date }}</text>
+      </view>
+      <view class="plan-foot">
+        <text class="plan-count">共 {{ item.dish_count }} 道菜品</text>
+        <view class="plan-btns">
+          <view class="list-btn" hover-class="list-btn-hover" data-id="{{ item.id }}" bindtap="onEditPlan">编辑</view>
+          <view class="list-btn list-btn-danger" hover-class="list-btn-danger-hover" data-id="{{ item.id }}" bindtap="onDeletePlan">删除</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 有计划但当前无一生效（全部停用、或今天不在任何计划的起止区间内） -->
+  <view class="list-hint" wx:if="{{ hasPermission && planList.length && !activePlanId }}">
+    当前没有正在生效的菜单计划：需同时满足「已启用」且今天在起止日期内，员工端才会展示。
+  </view>
+
+  <!-- 加载中 / 空态 -->
+  <view class="list-loading" wx:if="{{ hasPermission && loading }}">加载中…</view>
+  <view class="list-empty" wx:if="{{ hasPermission && !loading && !planList.length }}">
+    <van-empty description="该食堂暂无菜单计划" />
+  </view>
+
+  <!-- 无权限 -->
+  <view class="no-perm" wx:if="{{ !hasPermission }}">
+    <van-empty description="当前账号暂无可管理的食堂，请联系管理员" />
+  </view>
+
+  <!-- 新增 / 编辑弹窗 -->
+  <van-popup
+    show="{{ showForm }}"
+    position="bottom"
+    round
+    closeable
+    safe-area-inset-bottom
+    close-on-click-overlay="{{ !saving }}"
+    bind:close="onFormClose"
+  >
+    <view class="form-sheet">
+      <!-- 表头固定：仅中间表单区域滚动 -->
+      <view class="form-title">{{ formTitle }}</view>
+
+      <view class="form-scroll">
+      <van-loading wx:if="{{ loadingDetail }}" custom-class="form-loading" size="28rpx" color="#1989fa">加载中…</van-loading>
+
+      <block wx:else>
+        <van-cell-group inset custom-class="form-group">
+          <van-field
+            label="菜单名称"
+            placeholder="可直接输入数字编号（1、2、3）"
+            value="{{ form.name }}"
+            maxlength="30"
+            data-field="name"
+            bind:change="onFormFieldChange"
+          />
+        </van-cell-group>
+
+        <!-- 所属食堂：仅启用中（status=1）的食堂可选
+             原食堂已停用时锁定展示，防止保存时被静默挪走 -->
+        <view class="form-row">
+          <text class="form-label">所属食堂</text>
+          <picker
+            wx:if="{{ !formLocationLocked }}"
+            mode="selector"
+            range="{{ formLocations }}"
+            range-key="name"
+            value="{{ formLocationIndex }}"
+            bindchange="onFormLocationChange"
+          >
+            <view class="form-picker">
+              <text class="form-picker-text">{{ formLocations[formLocationIndex].name || '请选择' }}</text>
+              <text class="form-picker-arrow">▾</text>
+            </view>
+          </picker>
+          <view class="form-picker" wx:else>
+            <text class="form-picker-text">{{ formLocationName }}（已停用）</text>
+          </view>
+        </view>
+
+        <view class="form-row">
+          <text class="form-label">开始日期</text>
+          <picker mode="date" value="{{ form.start_date }}" end="{{ form.end_date }}" bindchange="onStartDateChange">
+            <view class="form-picker">
+              <text class="form-picker-text">{{ form.start_date || '请选择' }}</text>
+              <text class="form-picker-arrow">▾</text>
+            </view>
+          </picker>
+        </view>
+
+        <view class="form-row">
+          <text class="form-label">结束日期</text>
+          <picker mode="date" value="{{ form.end_date }}" start="{{ form.start_date }}" bindchange="onEndDateChange">
+            <view class="form-picker">
+              <text class="form-picker-text">{{ form.end_date || '请选择' }}</text>
+              <text class="form-picker-arrow">▾</text>
+            </view>
+          </picker>
+        </view>
+
+        <view class="form-row">
+          <text class="form-label">是否启用</text>
+          <van-switch
+            checked="{{ form.status === 1 }}"
+            size="24"
+            active-color="#1989fa"
+            inactive-color="#dcdee0"
+            bind:change="onFormStatusChange"
+          />
+        </view>
+
+        <view class="dish-title">菜品安排</view>
+        <view class="dish-tabs">
+          <van-tabs
+            active="{{ dayTabIndex }}"
+            swipeable="{{ false }}"
+            animated="{{ false }}"
+            bind:change="onDayTabChange"
+          >
+            <van-tab wx:for="{{ days }}" wx:key="day_of_week" title="{{ item.label }}">
+              <view class="dish-body">
+                <van-cell-group inset custom-class="form-group">
+                  <van-field
+                    label="早餐"
+                    placeholder="如：包子、豆浆、鸡蛋"
+                    value="{{ item.bf }}"
+                    maxlength="100"
+                    data-day="{{ index }}"
+                    data-meal="bf"
+                    bind:change="onDishChange"
+                  />
+                  <van-field
+                    label="午餐"
+                    placeholder="如：红烧肉、青菜、米饭"
+                    value="{{ item.lunch }}"
+                    maxlength="100"
+                    data-day="{{ index }}"
+                    data-meal="lunch"
+                    bind:change="onDishChange"
+                  />
+                  <van-field
+                    label="晚餐"
+                    placeholder="如：番茄鸡蛋面"
+                    value="{{ item.dinner }}"
+                    maxlength="100"
+                    data-day="{{ index }}"
+                    data-meal="dinner"
+                    bind:change="onDishChange"
+                  />
+                </van-cell-group>
+              </view>
+            </van-tab>
+          </van-tabs>
+        </view>
+      </block>
+      </view>
+
+      <!-- 底部按钮固定：不随表单滚动 -->
+      <view class="form-actions">
+        <van-button
+          size="normal"
+          plain
+          hairline
+          type="default"
+          bindtap="onFormClose"
+          disabled="{{ saving }}"
+          custom-class="form-btn"
+        >取消</van-button>
+        <van-button
+          size="normal"
+          type="primary"
+          loading="{{ saving }}"
+          bindtap="onFormSubmit"
+          custom-class="form-btn"
+        >{{ formMode === 'edit' ? '保存' : '确定' }}</van-button>
+      </view>
+    </view>
+  </van-popup>
+
+  <dept-tabbar active="menu" />
+
+  <van-toast id="van-toast" />
+  <van-dialog id="van-dialog" />
+</view>

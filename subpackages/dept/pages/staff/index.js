@@ -77,13 +77,14 @@ Page({
   },
 
   // 拉取员工列表（按当前选中部门 + 搜索关键字）
-  async _loadStaffList() {
+  // silent=true 时不切换页内 loading（供下拉刷新使用，避免与原生刷新指示器重复）
+  async _loadStaffList(silent = false) {
     if (!this.data.hasPermission) {
       this.setData({ staffList: [] })
       return
     }
     const dept = this.data.depts[this.data.currentDeptIndex] || {}
-    this.setData({ loading: true })
+    if (!silent) this.setData({ loading: true })
     try {
       const { list } = await KitchenAPI.getStaffList({
         deptId: dept.dept_id || 0,
@@ -94,8 +95,23 @@ Page({
       this.setData({ staffList: [] })
       Toast(err.message || '加载员工失败')
     } finally {
-      this.setData({ loading: false })
+      if (!silent) this.setData({ loading: false })
     }
+  },
+
+  // ── 下拉刷新：按当前部门 + 搜索词重查 ────────────────
+  async onPullDownRefresh() {
+    if (!this.data.hasPermission) {
+      wx.stopPullDownRefresh()
+      return
+    }
+    const keyword = (this.data.searchKey || '').trim()
+    if (keyword !== this.data.searchKey) this.setData({ searchKey: keyword })
+    store.setStaff({ searchKey: keyword })
+    // 强制重拉部门/食堂列表（启用/停用状态可能已被修改），再重新初始化页面
+    await store.refreshDepts()
+    await this._ensureDeptsAndLoad()
+    wx.stopPullDownRefresh()
   },
 
   // ── 部门选择 ────────────────────────────────────────

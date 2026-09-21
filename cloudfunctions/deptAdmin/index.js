@@ -155,35 +155,46 @@ function buildLocClause(locations) {
 // ──────────────────────────────────────────────────────────────────
 async function actionGetMyDepts() {
   const wxContext = cloud.getWXContext() || {}
-  const locations = await resolveRoleLocations(wxContext.OPENID || '')
+  const openid = wxContext.OPENID || ''
+  const { roleId, roleCode } = await resolveIdentity(openid)
+  const isSysAdmin = !!roleId && roleCode === 'sysAdmin'
+  const locations = await resolveRoleLocations(openid)
   if (!locations.length) {
     return { code: 0, message: 'success', data: { locations: [], depts: [] } }
   }
   const { ph: locPh, params: locParams } = buildLocClause(locations)
 
-  // 1. 角色管理的食堂
+  // 1. 角色管理的食堂（sysAdmin 经 resolveRoleLocations 已得到全部食堂）
   const locRows = await query(
-    'SELECT `id`, `name` FROM `sys_location` WHERE `id` IN (' + locPh + ')',
+    'SELECT `id`, `name`, `status` FROM `sys_location` WHERE `id` IN (' + locPh + ')',
     locParams
   )
   const locationsInfo = locRows.map(r => ({
     id: Number(r.id),
     name: (r.name && String(r.name)) || '',
+    status: Number(r.status) || 0,
   }))
 
-  // 2. 归属这些食堂的部门（sys_dept.location_id 指向食堂）
+  // 2. 部门列表（sys_dept.location_id 指向食堂）
+  //    sysAdmin：全部部门（含 location_id 为空的历史部门）
+  //    其他角色：仅归属其管辖食堂的部门
   //    读放行：停用部门（status=0）也返回，供列表筛选查看历史员工；
   //    "新增员工"表单由前端按 status 过滤，后端 addStaff 另有启用校验兜底
-  const deptRows = await query(
-    'SELECT `id`, `name`, `location_id`, `status` FROM `sys_dept` ' +
-    'WHERE `location_id` IN (' + locPh + ') ' +
-    'ORDER BY `location_id` ASC, `id` ASC',
-    locParams
-  )
+  const deptRows = isSysAdmin
+    ? await query(
+        'SELECT `id`, `name`, `location_id`, `status` FROM `sys_dept` ' +
+        'ORDER BY `location_id` ASC, `id` ASC'
+      )
+    : await query(
+        'SELECT `id`, `name`, `location_id`, `status` FROM `sys_dept` ' +
+        'WHERE `location_id` IN (' + locPh + ') ' +
+        'ORDER BY `location_id` ASC, `id` ASC',
+        locParams
+      )
   const depts = deptRows.map(r => ({
     dept_id: Number(r.id),
     dept_name: (r.name && String(r.name)) || '',
-    location_id: Number(r.location_id),
+    location_id: Number(r.location_id) || 0,
     status: Number(r.status) || 0,
   }))
 

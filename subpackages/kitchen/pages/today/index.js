@@ -95,26 +95,27 @@ Page({
     this._loadDeptName()
   },
 
-  // ─── 下拉刷新（替代原自定义导航栏的「刷新」按钮） ─────────────
+  // ─── 下拉刷新 ─────────────
 
   onPullDownRefresh() {
     if (this.data.activeTab === 'search') {
       // 查询 tab：如果有已查询的结果，重新执行查询；否则加载汇总数据
       if (this.data.personSearchResult !== null && this.data.searchKeyword) {
-        this._doPersonSearch(this.data.searchKeyword)
+        this._doPersonSearch(this.data.searchKeyword, { silent: true })
       } else {
-        this._loadAllData()
+        this._loadAllData({ silent: true })
       }
     } else {
-      this._loadAllData()
+      this._loadAllData({ silent: true })
     }
-    setTimeout(() => wx.stopPullDownRefresh(), 500)
   },
 
   // ─── 数据加载 ───────────────────────────────────────────────
 
-  _loadAllData() {
-    this.setData({ loading: true })
+  _loadAllData(opts = {}) {
+    if (!opts.silent) {
+      this.setData({ loading: true })
+    }
 
     Promise.all([
       KitchenAPI.getTodaySummary(this.data.todayDate),
@@ -131,6 +132,10 @@ Page({
         console.error('[Kitchen Today]', e)
         wx.showToast({ title: '加载失败，请下拉刷新', icon: 'none' })
         this.setData({ loading: false })
+      })
+      .finally(() => {
+        // 关闭原生下拉刷新头
+        wx.stopPullDownRefresh()
       })
   },
 
@@ -277,12 +282,14 @@ Page({
     this._doPersonSearch(keyword)
   },
 
-  _doPersonSearch(keyword) {
+  _doPersonSearch(keyword, opts = {}) {
     const mealFilter = this.data.searchMealFilter
     const searchDate = this.data.todayDate
     const dateLabel = this.data.todayLabel
 
-    this.setData({ loading: true })
+    if (!opts.silent) {
+      this.setData({ loading: true })
+    }
 
     const apiCall = KitchenAPI.searchByKeyword(keyword, searchDate, mealFilter || undefined)
 
@@ -335,6 +342,10 @@ Page({
           personSearchResult: null,
           loading: false,
         })
+      })
+      .finally(() => {
+        // 静默模式下需要主动关闭原生下拉刷新头
+        if (opts.silent) wx.stopPullDownRefresh()
       })
   },
 

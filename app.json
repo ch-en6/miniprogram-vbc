@@ -21,6 +21,8 @@
       "name": "dept",
       "pages": [
         "pages/staff/index",
+        "pages/menu/index",
+        "pages/notice/index",
         "pages/stats/index",
         "pages/billing/index",
         "pages/profile/index"

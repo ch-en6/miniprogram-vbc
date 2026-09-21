@@ -30,24 +30,30 @@ const MEAL_TYPE_NAME = {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// 权限解析：根据 openid 反查角色关联的食堂 location_id 列表
+// 权限解析：根据 openid 反查身份与角色关联的食堂 location_id 列表
 //   sys_emp.role_id -> sys_role_location.role_id -> location_id[]
 // 返回 Number(location_id) 数组；无角色/未配置食堂时返回 []（调用方按无权限处理）
 // ──────────────────────────────────────────────────────────────────
 /**
- * 根据 openid 反查身份：role_id + emp_id
- * 返回 { roleId, empId }；未查到角色时 roleId = 0
+ * 根据 openid 反查身份：role_id + emp_id + role_code
+ * 返回 { roleId, empId, roleCode }；未查到角色时 roleId = 0、roleCode = ''
  */
 async function resolveIdentity(openid) {
-  if (!openid) return { roleId: 0, empId: 0 }
+  if (!openid) return { roleId: 0, empId: 0, roleCode: '' }
   const emps = await query(
-    'SELECT `id`, `role_id` FROM `sys_emp` WHERE `_openid` = {{openid}} LIMIT 1',
+    'SELECT e.`id`, e.`role_id`, COALESCE(r.`code`, \'\') AS role_code ' +
+    'FROM `sys_emp` e ' +
+    'LEFT JOIN `sys_role` r ON r.`id` = e.`role_id` AND r.`status` = 1 ' +
+    'WHERE e.`_openid` = {{openid}} AND e.`status` = 1 LIMIT 1',
     { openid }
   )
-  if (!emps.length) return { roleId: 0, empId: 0 }
+  if (!emps.length) return { roleId: 0, empId: 0, roleCode: '' }
+  const rawRoleId = Number(emps[0].role_id) || 0
+  const roleCode = String(emps[0].role_code || '')
   return {
-    roleId: Number(emps[0].role_id) || 0,
+    roleId: roleCode ? rawRoleId : 0,
     empId: Number(emps[0].id) || 0,
+    roleCode,
   }
 }
 
@@ -55,10 +61,16 @@ async function resolveIdentity(openid) {
  * 根据 openid 反查角色关联的食堂 location_id 列表
  *   sys_emp.role_id -> sys_role_location.role_id -> location_id[]
  * 返回 Number(location_id) 数组；无角色/未配置食堂时返回 []（调用方按无权限处理）
+ * @param {string} openid
+ * @param {{ roleId: number, roleCode: string }} [identity] 已解析身份时传入，避免重复查询
  */
-async function resolveRoleLocations(openid) {
-  const { roleId } = await resolveIdentity(openid)
+async function resolveRoleLocations(openid, identity) {
+  const { roleId, roleCode } = identity || await resolveIdentity(openid)
   if (!roleId) return []
+  if (roleCode === 'sysAdmin') {
+    const all = await query('SELECT `id` FROM `sys_location`')
+    return all.map(r => Number(r.id)).filter(id => id > 0)
+  }
   const rows = await query(
     'SELECT `location_id` FROM `sys_role_location` WHERE `role_id` = {{role_id}}',
     { role_id: roleId }
@@ -71,7 +83,13 @@ async function resolveRoleLocations(openid) {
  *   resolveRoleLocations -> sys_dept.location_id IN (食堂) -> dept_id[]
  */
 async function resolveRoleDeptIds(openid) {
-  const locations = await resolveRoleLocations(openid)
+  const identity = await resolveIdentity(openid)
+  if (!identity.roleId) return []
+  if (identity.roleCode === 'sysAdmin') {
+    const all = await query('SELECT `id` FROM `sys_dept`')
+    return all.map(r => Number(r.id)).filter(id => id > 0)
+  }
+  const locations = await resolveRoleLocations(openid, identity)
   if (!locations.length) return []
   const { ph, params } = buildLocClause(locations)
   const deptRows = await query(

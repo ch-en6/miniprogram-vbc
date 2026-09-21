@@ -1,0 +1,426 @@
+/* subpackages/dept/pages/notice/index.wxss — 公告管理页 */
+
+page {
+  background: #f5f6f8;
+  --brand: #1989fa;
+  --brand-dark: #0570db;
+  --text-1: #323233;
+  --text-2: #646566;
+  --text-3: #969799;
+  --line: #ebedf0;
+}
+
+/* 页面容器：底部为固定 Tab 栏预留空间 */
+.page-pad {
+  padding: 24rpx 24rpx calc(140rpx + env(safe-area-inset-bottom));
+}
+
+/* ── 食堂选择（与菜单页「当前食堂」同款） ── */
+.dept-selector {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  padding: 20rpx 24rpx;
+  border-radius: 24rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
+}
+
+.dept-label {
+  font-size: 26rpx;
+  color: var(--text-3);
+  margin-right: 12rpx;
+}
+
+.dept-picker {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--brand);
+}
+
+/* ── 操作工具卡（白卡 + 蓝色按钮，风格对齐菜单页） ── */
+.tool-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 20rpx 24rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
+}
+
+.tool-actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 20rpx;
+}
+
+/* ── 搜索行：方形灰底输入 + 右侧查询按钮（与员工页 .tool-search-row 完全一致） ── */
+.tool-search-row {
+  display: flex;
+  align-items: center;
+}
+
+.search-box {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  background: #f5f6f8;
+  border-radius: 8rpx;
+  padding: 12rpx 20rpx;
+  margin-right: 16rpx;
+  min-width: 0;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: var(--text-1);
+  margin: 0 12rpx;
+  min-width: 0;
+}
+
+/* 查询按钮尺寸由 wxml 内 van-button 的 custom-style 控制（对齐员工页 112×58），此处不再重复定义 */
+
+/* ── 状态筛选胶囊：全部 / 已发布 / 草稿（样式对齐统计页 .quick-btn 快捷日期范围） ── */
+.status-tabs {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 20rpx;
+  padding: 8rpx 0 4rpx;
+}
+
+.status-tab {
+  flex: 1;
+  text-align: center;
+  font-size: 26rpx;
+  color: var(--text-2);
+  background: #f5f6f8;
+  border-radius: 999rpx;         /* 完全圆胶囊 */
+  padding: 12rpx 0;
+  box-sizing: border-box;
+}
+
+.status-tab-hover {
+  background: #ecf5ff;
+}
+
+.status-tab-active {
+  background: #ecf5ff;
+  color: var(--brand);
+  font-weight: 600;
+}
+
+.ws-btn-style {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 24rpx;
+  line-height: 1.3;
+  border-radius: 8rpx;
+  padding: 12rpx 0;
+  box-sizing: border-box;
+  background: #fff;
+  color: #1989fa;
+  border: 1px solid #1989fa;
+}
+
+.ws-btn-primary {
+  background: #1989fa;
+  color: #fff;
+  border-color: #1989fa;
+}
+
+.ws-btn-primary-hover {
+  background: #0570db;
+  border-color: #0570db;
+}
+
+.ws-btn-style-disabled {
+  background: #f7f8fa;
+  color: #c8c9cc;
+  border-color: #e5e5e5;
+}
+
+/* ── 公告列表 ── */
+.notice-list {
+  margin-top: 8rpx;
+}
+
+.notice-item {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
+}
+
+.notice-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.notice-badges {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  flex-shrink: 0;
+}
+
+.notice-title {
+  flex: 1;
+  min-width: 0;
+  margin-right: 16rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 状态胶囊：浅底深字全圆角（与菜单页 badge 同风格） */
+.badge {
+  display: flex;
+  align-items: center;
+  font-size: 22rpx;
+  font-weight: 500;
+  line-height: 1;
+  padding: 8rpx 16rpx;
+  border-radius: 100rpx;
+  flex-shrink: 0;
+}
+
+.badge-green {
+  background: #e8f7ef;
+  color: #07c160;
+}
+
+.badge-gray {
+  background: #f2f3f5;
+  color: #969799;
+}
+
+.notice-time {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-top: 12rpx;
+}
+
+.notice-time-text {
+  font-size: 26rpx;
+  color: var(--text-3);
+}
+
+/* 正文：默认折叠 3 行，点击展开全文 */
+.notice-content {
+  margin-top: 16rpx;
+  font-size: 28rpx;
+  line-height: 1.6;
+  color: var(--text-2);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.notice-content-fold {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.notice-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20rpx;
+}
+
+.notice-author {
+  flex: 1;
+  min-width: 0;
+  font-size: 24rpx;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notice-btns {
+  display: flex;
+  gap: 16rpx;
+  flex-shrink: 0;
+  margin-left: 16rpx;
+}
+
+/* 列表操作按钮：样式对齐菜单页（方形白底 + 1px 蓝框 + 蓝字） */
+.list-btn {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 24rpx;
+  line-height: 1.3;
+  border-radius: 8rpx;
+  padding: 12rpx 30rpx;
+  box-sizing: border-box;
+  background: #fff;
+  color: #1989fa;
+  border: 1px solid #1989fa;
+  white-space: nowrap;
+}
+
+.list-btn-hover {
+  background: #ecf5ff;
+}
+
+.list-btn-danger {
+  color: #ee0a24;
+  border-color: #ee0a24;
+}
+
+.list-btn-danger-hover {
+  background: #fef0f0;
+}
+
+/* 空 / 加载中 */
+.list-loading {
+  padding: 60rpx 0;
+  text-align: center;
+  font-size: 26rpx;
+  color: var(--text-3);
+}
+
+.list-hint {
+  margin-top: 4rpx;
+  padding: 0 8rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: var(--text-3);
+}
+
+.list-empty,
+.no-perm {
+  padding: 40rpx 0 0;
+}
+
+/* ─────────── 表单弹窗（底部弹出） ─────────── */
+.form-sheet {
+  background: #fff;
+  padding: 32rpx 0 0;
+  border-radius: 32rpx 32rpx 0 0;
+  max-height: 78vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.form-title {
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--text-1);
+  margin-bottom: 24rpx;
+}
+
+/* 中间滚动区 */
+.form-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.form-group {
+  margin: 0 24rpx 16rpx !important;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  margin: 0 24rpx 16rpx;
+  padding: 28rpx 24rpx;
+  border-radius: 16rpx;
+}
+
+.form-label {
+  font-size: 28rpx;
+  color: var(--text-1);
+  flex-shrink: 0;
+}
+
+.form-picker {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.form-picker-text {
+  font-size: 28rpx;
+  line-height: 1;
+  color: var(--text-1);
+  max-width: 360rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.form-picker-placeholder {
+  font-size: 28rpx;
+  line-height: 1;
+  color: var(--text-3);
+}
+
+.form-picker-arrow {
+  font-size: 24rpx;
+  line-height: 1;
+  color: var(--text-3);
+}
+
+/* 发布时间：日期 + 时刻 + 清空 */
+.form-time {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.form-time .form-picker-text,
+.form-time .form-picker-placeholder,
+.form-time .form-clear {
+  font-size: 28rpx;
+  line-height: 40rpx;
+}
+
+.form-time .form-clear {
+  flex-shrink: 0;
+  color: var(--text-3);
+}
+
+.form-tip {
+  margin: 0 32rpx 16rpx;
+  font-size: 22rpx;
+  line-height: 1.5;
+  color: var(--text-3);
+}
+
+.form-actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: 24rpx;
+  padding: 16rpx 24rpx 24rpx;
+  border-top: 1rpx solid var(--line);
+  background: #fff;
+}
+
+/* 表单按钮（van-button）：等分并排 */
+.form-btn {
+  flex: 1;
+}

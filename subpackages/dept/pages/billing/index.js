@@ -14,6 +14,7 @@ Page({
     billingList: [],
     totalAmount: 0,
     hasQueried: false,
+    hasPermission: true, 
   },
 
   async onShow() {
@@ -23,11 +24,13 @@ Page({
     const b = state.billing
     // 本页记忆过部门则恢复，否则用默认（用户所在部门优先）
     const idx = typeof b.deptIndex === 'number' ? b.deptIndex : store.defaultDeptIndex()
+    const depts = state.depts || []
     this.setData({
-      depts: state.depts,
+      depts,
       currentDeptIndex: idx,
       selectedMonth: b.selectedMonth,
       monthPickerEnd: b.monthPickerEnd,
+      hasPermission: depts.length > 0,
     })
     this._ensureFreshResult()
   },
@@ -114,8 +117,23 @@ Page({
     this._loadBilling(false)
   },
 
+  // ── 下拉刷新：按当前部门 + 月份重查 ──────────────────
+  async onPullDownRefresh() {
+    // 强制重拉部门/食堂列表（启用/停用状态可能已被修改）并同步页面
+    await store.refreshDepts()
+    const depts = state.depts || []
+    this.setData({ depts, hasPermission: depts.length > 0 })
+    if (!this.data.hasPermission) {
+      wx.stopPullDownRefresh()
+      return
+    }
+    await this._loadBilling(true)
+    wx.stopPullDownRefresh()
+  },
+
   // 加载收费账单
   _loadBilling(silent) {
+    if (!this.data.hasPermission) return
     const { selectedMonth, monthPickerEnd, depts, currentDeptIndex } = this.data
     if (!selectedMonth) return
     // 兜底：禁查未来月份（正常由 picker end 限制，此处防极端情况）
@@ -125,7 +143,8 @@ Page({
 
     if (!silent) this.setData({ billingLoading: true })
 
-    KitchenAPI.getMonthBilling({ month: selectedMonth, deptId: dept.dept_id })
+    // 返回 Promise，便于下拉刷新 await 到请求真正结束再收起原生指示器
+    return KitchenAPI.getMonthBilling({ month: selectedMonth, deptId: dept.dept_id })
       .then(res => {
         const billingList = (res && res.list) || []
         const totalAmount = (res && res.totalAmount) || 0
@@ -164,6 +183,10 @@ Page({
   },
 
   onExportBilling() {
+    if (!this.data.hasPermission) {
+      wx.showToast({ title: '当前账号暂无管理任何部门', icon: 'none' })
+      return
+    }
     const { selectedMonth, depts, currentDeptIndex, billingList } = this.data
     if (!billingList || billingList.length === 0) {
       wx.showToast({ title: '暂无数据可导出', icon: 'none' })

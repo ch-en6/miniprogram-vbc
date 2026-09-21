@@ -1,4 +1,4 @@
-<!-- subpackages/dept/components/dept-tabbar/index.wxml — 部门工作台底部导航（4 Tab，独立页互切） -->
+<!-- subpackages/dept/components/dept-tabbar/index.wxml — 部门工作台底部导航 -->
 <van-tabbar active="{{ active }}" active-color="#1989fa" inactive-color="#7b8794" bind:change="onSwitch">
   <van-tabbar-item wx:for="{{ items }}" wx:key="key" name="{{ item.key }}" icon="{{ item.icon }}">{{ item.label }}</van-tabbar-item>
 </van-tabbar>

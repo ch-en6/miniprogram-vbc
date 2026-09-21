@@ -1,0 +1,242 @@
+<!-- subpackages/dept/pages/notice/index.wxml — 部门工作台 · 公告管理 -->
+<view class="page-pad">
+
+  <!-- 当前食堂 -->
+  <view class="dept-selector" wx:if="{{ hasPermission }}">
+    <text class="dept-label">当前食堂：</text>
+    <picker
+      mode="selector"
+      range="{{ locations }}"
+      range-key="name"
+      value="{{ currentLocationIndex }}"
+      bindchange="onLocationChange"
+    >
+      <text class="dept-picker">{{ locations[currentLocationIndex].name }} ▾</text>
+    </picker>
+  </view>
+
+  <!-- 操作卡：搜索 + 状态筛选 + 新增按钮 -->
+  <view class="tool-card" wx:if="{{ hasPermission }}">
+    <!-- 关键词搜索：与员工页同款灰底方块 + 蓝色实心「查询」按钮（高度 58rpx） -->
+    <view class="tool-search-row">
+      <view class="search-box">
+        <van-icon name="search" size="16px" color="#969799" />
+        <input
+          class="search-input"
+          type="text"
+          value="{{ searchKey }}"
+          placeholder="搜索标题或内容"
+          placeholder-style="color:#969799;font-size:28rpx;"
+          confirm-type="search"
+          bindinput="onSearchInput"
+          bindconfirm="onNoticeSearch"
+        />
+        <van-icon
+          wx:if="{{ searchKey }}"
+          name="clear"
+          size="14px"
+          color="#c8c9cc"
+          bindtap="onNoticeClear"
+        />
+      </view>
+      <van-button
+        type="primary"
+        size="mini"
+        custom-style="width:112rpx;height:58rpx;padding:0;font-size:26rpx;flex-shrink:0;box-sizing:border-box;line-height:58rpx;"
+        bindtap="onNoticeSearch"
+      >查询</van-button>
+    </view>
+
+    <!-- 状态筛选：全部 / 已发布 / 草稿 -->
+    <view class="status-tabs">
+      <view
+        class="{{ 'status-tab' + (statusFilter === 'all' ? ' status-tab-active' : '') }}"
+        hover-class="status-tab-hover"
+        data-status="all"
+        bindtap="onStatusFilterChange"
+      >全部</view>
+      <view
+        class="{{ 'status-tab' + (statusFilter === 1 ? ' status-tab-active' : '') }}"
+        hover-class="status-tab-hover"
+        data-status="1"
+        bindtap="onStatusFilterChange"
+      >已发布</view>
+      <view
+        class="{{ 'status-tab' + (statusFilter === 0 ? ' status-tab-active' : '') }}"
+        hover-class="status-tab-hover"
+        data-status="0"
+        bindtap="onStatusFilterChange"
+      >草稿</view>
+    </view>
+
+    <view class="tool-actions">
+      <!-- 当前所选食堂停用（sys_location.status=0）时禁用新增：与员工页「新增员工」同款交互 -->
+      <view
+        class="ws-btn-style {{ canAddNotice ? '' : 'ws-btn-style-disabled' }}"
+        hover-class="{{ canAddNotice ? 'ws-btn-style-hover' : 'none' }}"
+        bindtap="onAddNotice"
+      >新增公告</view>
+    </view>
+  </view>
+
+  <!-- 公告列表 -->
+  <view class="notice-list" wx:if="{{ hasPermission && noticeList.length }}">
+    <view class="notice-item" wx:for="{{ noticeList }}" wx:key="id">
+      <view class="notice-head">
+        <text class="notice-title">{{ item.title }}</text>
+        <view class="notice-badges">
+          <view class="{{ item.status === 1 ? 'badge badge-green' : 'badge badge-gray' }}">
+            {{ item.status === 1 ? '已发布' : '草稿' }}
+          </view>
+        </view>
+      </view>
+
+      <view class="notice-time">
+        <!-- 与菜单页 plan-period 一致：van-icon + text 平铺，靠 flex 居中对齐 -->
+        <van-icon name="clock-o" size="14px" color="#969799" />
+        <text class="notice-time-text">{{ item.status === 1 ? (item.publish_time || '未设置发布时间') : '未发布' }}</text>
+      </view>
+
+      <!-- 正文：默认折叠 3 行，点击展开 / 收起全文 -->
+      <view
+        class="notice-content {{ expandedId === item.id ? '' : 'notice-content-fold' }}"
+        data-id="{{ item.id }}"
+        bindtap="onToggleContent"
+      >{{ item.content }}</view>
+
+      <view class="notice-foot">
+        <text class="notice-author">{{ item.created_by_name ? item.created_by_name + ' 发布' : '' }}</text>
+        <view class="notice-btns">
+          <view class="list-btn" hover-class="list-btn-hover" data-id="{{ item.id }}" bindtap="onEditNotice">编辑</view>
+          <view class="list-btn list-btn-danger" hover-class="list-btn-danger-hover" data-id="{{ item.id }}" bindtap="onDeleteNotice">删除</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载中 / 空态 -->
+  <view class="list-loading" wx:if="{{ hasPermission && loading }}">加载中…</view>
+  <view class="list-empty" wx:if="{{ hasPermission && !loading && !noticeList.length }}">
+    <van-empty description="该食堂暂无公告" />
+  </view>
+
+  <!-- 无权限 -->
+  <view class="no-perm" wx:if="{{ !hasPermission }}">
+    <van-empty description="当前账号暂无可管理的食堂，请联系管理员" />
+  </view>
+
+  <!-- 新增 / 编辑弹窗 -->
+  <van-popup
+    show="{{ showForm }}"
+    position="bottom"
+    round
+    closeable
+    safe-area-inset-bottom
+    close-on-click-overlay="{{ !saving }}"
+    bind:close="onFormClose"
+  >
+    <view class="form-sheet">
+      <view class="form-title">{{ formTitle }}</view>
+
+      <view class="form-scroll">
+        <van-cell-group inset custom-class="form-group">
+          <van-field
+            label="公告标题"
+            placeholder="请输入公告标题"
+            value="{{ form.title }}"
+            maxlength="100"
+            data-field="title"
+            bind:change="onFormFieldChange"
+          />
+        </van-cell-group>
+
+        <van-cell-group inset custom-class="form-group">
+          <van-field
+            label="公告内容"
+            type="textarea"
+            placeholder="请输入公告内容"
+            value="{{ form.content }}"
+            maxlength="1000"
+            autosize="{{ true }}"
+            data-field="content"
+            bind:change="onFormFieldChange"
+          />
+        </van-cell-group>
+
+        <!-- 所属食堂：仅启用中（status=1）的食堂可选
+             原食堂已停用时锁定展示，防止保存时被静默挪走 -->
+        <view class="form-row">
+          <text class="form-label">所属食堂</text>
+          <picker
+            wx:if="{{ !formLocationLocked }}"
+            mode="selector"
+            range="{{ formLocations }}"
+            range-key="name"
+            value="{{ formLocationIndex }}"
+            bindchange="onFormLocationChange"
+          >
+            <view class="form-picker">
+              <text class="form-picker-text">{{ formLocations[formLocationIndex].name || '请选择' }}</text>
+              <text class="form-picker-arrow">▾</text>
+            </view>
+          </picker>
+          <view class="form-picker" wx:else>
+            <text class="form-picker-text">{{ formLocationName }}（已停用）</text>
+          </view>
+        </view>
+
+        <!-- 发布时间：日期 + 时刻，可整体清空
+             留空 = 草稿（员工端不可见）；填了 = 发布，所填时间即发布时间 -->
+        <view class="form-row">
+          <text class="form-label">发布时间</text>
+          <view class="form-time">
+            <picker mode="date" value="{{ form.publish_date }}" start="{{ today }}" bindchange="onPublishDateChange">
+              <view class="form-picker">
+                <text class="form-picker-text {{ form.publish_date ? '' : 'form-picker-placeholder' }}">{{ form.publish_date || '选择日期' }}</text>
+              </view>
+            </picker>
+            <picker mode="time" value="{{ form.publish_time_hm }}" start="{{ timeMin }}" bindchange="onPublishTimeChange">
+              <view class="form-picker">
+                <text class="form-picker-text {{ form.publish_time_hm ? '' : 'form-picker-placeholder' }}">{{ form.publish_time_hm || '选择时刻' }}</text>
+              </view>
+            </picker>
+            <view
+              class="form-picker"
+              wx:if="{{ form.publish_date || form.publish_time_hm }}"
+              bindtap="onClearPublishTime"
+            >
+              <text class="form-picker-text form-clear">清空</text>
+            </view>
+          </view>
+        </view>
+        <view class="form-tip">留空保存为草稿（员工端不可见）；不改动则按保存时刻发布，改动后按所填时间发布（可选未来时间定时展示，不可早于此刻）。</view>
+      </view>
+
+      <!-- 底部按钮固定：不随表单滚动 -->
+      <view class="form-actions">
+        <van-button
+          size="normal"
+          plain
+          hairline
+          type="default"
+          bindtap="onFormClose"
+          disabled="{{ saving }}"
+          custom-class="form-btn"
+        >取消</van-button>
+        <van-button
+          size="normal"
+          type="primary"
+          loading="{{ saving }}"
+          bindtap="onFormSubmit"
+          custom-class="form-btn"
+        >{{ formMode === 'edit' ? '保存' : '确定' }}</van-button>
+      </view>
+    </view>
+  </van-popup>
+
+  <!-- 底部导航：员工 / 统计 / 收费 / 菜单 / 公告 / 我的 -->
+  <dept-tabbar active="notice" />
+
+  <van-toast id="van-toast" />
+  <van-dialog id="van-dialog" />
+</view>

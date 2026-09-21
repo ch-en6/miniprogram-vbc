@@ -68,12 +68,18 @@
     </view>
   </view>
 
+  <!-- 食堂停用提示：仅提示，取消报餐仍可操作 -->
+  <view class="canteen-disabled-tip" wx:if="{{ !locationEnabled }}">
+    当前食堂已停用，暂不支持报餐
+  </view>
+
   <!-- 提交按钮 + 计费规则（同一行居中） -->
   <view class="submit-area" wx:if="{{ selectedDay && !selectedDay.isViewing }}">
     <text class="billing-rule-link" bindtap="onShowBillingRule">计费规则</text>
     <van-button
       type="{{ selectedDay.hasMeal && selectedDay.breakfast === 0 && selectedDay.lunch === 0 && selectedDay.dinner === 0 ? 'danger' : 'primary' }}"
       round
+      disabled="{{ !locationEnabled && !(selectedDay.hasMeal && selectedDay.breakfast === 0 && selectedDay.lunch === 0 && selectedDay.dinner === 0) }}"
       bindtap="submitDay"
     >{{ selectedDay.hasMeal && selectedDay.breakfast === 0 && selectedDay.lunch === 0 && selectedDay.dinner === 0 ? '取消报餐' : (selectedDay.hasMeal ? '保存修改' : '提交报餐') }}</van-button>
   </view>

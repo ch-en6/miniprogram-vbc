@@ -1,0 +1,10 @@
+{
+  "name": "menu",
+  "version": "1.0.0",
+  "description": "菜单服务：展示端轮换菜单 + 管理端菜单计划配置（云 MySQL menu_plan + menu_daily 表）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3",
+    "@cloudbase/node-sdk": "^3.18.3"
+  }
+}
