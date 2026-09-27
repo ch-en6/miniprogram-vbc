@@ -1,1 +1,343 @@
-/* subpackages/admin/pages/sys-config/index.wxss */
+/* subpackages/admin/pages/sys-config/index.wxss — 价格配置页
+ */
+
+@import "../../styles/admin.wxss";
+
+/* ══════ 页面变量 + 背景 ══════ */
+page {
+  background: #f5f6f8;
+  --brand: #1989fa;
+  --brand-dark: #0570db;
+  --text-1: #323233;
+  --text-2: #646566;
+  --text-3: #969799;
+  --line: #ebedf0;
+}
+
+/* ══════ 页面容器（覆盖 admin.wxss .page-pad） ══════ */
+.page-pad {
+  padding: 24rpx 24rpx calc(140rpx + env(safe-area-inset-bottom));
+}
+
+/* ══════ 部门选择（覆盖 admin.wxss） ══════ */
+.dept-selector {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  padding: 20rpx 24rpx;
+  border-radius: 24rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
+}
+
+.dept-label {
+  font-size: 26rpx;
+  color: var(--text-3);
+  margin-right: 12rpx;
+}
+
+.dept-picker {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--brand);
+}
+
+/* 当前所选部门已停用时的提示标签 */
+.dept-disabled-tag {
+  font-size: 20rpx;
+  line-height: 1;
+  padding: 4rpx 12rpx;
+  border-radius: 100rpx;
+  background: #f2f3f5;
+  color: #969799;
+  font-weight: 400;
+}
+
+/* ══════ 工具卡：白底圆角 + 操作按钮行 ══════ */
+.tool-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 16rpx 24rpx 20rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
+}
+
+.tool-actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 20rpx;
+}
+
+.ws-btn-style {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 24rpx;
+  line-height: 1.3;
+  border-radius: 8rpx;
+  padding: 12rpx 0;
+  box-sizing: border-box;
+  background: #fff;
+  color: #1989fa;
+  border: 1px solid #1989fa;
+}
+
+.ws-btn-style-hover {
+  background: #ecf5ff;
+}
+
+/* 停用部门：新增按钮置灰禁用 */
+.ws-btn-style-disabled {
+  background: #f7f8fa;
+  color: #c8c9cc;
+  border-color: #e5e5e5;
+}
+
+/* ══════ 价格配置列表项 ══════ */
+.price-item {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
+}
+
+/* 纵向布局覆写 */
+.item-main {
+  display: block;
+}
+
+.item-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.item-title-text {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text-1);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 标题右侧徽章组：有效期状态 + 启停状态 */
+.title-badges {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  flex-shrink: 0;
+}
+
+/* ══════ 状态徽章 ══════ */
+.badge {
+  display: flex;
+  align-items: center;
+  font-size: 22rpx;
+  font-weight: 500;
+  line-height: 1;
+  padding: 8rpx 16rpx;
+  border-radius: 100rpx;
+  flex-shrink: 0;
+}
+
+.badge-green {
+  background: #e8f7ef;
+  color: #07c160;
+}
+
+/* 有效期状态徽章 */
+/* 生效中：主色实心，列表中最高优先级 */
+.badge-active {
+  background: #1989fa;
+  color: #fff;
+}
+
+/* 已启用但开始日期在未来：浅橙 */
+.badge-orange {
+  background: #fff7e8;
+  color: #ff976a;
+}
+
+/* 已过结束日期：浅灰 */
+.badge-red {
+  background: #f2f3f5;
+  color: #969799;
+}
+
+/* 有配置但无一套生效时的说明行 */
+.list-hint {
+  margin-top: 4rpx;
+  padding: 0 8rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: var(--text-3);
+}
+
+/* ── 空态 / 加载中 ── */
+.empty-wrap {
+  padding: 80rpx 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+}
+
+/* ══════ 表单弹窗：van-popup 底部弹出 ══════ */
+.form-sheet {
+  position: static;
+  z-index: auto;
+  max-height: none;
+  border-radius: 0;
+  background: #fff;
+  padding: 0 0 calc(40rpx + env(safe-area-inset-bottom));
+}
+
+/* 表单主体：内容较多时弹窗内部滚动 */
+.form-scroll {
+  max-height: 56vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* 标题与 van-popup 右上角关闭图标保持同一水平线 */
+.form-title {
+  text-align: center;
+  padding: 32rpx 0 20rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  margin: 0 24rpx;
+  padding: 28rpx 24rpx;
+  border-radius: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.form-label {
+  font-size: 28rpx;
+  color: var(--text-1);
+  flex-shrink: 0;
+}
+
+/* picker 容器：右对齐显示当前选项 + ▾ */
+.form-picker {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex: 1;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.form-picker-text {
+  font-size: 28rpx;
+  line-height: 1;
+  color: var(--text-1);
+  max-width: 360rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.form-picker-arrow {
+  font-size: 24rpx;
+  color: var(--text-3);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* ══════ 列表：一套三餐价格展示行 ══════ */
+.meal-lines {
+  margin-top: 12rpx;
+}
+
+.meal-line {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  font-size: 26rpx;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+
+.meal-line-label {
+  flex-shrink: 0;
+  width: 64rpx;
+  color: var(--text-3);
+}
+
+.meal-line-off {
+  color: var(--text-3);
+}
+
+/* ══════ 表单：餐次价格块（早/中/晚各一块，员工价 + 家属价并排） ══════ */
+.form-meal-block {
+  background: #fff;
+  margin: 0 24rpx 16rpx;
+  padding: 20rpx 24rpx 24rpx;
+  border-radius: 16rpx;
+}
+
+.form-meal-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text-1);
+  margin-bottom: 16rpx;
+}
+
+.form-meal-row {
+  display: flex;
+  gap: 20rpx;
+}
+
+.form-meal-field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.form-meal-label {
+  font-size: 24rpx;
+  color: var(--text-3);
+}
+
+.form-meal-field .form-input {
+  flex: none;           /* 覆盖 admin.wxss 的 flex:1，避免纵向被拉伸/压缩 */
+  width: 100%;
+  height: 72rpx;        /* 显式高度，防止真机 input 默认高度压扁 */
+  line-height: 40rpx;
+  box-sizing: border-box;
+  background: #f7f8fa;
+  border-radius: 12rpx;
+  padding: 0 20rpx;
+  font-size: 28rpx;
+  color: var(--text-1);
+}
+
+/* ══════ 底部按钮 ══════ */
+.form-actions {
+  display: flex;
+  gap: 24rpx;
+  padding: 16rpx 24rpx 0;
+  border-top: none;
+}
+
+.form-btn {
+  flex: 1;
+}

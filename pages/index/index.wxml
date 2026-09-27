@@ -6,11 +6,11 @@
     <view class="hero-sub">{{ heroSub }}</view>
   </view>
 
-  <!-- 公告（点击可展开完整内容） -->
+  <!-- 公告（显示标题，点击可展开完整内容） -->
   <van-notice-bar
     wx:if="{{ announcement }}"
     left-icon="volume-o"
-    text="{{ announcement }}"
+    text="{{ announcementObj.title || '公告' }}"
     bind:click="showNotice"
     custom-class="notice-bar"
   />

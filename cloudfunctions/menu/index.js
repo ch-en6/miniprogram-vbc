@@ -343,7 +343,7 @@ async function actionGetMenuPlans(event) {
   const plans = await query(
     'SELECT `id`, `name`, `status`, `start_date`, `end_date`, `location_id` ' +
     'FROM `menu_plan` WHERE `location_id` = {{location_id}} ' +
-    'ORDER BY `status` DESC, `start_date` DESC, `id` ASC',
+    'ORDER BY `start_date` DESC, `end_date` DESC, `id` ASC',
     { location_id: locationId }
   )
 

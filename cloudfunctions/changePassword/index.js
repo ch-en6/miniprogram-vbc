@@ -57,8 +57,9 @@ exports.main = async (event, context) => {
     return { code: -1, message: '缺少必要参数', data: null }
   }
 
-  if (newPassword.length < 8) {
-    return { code: -1, message: '新密码至少8位', data: null }
+  // 密码规则：8-20 位，可包含字母、数字、特殊符号，不含空格
+  if (!/^[\x21-\x7e]{8,20}$/.test(String(newPassword))) {
+    return { code: -1, message: '密码须为 8-20 位字母、数字或符号（不含空格）', data: null }
   }
 
   try {

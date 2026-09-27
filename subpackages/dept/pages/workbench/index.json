@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "配置",
+  "usingComponents": {
+    "dept-tabbar": "/subpackages/dept/components/dept-tabbar/index"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "sysAdmin",
+  "version": "1.0.0",
+  "description": "系统管理员后台：价格配置 / 部门管理 / 食堂管理 / 角色管理（云 MySQL，openid -> 仅放行 sysAdmin）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3",
+    "@cloudbase/node-sdk": "^3.18.3"
+  }
+}

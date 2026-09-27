@@ -1,4 +1,4 @@
-/* subpackages/admin/pages/permission/index.wxss */
+/* subpackages/admin/pages/location-manage/index.wxss */
 @import "../../styles/admin.wxss";
 
 page {
@@ -46,7 +46,7 @@ page {
   min-width: 0;
 }
 
-/* ── 列表卡片：第一行 角色名称 + 右侧状态徽章，第二行 标识·员工数·管辖食堂 ── */
+/* ── 列表卡片：第一行 食堂名称 + 右侧状态徽章，第二行 部门数·角色绑定数 ── */
 .item-main {
   display: block;
 }
@@ -113,13 +113,6 @@ page {
   padding: 0 0 calc(40rpx + env(safe-area-inset-bottom));
 }
 
-/* 表单主体：chips 较多时弹窗内部滚动 */
-.form-scroll {
-  max-height: 56vh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
 /* 标题与 van-popup 右上角关闭图标（top 16px + 22px 图标，中心约 27px）保持同一水平线 */
 .form-title {
   padding: 32rpx 0 20rpx;
@@ -143,77 +136,9 @@ page {
   margin-bottom: 16rpx;
 }
 
-/* 管辖食堂行：标签单独一行，chips 独占下一行，避免被标签挤压错位 */
-.form-row-top {
-  display: block;
-}
-
-.form-row-top .form-label {
-  display: block;
-  margin-bottom: 16rpx;
-}
-
-.form-picker-text {
-  font-size: 28rpx;
-  line-height: 1;
-  color: var(--text-1);
-  max-width: 360rpx;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.form-picker-placeholder {
-  color: #c8c9cc;
-}
-
-/* picker 容器：右对齐显示当前选项 + ▾ */
-.form-picker {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  flex: 1;
-  justify-content: flex-end;
-  min-width: 0;
-}
-
-.form-picker-arrow {
-  font-size: 24rpx;
-  color: var(--text-3);
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-/* 身份行：标签在左、按钮组靠右、占满剩余宽度 */
-.form-row-identity {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.form-row-identity .form-label {
-  flex-shrink: 0;
-}
-
-/* 身份按钮组：固定宽度、按钮均分、文字不换行 */
-.seg-compact {
-  flex: 0 0 auto;
-  width: 380rpx;
-  min-width: 0;
-}
-
-.seg-compact .seg-item {
-  white-space: nowrap;
-}
-
 .form-tip {
   margin: -6rpx 32rpx 20rpx;
   padding-left: 8rpx;
-}
-
-.form-tip-inner {
-  margin: 12rpx 0 0;
-  padding-left: 0;
 }
 
 .form-actions {

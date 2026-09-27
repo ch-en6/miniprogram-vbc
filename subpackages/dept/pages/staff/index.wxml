@@ -12,7 +12,11 @@
       value="{{ currentDeptIndex }}"
       bindchange="onDeptChange"
     >
-      <text class="dept-picker">{{ depts[currentDeptIndex].dept_name }} ▾</text>
+      <view class="dept-picker">
+        <text>{{ depts[currentDeptIndex].dept_name }}</text>
+        <text wx:if="{{ !canAddStaff }}" class="dept-disabled-tag">已停用</text>
+        <text class="dept-picker-arrow">▾</text>
+      </view>
     </picker>
   </view>
 
@@ -48,7 +52,11 @@
       >查询</van-button>
     </view>
     <view class="tool-actions">
-      <view class="ws-btn-style" hover-class="ws-btn-style-hover" bindtap="onBatchImport">批量导入</view>
+      <view
+        class="ws-btn-style {{ canAddStaff ? '' : 'ws-btn-style-disabled' }}"
+        hover-class="{{ canAddStaff ? 'ws-btn-style-hover' : 'none' }}"
+        bindtap="onBatchImport"
+      >批量导入</view>
       <!-- 当前所选部门停用（sys_dept.status=0）时禁用新增：后端 addStaff 同样会拒绝 -->
       <view
         class="ws-btn-style {{ canAddStaff ? '' : 'ws-btn-style-disabled' }}"
@@ -81,7 +89,9 @@
             {{ item.has_openid ? '已绑定' : '未绑定' }}
           </view>
         </view>
+        <!-- deptAdmin 对管理级身份（deptAdmin / sysAdmin）无任何可操作项，不显示编辑按钮 -->
         <view
+          wx:if="{{ operatorCode === 'sysAdmin' || (item.role_code !== 'deptAdmin' && item.role_code !== 'sysAdmin') }}"
           class="staff-edit-btn"
           hover-class="staff-edit-btn-hover"
           bindtap="onEditStaff"
@@ -122,6 +132,7 @@
   <view class="form-sheet" catchtouchmove="onFormNoop">
     <view class="form-title">{{ formTitle }}</view>
 
+    <scroll-view scroll-y class="form-body">
     <!-- 姓名 -->
     <van-cell-group inset custom-class="form-group">
       <van-field
@@ -155,6 +166,7 @@
         range="{{ formDepts }}"
         range-key="dept_name"
         value="{{ formDeptIndex }}"
+        disabled="{{ isSelfAccount }}"
         bindchange="onFormDeptChange"
       >
         <view class="form-picker">
@@ -164,7 +176,7 @@
       </picker>
     </view>
 
-    <!-- 账号状态（编辑时同样可在此启用 / 禁用） -->
+    <!-- 账号状态（编辑时同样可在此启用 / 禁用；本人账号不可停用） -->
     <view class="form-row">
       <text class="form-label">账号状态</text>
       <van-switch
@@ -172,39 +184,34 @@
         size="24"
         active-color="#1989fa"
         inactive-color="#dcdee0"
+        disabled="{{ isSelfAccount }}"
         bind:change="onFormStatusChange"
       />
     </view>
 
     <!-- 员工身份：可分配角色下拉（样式同「所属部门」；普通员工 + 后端按操作者白名单返回的其他角色） -->
-    <view class="form-row" wx:if="{{ roleLocked }}">
+    <view class="form-row">
       <text class="form-label">员工身份</text>
-      <view class="form-role-locked">管理级身份，当前权限下不可修改</view>
+      <picker
+        mode="selector"
+        range="{{ roles }}"
+        range-key="role_name"
+        value="{{ rolesIndex }}"
+        disabled="{{ loadingRoles || roles.length === 0 }}"
+        bindchange="onFormRoleChange"
+      >
+        <view class="form-picker">
+          <text class="form-picker-text">{{ roles[rolesIndex] ? roles[rolesIndex].role_name : (loadingRoles ? '加载中…' : '请选择') }}</text>
+          <text class="form-picker-arrow">▾</text>
+        </view>
+      </picker>
     </view>
-    <block wx:if="{{ !roleLocked }}">
-      <view class="form-row">
-        <text class="form-label">员工身份</text>
-        <picker
-          mode="selector"
-          range="{{ roles }}"
-          range-key="role_name"
-          value="{{ rolesIndex }}"
-          disabled="{{ loadingRoles || roles.length === 0 }}"
-          bindchange="onFormRoleChange"
-        >
-          <view class="form-picker">
-            <text class="form-picker-text">{{ roles[rolesIndex] ? roles[rolesIndex].role_name : (loadingRoles ? '加载中…' : '请选择') }}</text>
-            <text class="form-picker-arrow">▾</text>
-          </view>
-        </picker>
-      </view>
-      <view class="form-role-tip" wx:if="{{ form.role_id > 0 && roleTip }}">
-        {{ roleTip }}
-      </view>
-    </block>
+    <view class="form-role-tip" wx:if="{{ form.role_id > 0 && roleTip }}">
+      {{ roleTip }}
+    </view>
 
-    <!-- 编辑模式：更多操作（重置密码 / 解绑微信） -->
-    <block wx:if="{{ formMode === 'edit' }}">
+    <!-- 编辑模式：更多操作（重置密码 / 解绑微信 / 删除；编辑本人账号时整块不显示） -->
+    <block wx:if="{{ formMode === 'edit' && !isSelfAccount }}">
       <view class="extra-section-title">更多操作</view>
       <view class="extra-action" hover-class="extra-action-hover" bindtap="onResetPassword">
         <view class="extra-action-main">
@@ -225,7 +232,19 @@
         </view>
         <van-icon name="arrow" size="16px" color="#c8c9cc" />
       </view>
+      <view
+        class="extra-action"
+        hover-class="extra-action-hover"
+        bindtap="onDeleteStaff"
+      >
+        <view class="extra-action-main">
+          <text class="extra-action-name danger">删除员工</text>
+          <text class="extra-action-desc">仅可删除无报餐记录的员工</text>
+        </view>
+        <van-icon name="arrow" size="16px" color="#c8c9cc" />
+      </view>
     </block>
+    </scroll-view>
 
     <view class="form-actions">
       <van-button
@@ -243,7 +262,7 @@
         loading="{{ saving }}"
         bindtap="onFormSubmit"
         custom-class="form-btn"
-      >{{ formMode === 'edit' ? '保存' : '确定' }}</van-button>
+      >保存</van-button>
     </view>
   </view>
 </van-popup>
@@ -287,8 +306,162 @@
   </view>
 </van-popup>
 
-<dept-tabbar active="staff" />
+<!-- ─────────── 批量导入弹窗 ─────────── -->
+<van-popup
+  show="{{ showImport }}"
+  position="bottom"
+  round
+  closeable
+  close-on-click-overlay="{{ !importing }}"
+  bind:close="onImportClose"
+  safe-area-inset-bottom
+>
+  <view class="form-sheet" catchtouchmove="onImportNoop">
+    <view class="form-title">批量导入员工</view>
 
-<!-- Vant Toast/Dialog/Dialog 全局实例 -->
-<van-toast id="van-toast" />
+    <scroll-view scroll-y class="form-body">
+    <!-- 所属部门（整批员工统一归属该部门） -->
+    <view class="form-row">
+      <text class="form-label">所属部门</text>
+      <picker
+        mode="selector"
+        range="{{ importDepts }}"
+        range-key="dept_name"
+        value="{{ importDeptIndex }}"
+        bindchange="onImportDeptChange"
+      >
+        <view class="form-picker">
+          <text class="form-picker-text">{{ importDepts[importDeptIndex].dept_name || '请选择' }}</text>
+          <text class="form-picker-arrow">▾</text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 员工身份（整批统一身份，默认普通员工） -->
+    <view class="form-row">
+      <text class="form-label">员工身份</text>
+      <picker
+        mode="selector"
+        range="{{ importRoles }}"
+        range-key="role_name"
+        value="{{ importRoleIndex }}"
+        disabled="{{ loadingImportRoles || importRoles.length === 0 }}"
+        bindchange="onImportRoleChange"
+      >
+        <view class="form-picker">
+          <text class="form-picker-text">{{ importRoles[importRoleIndex] ? importRoles[importRoleIndex].role_name : (loadingImportRoles ? '加载中…' : '请选择') }}</text>
+          <text class="form-picker-arrow">▾</text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 统一初始密码（必填，8-20 位） -->
+    <van-cell-group inset custom-class="form-group">
+      <van-field
+        label="初始密码"
+        placeholder="8-20 位字母、数字或符号"
+        value="{{ importPassword }}"
+        bind:change="onImportPwdInput"
+        maxlength="20"
+        clearable
+      />
+    </van-cell-group>
+
+    <view class="import-text-wrap">
+      <view class="import-textarea-box">
+        <view class="import-textarea-ph" wx:if="{{ !importText }}">
+          <view class="import-ph-line">每行一名员工，格式：姓名,手机号。示例：</view>
+          <view class="import-ph-line import-ph-sub">张三,13800001111</view>
+          <view class="import-ph-line import-ph-sub">李四,13800002222</view>
+        </view>
+        <textarea
+          class="import-textarea"
+          value="{{ importText }}"
+          maxlength="8000"
+          bindinput="onImportTextInput"
+        />
+      </view>
+    </view>
+
+    <!-- 解析预览：有效条数 + 无效行原因（最多展示 5 条） -->
+    <view class="import-preview" wx:if="{{ importPreview }}">
+      <view class="import-preview-summary">
+        共识别 {{ importPreview.total }} 行，可导入 {{ importPreview.validCount }} 名
+      </view>
+      <view class="import-preview-error" wx:for="{{ importPreview.errors }}" wx:key="line">
+        {{ item.message }}
+      </view>
+      <view class="import-preview-error" wx:if="{{ importPreview.errorMore > 0 }}">
+        还有 {{ importPreview.errorMore }} 行存在问题，请修正后再导入
+      </view>
+    </view>
+    </scroll-view>
+
+    <view class="form-actions">
+      <van-button
+        size="normal"
+        plain
+        hairline
+        type="default"
+        bindtap="onImportClose"
+        disabled="{{ importing }}"
+        custom-class="form-btn"
+      >取消</van-button>
+      <van-button
+        size="normal"
+        type="primary"
+        loading="{{ importing }}"
+        disabled="{{ importing || (importPreview && importPreview.errorCount > 0) }}"
+        bindtap="onImportSubmit"
+        custom-class="form-btn"
+      >导入</van-button>
+    </view>
+  </view>
+</van-popup>
+
+<!-- ─────────── 批量导入失败明细弹窗（仅在有失败行时出现） ─────────── -->
+<van-popup
+  show="{{ showImportResult }}"
+  round
+  closeable
+  bind:close="onImportResultClose"
+>
+  <view class="import-result-sheet">
+    <view class="password-title">部分员工未导入</view>
+    <view class="import-result-summary">
+      成功 <text class="import-ok-num">{{ importResult.successCount }}</text> 名，
+      失败 <text class="import-fail-num">{{ importResult.failCount }}</text> 名
+    </view>
+    <scroll-view scroll-y class="import-result-list">
+      <view
+        class="import-result-item"
+        wx:for="{{ importResult.failRows }}"
+        wx:key="line"
+      >
+        <view class="import-result-main">
+          <text class="import-result-name">{{ item.name || '（空）' }}</text>
+          <text class="import-result-phone">{{ item.phone || '—' }}</text>
+        </view>
+        <view class="import-result-right">
+          <text class="import-result-msg">{{ item.message }}</text>
+        </view>
+      </view>
+    </scroll-view>
+    <view class="password-tip">请对照原因修改后重新导入</view>
+    <view class="import-result-actions">
+      <view
+        class="import-result-btn import-result-btn-primary"
+        hover-class="import-result-btn-hover"
+        bindtap="onCopyImportResult"
+      >复制失败明细</view>
+      <view
+        class="import-result-btn"
+        hover-class="import-result-btn-hover"
+        bindtap="onImportResultClose"
+      >我知道了</view>
+    </view>
+  </view>
+</van-popup>
+
+<!-- Vant Dialog 全局实例 -->
 <van-dialog id="van-dialog" />

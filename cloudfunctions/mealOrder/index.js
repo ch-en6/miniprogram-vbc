@@ -342,28 +342,34 @@ async function actionSave(event) {
     return { code: -1, message: '当前食堂已停用，暂不支持报餐', data: null }
   }
 
-  // 1. 加载该部门当日启用的价格（按 meal_type 取当前生效记录）
-  //    价格字段为 NULL 或非数值的记录视为无效，不入 priceMap，
-  //    等价于"该餐次未读到有效价格"，由下方 2.1 校验统一拦截为失败。
+  // 1. 加载该部门当日启用的价格（price_config 宽表：一行 = 一套三餐价格，
+  //    多条生效时取 start_date 最新一条，结果确定）
+  //    价格字段为 NULL 或非数值的餐次视为未开放，不入 priceMap，
+  //    由下方 2.1 校验统一拦截为失败。
+  const MEAL_PREFIX_BY_TYPE = { 0: 'bf', 1: 'lunch', 2: 'dinner' }
   const priceRows = await query(
-    'SELECT `meal_type`, `emp_price`, `family_price` FROM `price_config` ' +
+    'SELECT * FROM `price_config` ' +
     'WHERE `dept_id` = {{dept_id}} AND `status` = 1 ' +
-    'AND `start_date` <= CURDATE() AND `end_date` >= CURDATE()',
+    'AND `start_date` <= CURDATE() AND `end_date` >= CURDATE() ' +
+    'ORDER BY `start_date` DESC, `id` DESC LIMIT 1',
     { dept_id }
   )
   const priceMap = new Map()
-  priceRows.forEach(r => {
-    const emp = Number(r.emp_price)
-    const fam = Number(r.family_price)
-    if (r.emp_price == null || r.family_price == null || isNaN(emp) || isNaN(fam)) {
-      console.warn(
-        '[mealOrder] 价格配置记录价格字段为空/无效，忽略该餐次配置:',
-        JSON.stringify(r)
-      )
-      return
-    }
-    priceMap.set(Number(r.meal_type), { emp_price: emp, family_price: fam })
-  })
+  const priceRow = priceRows.length ? priceRows[0] : null
+  if (priceRow) {
+    Object.entries(MEAL_PREFIX_BY_TYPE).forEach(([type, prefix]) => {
+      const mealType = Number(type)
+      const empRaw = priceRow[`${prefix}_emp`]
+      const famRaw = priceRow[`${prefix}_family`]
+      const emp = Number(empRaw)
+      const fam = Number(famRaw)
+      if (empRaw == null || famRaw == null || isNaN(emp) || isNaN(fam)) {
+        // 该餐次未配置（列值为 NULL）或价格无效 → 视为未开放
+        return
+      }
+      priceMap.set(mealType, { emp_price: emp, family_price: fam })
+    })
+  }
 
   // 2. 按数量拆分：>0 走 upsert，==0 走删除
   //    注意：参数名不能用 date（与 SQL 保留字 DATE 冲突，SDK 解析失败），用 day 代替

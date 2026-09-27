@@ -1,8 +1,10 @@
 // subpackages/dept/pages/billing/index.js — 部门工作台 · 收费管理
-// 月份 / 最近一次结果经 utils/dept-store 跨页保留
-const store = require('../../../../utils/dept-store')
-const { state } = store
 const { KitchenAPI } = require('../../../../services/api')
+
+function curMonth() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
 
 Page({
   data: {
@@ -19,69 +21,45 @@ Page({
 
   async onShow() {
     wx.hideHomeButton()
-    store.ensureBillingDefault()
-    await store.ensureDepts()
-    const b = state.billing
-    // 本页记忆过部门则恢复，否则用默认（用户所在部门优先）
-    const idx = typeof b.deptIndex === 'number' ? b.deptIndex : store.defaultDeptIndex()
-    const depts = state.depts || []
+    const depts = await this._loadDepts()
+    const hasPermission = depts.length > 0
+    const idx = this._defaultDeptIndex(depts)
+    const month = curMonth()
     this.setData({
       depts,
       currentDeptIndex: idx,
-      selectedMonth: b.selectedMonth,
-      monthPickerEnd: b.monthPickerEnd,
-      hasPermission: depts.length > 0,
-    })
-    this._ensureFreshResult()
-  },
-
-  // 本页当前部门 id（结果缓存 / 恢复时按部门校验）
-  _currentDeptId() {
-    const { depts, currentDeptIndex } = this.data
-    const dept = depts && depts[currentDeptIndex]
-    return dept ? Number(dept.dept_id) : 0
-  },
-
-  // 进入页面时的结果处理：
-  // 结果与当前部门 + 月份一致 → 秒显缓存，再静默刷新保证最新；
-  // 不一致（首次进入 / 条件已变）→ 清空旧结果，按当前条件带加载态自动查询一次
-  _ensureFreshResult() {
-    const b = state.billing
-    const restored = b.hasQueried
-      && b.queriedMonth === b.selectedMonth
-      && b.queriedDeptId === this._currentDeptId()
-    if (restored) {
-      this.setData({
-        billingList: b.billingList,
-        totalAmount: b.totalAmount,
-        hasQueried: true,
-        billingLoading: false,
-      })
-      this._loadBilling(true)
-      return
-    }
-    this.setData({
+      selectedMonth: month,
+      monthPickerEnd: month,
       billingList: [],
       totalAmount: 0,
-      hasQueried: b.hasQueried,
-      billingLoading: false,
+      hasQueried: false,
+      hasPermission,
     })
-    if (this.data.selectedMonth && this.data.depts && this.data.depts.length > 0) {
-      this._loadBilling(false)
+    if (hasPermission) this._loadBilling(false)
+  },
+
+  async _loadDepts() {
+    try {
+      const res = await KitchenAPI.getMyDepts()
+      return (((res && res.depts) || []).filter(d => d && d.dept_name))
+    } catch (err) {
+      console.error('[dept billing] loadDepts error:', err)
+      return []
     }
+  },
+
+  _defaultDeptIndex(depts) {
+    const list = depts || []
+    if (!list.length) return 0
+    const app = getApp()
+    const deptId = ((app && app.globalData && app.globalData.userInfo) || {}).dept_id
+    const idx = list.findIndex(d => Number(d.dept_id) === Number(deptId))
+    return idx > -1 ? idx : 0
   },
 
   // 切换部门：作废旧账单并按新部门自动重查
   onDeptChange(e) {
     const index = Number(e.detail.value) || 0
-    store.setBilling({
-      deptIndex: index,
-      queriedMonth: '',
-      queriedDeptId: '',
-      billingList: [],
-      totalAmount: 0,
-      hasQueried: false,
-    })
     this.setData({
       currentDeptIndex: index,
       billingList: [],
@@ -92,9 +70,7 @@ Page({
 
   // 切换月份：仅更新条件，不自动重查
   onMonthChange(e) {
-    const selectedMonth = e.detail.value
-    store.setBilling({ selectedMonth })
-    this.setData({ selectedMonth })
+    this.setData({ selectedMonth: e.detail.value })
   },
 
   // 手动查询：校验通过后走统一请求
@@ -117,13 +93,14 @@ Page({
     this._loadBilling(false)
   },
 
-  // ── 下拉刷新：按当前部门 + 月份重查 ──────────────────
+  // ── 下拉刷新：重新拉取部门列表，再按当前部门 + 月份重查 ──
   async onPullDownRefresh() {
-    // 强制重拉部门/食堂列表（启用/停用状态可能已被修改）并同步页面
-    await store.refreshDepts()
-    const depts = state.depts || []
-    this.setData({ depts, hasPermission: depts.length > 0 })
-    if (!this.data.hasPermission) {
+    const depts = await this._loadDepts()
+    const hasPermission = depts.length > 0
+    const curIdx = Number(this.data.currentDeptIndex) || 0
+    const idx = curIdx < depts.length ? curIdx : this._defaultDeptIndex(depts)
+    this.setData({ depts, currentDeptIndex: idx, hasPermission })
+    if (!hasPermission) {
       wx.stopPullDownRefresh()
       return
     }
@@ -148,14 +125,6 @@ Page({
       .then(res => {
         const billingList = (res && res.list) || []
         const totalAmount = (res && res.totalAmount) || 0
-        store.setBilling({
-          selectedMonth,
-          queriedMonth: selectedMonth,
-          queriedDeptId: Number(dept.dept_id),
-          billingList,
-          totalAmount,
-          hasQueried: true,
-        })
         this.setData({
           billingList,
           totalAmount,
@@ -177,7 +146,6 @@ Page({
           hasQueried: true,
           billingLoading: false,
         })
-        store.setBilling({ queriedMonth: '', billingList: [], totalAmount: 0, hasQueried: false })
         wx.showToast({ title: (err && err.message) || '查询失败，请重试', icon: 'none' })
       })
   },

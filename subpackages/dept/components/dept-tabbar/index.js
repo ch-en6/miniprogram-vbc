@@ -1,5 +1,14 @@
 // subpackages/dept/components/dept-tabbar/index.js — 部门工作台底部导航
-// 员工 / 统计 / 收费 / 菜单 / 公告 / 我的 是六个独立页面，点击 Tab 用 redirectTo 互斥切换
+// 工作台仅部门管理员 / 系统管理员可进入，四个 Tab 对其均可见，无需按角色过滤。
+
+/** Tab 列表：统计 / 收费 / 配置 / 我的 */
+const ITEMS = [
+  { key: 'stats', label: '统计', icon: 'chart-trending-o', url: '/subpackages/dept/pages/stats/index' },
+  { key: 'billing', label: '收费', icon: 'bill-o', url: '/subpackages/dept/pages/billing/index' },
+  { key: 'workbench', label: '配置', icon: 'apps-o', url: '/subpackages/dept/pages/workbench/index' },
+  { key: 'profile', label: '我的', icon: 'user-o', url: '/subpackages/dept/pages/profile/index' },
+]
+
 Component({
   properties: {
     active: {
@@ -9,14 +18,7 @@ Component({
   },
 
   data: {
-    items: [
-      { key: 'staff', label: '员工', icon: 'friends-o', url: '/subpackages/dept/pages/staff/index' },
-      { key: 'stats', label: '统计', icon: 'chart-trending-o', url: '/subpackages/dept/pages/stats/index' },
-      { key: 'billing', label: '收费', icon: 'bill-o', url: '/subpackages/dept/pages/billing/index' },
-      { key: 'menu', label: '菜单', icon: 'orders-o', url: '/subpackages/dept/pages/menu/index' },
-      { key: 'notice', label: '公告', icon: 'bullhorn-o', url: '/subpackages/dept/pages/notice/index' },
-      { key: 'profile', label: '我的', icon: 'user-o', url: '/subpackages/dept/pages/profile/index' },
-    ],
+    items: ITEMS,
   },
 
   methods: {

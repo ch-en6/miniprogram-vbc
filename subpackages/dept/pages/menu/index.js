@@ -1,12 +1,7 @@
 // subpackages/dept/pages/menu/index.js — 部门工作台 · 菜单配置
 // 数据源：menu_plan（菜单计划）+ menu_daily（按周循环的菜品明细）
-// 权限模型与部门工作台其他页一致：openid -> sys_emp.role_id
-//   -> sys_role_location -> location_id[]（食堂），所有读写限定在管辖食堂范围内。
-// 「当前食堂」来自 store.state.locations（getMyDepts 返回的角色管辖食堂），
-const store = require('../../../../utils/dept-store')
-const { MenuAPI } = require('../../../../services/api')
+const { KitchenAPI, MenuAPI } = require('../../../../services/api')
 const T = require('../../../../utils/time')
-const Toast = require('@vant/weapp/toast/toast').default
 const Dialog = require('@vant/weapp/dialog/dialog').default
 
 const WEEK_LABELS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
@@ -55,20 +50,20 @@ Page({
 
   onShow() {
     if (wx.hideHomeButton) wx.hideHomeButton()
-    this._ensureLocationsAndLoad()
+    this._loadLocationsAndPlans()
   },
 
-  // 食堂列表就绪后，恢复本页所选食堂并拉取菜单计划
-  async _ensureLocationsAndLoad() {
-    await store.ensureDepts()
-    const locations = store.state.locations || []
+  async _loadLocationsAndPlans() {
+    let locations = []
+    try {
+      const res = await KitchenAPI.getMyDepts()
+      locations = ((res && res.locations) || []).filter(l => l && l.id)
+    } catch (err) {
+      console.error('[dept menu] loadLocations error:', err)
+    }
     const hasPermission = locations.length > 0
-    const remembered = (store.state && store.state.menu) || {}
-    const fallback = store.defaultLocationIndex ? store.defaultLocationIndex() : 0
-    const idx = (typeof remembered.locationIndex === 'number'
-      && remembered.locationIndex < locations.length)
-      ? remembered.locationIndex
-      : (fallback < locations.length ? fallback : 0)
+
+    const idx = this._defaultLocationIndex(locations)
 
     this.setData({ locations, hasPermission, currentLocationIndex: idx, canAddPlan: this._isLocationEnabled(locations[idx]) })
     if (!hasPermission) {
@@ -76,6 +71,16 @@ Page({
       return
     }
     this._loadPlanList()
+  },
+
+  // 默认食堂：优先当前用户所在食堂（在权限范围内时），否则第一个
+  _defaultLocationIndex(locations) {
+    const list = locations || []
+    if (!list.length) return 0
+    const app = getApp()
+    const locationId = ((app && app.globalData && app.globalData.userInfo) || {}).location_id
+    const idx = list.findIndex(l => Number(l.id) === Number(locationId))
+    return idx > -1 ? idx : 0
   },
 
   // 拉取当前食堂的菜单计划列表
@@ -100,15 +105,9 @@ Page({
         planList: list,
         activePlanId: Number(data && data.active_plan_id) || 0,
       })
-      // 记忆最近一次结果，切 Tab 回来时可立即看到上次内容
-      store.setMenu({
-        planList: list,
-        hasQueried: true,
-        queriedLocationId: String(locationId),
-      })
     } catch (err) {
       this.setData({ planList: [], activePlanId: 0 })
-      Toast((err && err.message) || '加载菜单计划失败')
+      wx.showToast({ title: (err && err.message) || '加载菜单计划失败', icon: 'none' })
     } finally {
       if (!silent) this.setData({ loading: false })
     }
@@ -118,12 +117,6 @@ Page({
   onLocationChange(e) {
     const index = Number(e.detail.value) || 0
     if (index === this.data.currentLocationIndex) return
-    store.setMenu({
-      locationIndex: index,
-      planList: [],
-      hasQueried: false,
-      queriedLocationId: '',
-    })
     this.setData({ currentLocationIndex: index, canAddPlan: this._isLocationEnabled(this.data.locations[index]) })
     this._loadPlanList()
   },
@@ -134,10 +127,7 @@ Page({
       wx.stopPullDownRefresh()
       return
     }
-    // 强制重拉食堂列表（食堂启用/停用状态可能已被修改），再重新初始化页面
-    await store.refreshDepts()
-    store.setMenu({ hasQueried: false }) // 下拉刷新要求最新数据，跳过缓存秒显
-    await this._ensureLocationsAndLoad()
+    await this._loadLocationsAndPlans()
     wx.stopPullDownRefresh()
   },
 
@@ -154,11 +144,11 @@ Page({
   },
 
   onAddPlan() {
-    if (!this.data.hasPermission) return Toast('当前账号暂无可管理的食堂')
+    if (!this.data.hasPermission) return wx.showToast({ title: '当前账号暂无可管理的食堂', icon: 'none' })
     // 当前食堂已停用时不允许新增（需先在顶部切换到启用中的食堂）
-    if (!this.data.canAddPlan) return Toast('当前食堂已停用，无法新增菜单计划')
+    if (!this.data.canAddPlan) return wx.showToast({ title: '当前食堂已停用，无法新增菜单计划', icon: 'none' })
     const formLocations = this._buildFormLocations()
-    if (!formLocations.length) return Toast('当前没有启用中的食堂，无法新增')
+    if (!formLocations.length) return wx.showToast({ title: '当前没有启用中的食堂，无法新增', icon: 'none' })
     const current = this.data.locations[this.data.currentLocationIndex] || {}
     const curIdx = formLocations.findIndex(l => Number(l.id) === Number(current.id))
     const range = defaultPlanRange()
@@ -224,7 +214,7 @@ Page({
       })
     } catch (err) {
       this.setData({ showForm: false })
-      Toast((err && err.message) || '加载菜单详情失败')
+      wx.showToast({ title: (err && err.message) || '加载菜单详情失败', icon: 'none' })
     } finally {
       this.setData({ loadingDetail: false })
     }
@@ -234,7 +224,7 @@ Page({
   onDeletePlan(e) {
     const id = Number(e.currentTarget.dataset.id) || 0
     const item = this.data.planList.find(p => p.id === id)
-    if (!item) return Toast('未找到该菜单计划')
+    if (!item) return wx.showToast({ title: '未找到该菜单计划', icon: 'none' })
     Dialog.confirm({
       title: '删除菜单计划',
       message: `确认删除「${item.name}」吗？该计划下的全部菜品明细将一并删除。`,
@@ -243,10 +233,10 @@ Page({
     }).then(async () => {
       try {
         await MenuAPI.deleteMenuPlan({ id })
-        Toast('已删除')
+        wx.showToast({ title: '已删除', icon: 'success' })
         this._loadPlanList()
       } catch (err) {
-        Toast((err && err.message) || '删除失败')
+        wx.showToast({ title: (err && err.message) || '删除失败', icon: 'none' })
       }
     }).catch(() => { /* 取消 */ })
   },
@@ -314,11 +304,11 @@ Page({
       : (formLocations[formLocationIndex] || {})
     const locationId = Number(location.id) || 0
 
-    if (!name) return Toast('请填写菜单名称')
-    if (locationId <= 0) return Toast('请选择食堂')
-    if (!form.start_date) return Toast('请选择开始日期')
-    if (!form.end_date) return Toast('请选择结束日期')
-    if (form.end_date < form.start_date) return Toast('结束日期不能早于开始日期')
+    if (!name) return wx.showToast({ title: '请填写菜单名称', icon: 'none' })
+    if (locationId <= 0) return wx.showToast({ title: '请选择食堂', icon: 'none' })
+    if (!form.start_date) return wx.showToast({ title: '请选择开始日期', icon: 'none' })
+    if (!form.end_date) return wx.showToast({ title: '请选择结束日期', icon: 'none' })
+    if (form.end_date < form.start_date) return wx.showToast({ title: '结束日期不能早于开始日期', icon: 'none' })
 
     this.setData({ saving: true })
     try {
@@ -337,21 +327,15 @@ Page({
         })),
       })
       this.setData({ showForm: false })
-      Toast(formMode === 'edit' ? '已保存' : '已创建')
+      wx.showToast({ title: formMode === 'edit' ? '已保存' : '已创建', icon: 'success' })
       // 归属食堂与顶部所选不一致时，顶部切到该食堂，让用户立刻看到新计划
       const idx = this.data.locations.findIndex(l => Number(l.id) === locationId)
       if (idx > -1 && idx !== this.data.currentLocationIndex) {
-        store.setMenu({
-          locationIndex: idx,
-          planList: [],
-          hasQueried: false,
-          queriedLocationId: '',
-        })
         this.setData({ currentLocationIndex: idx, canAddPlan: this._isLocationEnabled(this.data.locations[idx]) })
       }
       this._loadPlanList()
     } catch (err) {
-      Toast((err && err.message) || '保存失败')
+      wx.showToast({ title: (err && err.message) || '保存失败', icon: 'none' })
     } finally {
       this.setData({ saving: false })
     }

@@ -1,8 +1,8 @@
-<!--subpackages/admin/pages/dept-manage/index.wxml-->
+<!--subpackages/admin/pages/location-manage/index.wxml-->
 
 <view class="page-pad">
 
-  <!-- 工具卡：搜索 + 新增部门按钮 -->
+  <!-- 工具卡：搜索 + 新增食堂按钮 -->
   <view class="tool-card">
     <view class="tool-search-row">
       <view class="search-box">
@@ -11,25 +11,25 @@
           class="search-input"
           type="text"
           value="{{searchKey}}"
-          placeholder="请输入部门名称"
+          placeholder="请输入食堂名称"
           placeholder-style="color:#969799;font-size:28rpx;"
           confirm-type="search"
           bindinput="onSearchInput"
-          bindconfirm="onDeptSearch"
+          bindconfirm="onLocSearch"
         />
         <van-icon
           wx:if="{{searchKey}}"
           name="clear"
           size="14px"
           color="#c8c9cc"
-          bindtap="onDeptClear"
+          bindtap="onLocClear"
         />
       </view>
       <van-button
         type="primary"
         size="mini"
         custom-style="width:112rpx;height:58rpx;padding:0;font-size:26rpx;flex-shrink:0;box-sizing:border-box;line-height:58rpx;"
-        bindtap="onDeptSearch"
+        bindtap="onLocSearch"
       >查询</van-button>
     </view>
     <view class="tool-actions">
@@ -37,7 +37,7 @@
         class="ws-btn-style"
         hover-class="ws-btn-style-hover"
         bindtap="onAdd"
-      >新增部门</view>
+      >新增食堂</view>
     </view>
   </view>
 
@@ -50,7 +50,7 @@
             <text class="badge {{item.status === 1 ? 'badge-green' : 'badge-gray'}}">{{item.status === 1 ? '启用' : '停用'}}</text>
           </view>
           <view class="item-sub">
-            员工 {{item.emp_count}} 人 · {{item.location_name || '未关联食堂'}}
+            部门 {{item.dept_count}} 个
           </view>
         </view>
         <view class="item-foot">
@@ -64,13 +64,13 @@
       <van-loading wx:if="{{loading}}" size="24rpx" color="#1989fa" />
       <van-empty
         wx:if="{{!loading && displayList.length === 0}}"
-        description="暂无部门数据"
+        description="暂无食堂数据"
       />
     </view>
   </view>
 </view>
 
-<!-- 新增 / 编辑部门 -->
+<!-- 新增 / 编辑食堂 -->
 <van-popup
   show="{{showForm}}"
   position="bottom"
@@ -81,35 +81,18 @@
   safe-area-inset-bottom
 >
   <view class="form-sheet" catchtouchmove="noop">
-    <view class="form-title">{{form.id ? '编辑部门' : '新增部门'}}</view>
+    <view class="form-title">{{form.id ? '编辑食堂' : '新增食堂'}}</view>
 
-    <!-- 部门名称 -->
+    <!-- 食堂名称 -->
     <van-cell-group inset custom-class="form-group">
       <van-field
-        label="部门名称"
-        placeholder="请输入部门名称"
+        label="食堂名称"
+        placeholder="请输入食堂名称"
         value="{{form.name}}"
         maxlength="50"
         bind:change="onNameInput"
       />
     </van-cell-group>
-
-    <!-- 所属食堂 -->
-    <view class="form-row">
-      <text class="form-label">所属食堂</text>
-      <picker
-        mode="selector"
-        range="{{locations}}"
-        range-key="name"
-        value="{{form.locationIndex}}"
-        bindchange="onLocationChange"
-      >
-        <view class="form-picker">
-          <text class="form-picker-text {{form.locationIndex > -1 ? '' : 'form-picker-placeholder'}}">{{form.locationIndex > -1 ? locations[form.locationIndex].name : '请选择'}}</text>
-          <text class="form-picker-arrow">▾</text>
-        </view>
-      </picker>
-    </view>
 
     <!-- 状态 -->
     <view class="form-row">
@@ -123,7 +106,7 @@
       />
     </view>
 
-    <view class="form-tip">停用后该部门员工将无法报餐。</view>
+    <view class="form-tip">停用后，员工将无法在该食堂报餐。</view>
 
     <view class="form-actions">
       <van-button size="normal" plain hairline type="default" bindtap="closeForm" disabled="{{submitting}}" custom-class="form-btn">取消</van-button>

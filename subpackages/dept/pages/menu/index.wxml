@@ -11,7 +11,11 @@
       value="{{ currentLocationIndex }}"
       bindchange="onLocationChange"
     >
-      <text class="dept-picker">{{ locations[currentLocationIndex].name }} ▾</text>
+      <view class="dept-picker">
+        <text>{{ locations[currentLocationIndex].name }}</text>
+        <text wx:if="{{ !canAddPlan }}" class="dept-disabled-tag">已停用</text>
+        <text class="dept-picker-arrow">▾</text>
+      </view>
     </picker>
   </view>
 
@@ -20,8 +24,8 @@
     <view class="tool-actions">
       <!-- 当前所选食堂停用（sys_location.status=0）时禁用新增：与员工页「新增员工」同款交互 -->
       <view
-        class="ws-btn-style ws-btn-primary {{ canAddPlan ? '' : 'ws-btn-style-disabled' }}"
-        hover-class="{{ canAddPlan ? 'ws-btn-primary-hover' : 'none' }}"
+        class="ws-btn-style {{ canAddPlan ? '' : 'ws-btn-style-disabled' }}"
+        hover-class="{{ canAddPlan ? 'ws-btn-style-hover' : 'none' }}"
         bindtap="onAddPlan"
       >新增菜单计划</view>
     </view>
@@ -37,9 +41,8 @@
       <view class="plan-head">
         <text class="plan-name">{{ item.name }}</text>
         <view class="plan-badges">
-          <view class="{{ item.status === 1 ? 'badge badge-green' : 'badge badge-gray' }}">
-            {{ item.status === 1 ? '启用' : '停用' }}
-          </view>
+          <view wx:if="{{ item.status === 1 && !item.expired }}" class="badge badge-green">启用</view>
+          <view wx:if="{{ item.status === 0 && !item.expired }}" class="badge badge-gray">停用</view>
           <view class="badge badge-active" wx:if="{{ item.is_active }}">当前生效</view>
           <view class="badge badge-blue" wx:elif="{{ item.in_range }}">有效期内</view>
           <view class="badge badge-orange" wx:elif="{{ item.not_started }}">未开始</view>
@@ -221,13 +224,10 @@
           loading="{{ saving }}"
           bindtap="onFormSubmit"
           custom-class="form-btn"
-        >{{ formMode === 'edit' ? '保存' : '确定' }}</van-button>
+        >保存</van-button>
       </view>
     </view>
   </van-popup>
 
-  <dept-tabbar active="menu" />
-
-  <van-toast id="van-toast" />
   <van-dialog id="van-dialog" />
 </view>

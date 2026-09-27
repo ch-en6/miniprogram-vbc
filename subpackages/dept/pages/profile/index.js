@@ -1,6 +1,7 @@
 // subpackages/dept/pages/profile/index.js — 部门工作台 · 我的
 const { ROLE } = require('../../../../utils/const')
 const { UserAPI } = require('../../../../services/api')
+const { isValidPassword, PASSWORD_RULE_TIP } = require('../../../../utils/util')
 
 Page({
   data: {
@@ -124,8 +125,8 @@ Page({
       wx.showToast({ title: '请输入旧密码', icon: 'none' })
       return
     }
-    if (newPwd.length < 8) {
-      wx.showToast({ title: '新密码至少8位', icon: 'none' })
+    if (!isValidPassword(newPwd)) {
+      wx.showToast({ title: PASSWORD_RULE_TIP, icon: 'none' })
       return
     }
     if (newPwd !== confirmPwd) {
@@ -153,11 +154,6 @@ Page({
 
   // ─── 页面跳转 ────────────────────────────────────────────────
 
-  goEmployee() {
-    wx.switchTab({ url: '/pages/index/index' })
-  },
-
-  // 员工端
   goEmployee() {
     wx.switchTab({ url: '/pages/index/index' })
   },

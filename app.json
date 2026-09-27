@@ -25,6 +25,7 @@
         "pages/notice/index",
         "pages/stats/index",
         "pages/billing/index",
+        "pages/workbench/index",
         "pages/profile/index"
       ]
     },
@@ -32,19 +33,19 @@
       "root": "subpackages/admin",
       "name": "admin",
       "pages": [
-        "pages/workspace/index",
         "pages/dept-manage/index",
         "pages/permission/index",
         "pages/sys-config/index",
-        "pages/op-log/index",
-        "pages/announcement/index"
+        "pages/location-manage/index"
       ]
     }
   ],
   "preloadRule": {
     "pages/index/index": {
       "network": "all",
-      "packages": ["kitchen"]
+      "packages": [
+        "kitchen"
+      ]
     }
   },
   "tabBar": {

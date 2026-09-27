@@ -33,9 +33,29 @@ page {
 }
 
 .dept-picker {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
   font-size: 30rpx;
   font-weight: 600;
   color: var(--brand);
+}
+
+/* 当前所选部门已停用时的提示标签（对齐 sys-config 页 .dept-disabled-tag） */
+.dept-disabled-tag {
+  font-size: 20rpx;
+  line-height: 1;
+  padding: 4rpx 12rpx;
+  border-radius: 100rpx;
+  background: #f2f3f5;
+  color: #969799;
+  font-weight: 400;
+}
+
+.dept-picker-arrow {
+  font-size: 24rpx;
+  line-height: 1;
+  color: var(--text-3);
 }
 
 /* ── 搜索 + 操作工具卡（与统计/收费页的筛选卡同风格：白卡 + 灰底方块 + 蓝色按钮） ── */
@@ -256,13 +276,24 @@ page {
   gap: 16rpx;
 }
 
-/* ─────────── 表单弹窗（底部弹出） ─────────── */
+/* ─────────── 表单弹窗（底部弹出，固定高度） ─────────── */
 .form-sheet {
   background: #fff;
   padding: 32rpx 0 0;
   border-radius: 32rpx 32rpx 0 0;
+  /* 固定高度：中间内容滚动，底部按钮始终可见 */
+  height: 85vh;
+  display: flex;
+  flex-direction: column;
   /* 为底部安全区域预留空间 */
-  padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+/* 中间可滚动内容区（表单字段 + 更多操作） */
+.form-body {
+  flex: 1;
+  min-height: 0;
 }
 
 .form-title {
@@ -326,21 +357,12 @@ page {
   line-height: 1.5;
 }
 
-/* 管理级身份锁定提示（占满剩余空间并右对齐，与「所属部门」「账号状态」的取值位置保持一致） */
-.form-role-locked {
-  flex: 1;
-  min-width: 0;
-  padding-left: 20rpx;
-  text-align: right;
-  font-size: 26rpx;
-  color: var(--text-3);
-  line-height: 2;
-}
-
 .form-actions {
   display: flex;
   gap: 24rpx;
   padding: 16rpx 24rpx 0;
+  flex-shrink: 0;
+  background: #fff;
 }
 
 .form-btn {
@@ -481,4 +503,180 @@ page {
   /* 显式居中（尺寸由 custom-style 指定；原生 button 默认左右 margin auto） */
   display: block;
   margin: 8rpx auto 0;
+}
+
+/* ─────────── 批量导入弹窗 ─────────── */
+.import-text-wrap {
+  margin: 0 24rpx 16rpx;
+}
+
+/* 粘贴区容器：承载背景与圆角，供内部浮层 + textarea 叠放 */
+.import-textarea-box {
+  position: relative;
+  background: #f5f6f8;
+  border-radius: 16rpx;
+}
+
+.import-textarea-ph {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 20rpx 24rpx;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.import-ph-line {
+  font-size: 26rpx;
+  color: #969799;
+  line-height: 1.6;
+}
+
+.import-ph-sub {
+  font-size: 24rpx;
+  color: #c8c9cc;
+}
+
+.import-textarea {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: 280rpx;
+  background: transparent;
+  padding: 20rpx 24rpx;
+  font-size: 26rpx;
+  line-height: 1.6;
+  color: var(--text-1);
+}
+
+.import-preview {
+  margin: 0 32rpx 20rpx;
+}
+
+.import-preview-summary {
+  font-size: 24rpx;
+  color: var(--text-2);
+  margin-bottom: 8rpx;
+}
+
+.import-preview-error {
+  font-size: 22rpx;
+  color: #ee0a24;
+  line-height: 1.6;
+}
+
+/* ─────────── 批量导入结果弹窗 ─────────── */
+.import-result-sheet {
+  width: 640rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 40rpx 24rpx 32rpx;
+  box-sizing: border-box;
+}
+
+.import-result-summary {
+  text-align: center;
+  font-size: 26rpx;
+  color: var(--text-2);
+  margin-bottom: 20rpx;
+}
+
+.import-ok-num {
+  color: #07c160;
+  font-weight: 600;
+}
+
+.import-fail-num {
+  color: #ee0a24;
+  font-weight: 600;
+}
+
+.import-result-list {
+  max-height: 480rpx;
+  border-radius: 16rpx;
+  background: #f5f6f8;
+  padding: 8rpx 20rpx;
+  box-sizing: border-box;
+}
+
+.import-result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #ebedf0;
+}
+
+.import-result-item:last-child {
+  border-bottom: none;
+}
+
+.import-result-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  min-width: 0;
+  flex: 1;
+}
+
+.import-result-name {
+  font-size: 26rpx;
+  color: var(--text-1);
+  font-weight: 500;
+}
+
+.import-result-phone {
+  font-size: 22rpx;
+  color: var(--text-3);
+}
+
+.import-result-right {
+  flex-shrink: 0;
+  text-align: right;
+  max-width: 55%;
+}
+
+/* 失败原因文案（可折行） */
+.import-result-msg {
+  font-size: 22rpx;
+  color: #ee0a24;
+  line-height: 1.4;
+}
+
+.import-result-margin {
+  margin-top: 16rpx;
+}
+
+/* 结果弹窗按钮：自绘 view 并排等分（避免原生 button 的 min-width / margin auto 干扰） */
+.import-result-actions {
+  display: flex;
+  gap: 20rpx;
+  padding-top: 8rpx;
+}
+
+.import-result-btn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 64rpx;
+  font-size: 26rpx;
+  line-height: 1;
+  border-radius: 8rpx;
+  box-sizing: border-box;
+  background: #fff;
+  color: #1989fa;
+  border: 1rpx solid #1989fa;
+}
+
+.import-result-btn-primary {
+  background: #1989fa;
+  color: #fff;
+}
+
+.import-result-btn-hover {
+  opacity: 0.85;
 }

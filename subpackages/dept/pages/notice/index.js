@@ -1,13 +1,8 @@
 // subpackages/dept/pages/notice/index.js — 部门工作台 · 公告管理
 // 数据源：sys_notice（title / content / status / publish_time / location_id）
 //   status: 1=已发布（员工端可见），0=草稿（员工端不可见）
-// 权限模型与部门工作台其他页一致：openid -> sys_emp.role_id
-//   -> sys_role_location -> location_id[]（食堂），所有读写限定在管辖食堂范围内。
-// 「当前食堂」来自 store.state.locations（getMyDepts 返回的角色管辖食堂）。
-const store = require('../../../../utils/dept-store')
-const { NoticeAPI } = require('../../../../services/api')
+const { KitchenAPI, NoticeAPI } = require('../../../../services/api')
 const T = require('../../../../utils/time')
-const Toast = require('@vant/weapp/toast/toast').default
 const Dialog = require('@vant/weapp/dialog/dialog').default
 
 function pad2(n) {
@@ -77,51 +72,44 @@ Page({
 
   onShow() {
     if (wx.hideHomeButton) wx.hideHomeButton()
-    this._ensureLocationsAndLoad()
+    this._loadLocationsAndNotices()
   },
 
-  // 食堂列表就绪后，恢复本页所选食堂并拉取公告列表
-  async _ensureLocationsAndLoad() {
-    await store.ensureDepts()
-    const locations = store.state.locations || []
+  async _loadLocationsAndNotices() {
+    let locations = []
+    try {
+      const res = await KitchenAPI.getMyDepts()
+      locations = ((res && res.locations) || []).filter(l => l && l.id)
+    } catch (err) {
+      console.error('[dept notice] loadLocations error:', err)
+    }
     const hasPermission = locations.length > 0
-    const remembered = (store.state && store.state.notice) || {}
-    const fallback = store.defaultLocationIndex ? store.defaultLocationIndex() : 0
-    const idx = (typeof remembered.locationIndex === 'number'
-      && remembered.locationIndex < locations.length)
-      ? remembered.locationIndex
-      : (fallback < locations.length ? fallback : 0)
 
-    // 状态筛选只接受 'all' | 1 | 0，其它值（陈旧 store / 异常）退回 'all'
-    const rememberStatus = remembered.statusFilter
-    const statusFilter = (rememberStatus === 1 || rememberStatus === 0 || rememberStatus === 'all')
-      ? rememberStatus
-      : 'all'
+    const idx = this._defaultLocationIndex(locations)
 
     this.setData({
       locations,
       hasPermission,
       currentLocationIndex: idx,
       canAddNotice: this._isLocationEnabled(locations[idx]),
-      searchKey: remembered.searchKey || '',
-      statusFilter,
+      searchKey: '',
+      statusFilter: 'all',
       today: T.formatDate(new Date()),
     })
     if (!hasPermission) {
       this.setData({ noticeList: [] })
       return
     }
-    // 仅当记忆里有「同食堂 + 同关键词 + 同状态」的结果时直接复用，避免离开页面再回来陈旧数据
-    const cachedMatch = remembered.hasQueried
-      && String(remembered.queriedLocationId) === String(locations[idx] && locations[idx].id)
-      && String(remembered.searchKey || '') === String(remembered.searchKey || '')
-      && String(remembered.queriedStatus == null ? 'all' : remembered.queriedStatus) === String(statusFilter)
-      && Array.isArray(remembered.noticeList)
-    if (cachedMatch) {
-      this.setData({ noticeList: remembered.noticeList, expandedId: 0 })
-      return
-    }
     this._loadNoticeList()
+  },
+
+  _defaultLocationIndex(locations) {
+    const list = locations || []
+    if (!list.length) return 0
+    const app = getApp()
+    const locationId = ((app && app.globalData && app.globalData.userInfo) || {}).location_id
+    const idx = list.findIndex(l => Number(l.id) === Number(locationId))
+    return idx > -1 ? idx : 0
   },
 
   // 拉取当前食堂的公告列表
@@ -143,19 +131,11 @@ Page({
       const data = await NoticeAPI.getNoticeList({ locationId, keyword, status })
       const list = (data && data.list) || []
       this.setData({ noticeList: list, expandedId: 0 })
-      // 记忆最近一次结果（含关键词与状态），切 Tab 回来且条件一致时直接复用
-      store.setNotice({
-        noticeList: list,
-        hasQueried: true,
-        queriedLocationId: String(locationId),
-        queriedSearchKey: keyword,
-        queriedStatus: status,
-        searchKey: keyword,
-        statusFilter: status,
-      })
+      this._lastSearchedKey = keyword
+      this._lastSearchedStatus = status
     } catch (err) {
       this.setData({ noticeList: [] })
-      Toast((err && err.message) || '加载公告失败')
+      wx.showToast({ title: (err && err.message) || '加载公告失败', icon: 'none' })
     } finally {
       if (!silent) this.setData({ loading: false })
     }
@@ -165,17 +145,9 @@ Page({
   onLocationChange(e) {
     const index = Number(e.detail.value) || 0
     if (index === this.data.currentLocationIndex) return
-    store.setNotice({
-      locationIndex: index,
-      noticeList: [],
-      hasQueried: false,
-      queriedLocationId: '',
-      // 切食堂时一并清空搜索/状态，避免用上家的关键词+新食堂查询出意料外结果
-      searchKey: '',
-      statusFilter: 'all',
-      queriedSearchKey: '',
-      queriedStatus: 'all',
-    })
+    // 切食堂时一并清空搜索/状态，避免用上家的关键词+新食堂查询出意料外结果
+    this._lastSearchedKey = ''
+    this._lastSearchedStatus = 'all'
     this.setData({ currentLocationIndex: index, searchKey: '', statusFilter: 'all', canAddNotice: this._isLocationEnabled(this.data.locations[index]) })
     this._loadNoticeList()
   },
@@ -186,10 +158,9 @@ Page({
       wx.stopPullDownRefresh()
       return
     }
-    // 强制重拉食堂列表（食堂启用/停用状态可能已被修改），再重新初始化页面
-    await store.refreshDepts()
-    store.setNotice({ hasQueried: false }) // 下拉刷新要求最新数据，跳过缓存秒显
-    await this._ensureLocationsAndLoad()
+    this._lastSearchedKey = ''
+    this._lastSearchedStatus = this.data.statusFilter
+    await this._loadLocationsAndNotices()
     wx.stopPullDownRefresh()
   },
 
@@ -244,11 +215,11 @@ Page({
   },
 
   onAddNotice() {
-    if (!this.data.hasPermission) return Toast('当前账号暂无可管理的食堂')
+    if (!this.data.hasPermission) return wx.showToast({ title: '当前账号暂无可管理的食堂', icon: 'none' })
     // 当前食堂已停用时不允许新增（需先在顶部切换到启用中的食堂）
-    if (!this.data.canAddNotice) return Toast('当前食堂已停用，无法新增公告')
+    if (!this.data.canAddNotice) return wx.showToast({ title: '当前食堂已停用，无法新增公告', icon: 'none' })
     const formLocations = this._buildFormLocations()
-    if (!formLocations.length) return Toast('当前没有启用中的食堂，无法新增')
+    if (!formLocations.length) return wx.showToast({ title: '当前没有启用中的食堂，无法新增', icon: 'none' })
     const current = this.data.locations[this.data.currentLocationIndex] || {}
     const curIdx = formLocations.findIndex(l => Number(l.id) === Number(current.id))
     const publish = defaultPublish()
@@ -279,7 +250,7 @@ Page({
   onEditNotice(e) {
     const id = Number(e.currentTarget.dataset.id) || 0
     const item = this.data.noticeList.find(n => Number(n.id) === id)
-    if (!item) return Toast('未找到该公告')
+    if (!item) return wx.showToast({ title: '未找到该公告', icon: 'none' })
 
     const formLocations = this._buildFormLocations()
     const locIdx = formLocations.findIndex(l => Number(l.id) === Number(item.location_id))
@@ -316,7 +287,7 @@ Page({
   onDeleteNotice(e) {
     const id = Number(e.currentTarget.dataset.id) || 0
     const item = this.data.noticeList.find(n => Number(n.id) === id)
-    if (!item) return Toast('未找到该公告')
+    if (!item) return wx.showToast({ title: '未找到该公告', icon: 'none' })
     Dialog.confirm({
       title: '删除公告',
       message: `确认删除「${item.title}」吗？删除后无法恢复，员工端也将不再展示。`,
@@ -325,10 +296,10 @@ Page({
     }).then(async () => {
       try {
         await NoticeAPI.deleteNotice({ id })
-        Toast('已删除')
+        wx.showToast({ title: '已删除', icon: 'success' })
         this._loadNoticeList()
       } catch (err) {
-        Toast((err && err.message) || '删除失败')
+        wx.showToast({ title: (err && err.message) || '删除失败', icon: 'none' })
       }
     }).catch(() => { /* 取消 */ })
   },
@@ -397,16 +368,16 @@ Page({
       : (formLocations[formLocationIndex] || {})
     const locationId = Number(location.id) || 0
 
-    if (!title) return Toast('请填写公告标题')
-    if (!content) return Toast('请填写公告内容')
-    if (locationId <= 0) return Toast('请选择食堂')
+    if (!title) return wx.showToast({ title: '请填写公告标题', icon: 'none' })
+    if (!content) return wx.showToast({ title: '请填写公告内容', icon: 'none' })
+    if (locationId <= 0) return wx.showToast({ title: '请选择食堂', icon: 'none' })
 
     // 发布时间：日期必填才有时刻；留空整体清空
     const datePart = form.publish_date || ''
     const hmPart = form.publish_time_hm || ''
-    if (!datePart && hmPart) return Toast('请选择发布时间')
-    if (datePart && !hmPart) return Toast('请选择发布时刻')
-    if (isPastPublish(datePart, hmPart, this._openPublishTime)) return Toast('发布时间不能早于当前时间')
+    if (!datePart && hmPart) return wx.showToast({ title: '请选择发布时间', icon: 'none' })
+    if (datePart && !hmPart) return wx.showToast({ title: '请选择发布时刻', icon: 'none' })
+    if (isPastPublish(datePart, hmPart, this._openPublishTime)) return wx.showToast({ title: '发布时间不能早于当前时间', icon: 'none' })
     // 秒位取「点保存那一刻」的秒（picker 只到分钟），不补固定 00，保证发布时间精确到秒
     const nowSec = pad2(new Date().getSeconds())
     let publishTime = datePart ? `${datePart} ${hmPart}:${nowSec}` : ''
@@ -429,21 +400,15 @@ Page({
         publishTime,
       })
       this.setData({ showForm: false })
-      Toast(formMode === 'edit' ? '已保存' : (status === 1 ? '已发布' : '草稿已保存'))
+      wx.showToast({ title: formMode === 'edit' ? '已保存' : (status === 1 ? '已发布' : '草稿已保存'), icon: 'success' })
       // 归属食堂与顶部所选不一致时，顶部切到该食堂，让用户立刻看到新公告
       const idx = this.data.locations.findIndex(l => Number(l.id) === locationId)
       if (idx > -1 && idx !== this.data.currentLocationIndex) {
-        store.setNotice({
-          locationIndex: idx,
-          noticeList: [],
-          hasQueried: false,
-          queriedLocationId: '',
-        })
         this.setData({ currentLocationIndex: idx, canAddNotice: this._isLocationEnabled(this.data.locations[idx]) })
       }
       this._loadNoticeList()
     } catch (err) {
-      Toast((err && err.message) || '保存失败')
+      wx.showToast({ title: (err && err.message) || '保存失败', icon: 'none' })
     } finally {
       this.setData({ saving: false })
     }

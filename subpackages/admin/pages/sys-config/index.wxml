@@ -1,2 +1,165 @@
 <!--subpackages/admin/pages/sys-config/index.wxml-->
-<text>subpackages/admin/pages/sys-config/index.wxml</text>
+
+<view class="page-pad">
+  <!-- 部门选择 -->
+  <view class="dept-selector" wx:if="{{depts.length > 0}}">
+    <text class="dept-label">当前部门：</text>
+    <picker
+      mode="selector"
+      range="{{depts}}"
+      range-key="name"
+      value="{{deptIndex}}"
+      bindchange="onDeptChange"
+      class="dept-picker"
+    >
+      <view style="display:flex;align-items:center;gap:8rpx;">
+        <text>{{currentDeptName || '请选择部门'}}</text>
+        <text wx:if="{{deptIndex > -1 && !canAdd}}" class="dept-disabled-tag">已停用</text>
+        <text style="font-size:24rpx;line-height:1;color:var(--text-3);">›</text>
+      </view>
+    </picker>
+  </view>
+  <view class="list-empty" wx:if="{{!loading && depts.length === 0}}">暂无部门，请先在「部门管理」新增</view>
+
+  <view class="group" wx:if="{{depts.length > 0}}">
+    <view class="tool-card">
+      <view class="tool-actions">
+        <view
+          class="ws-btn-style {{ canAdd ? '' : 'ws-btn-style-disabled' }}"
+          hover-class="{{ canAdd ? 'ws-btn-style-hover' : 'none' }}"
+          bindtap="onAdd"
+        >新增价格配置</view>
+      </view>
+    </view>
+
+    <view class="list-hint" wx:if="{{!loading && list.length && !hasEffective}}">当前没有正在生效的价格配置，员工端报餐将无法计价。</view>
+
+    <view class="list">
+      <view class="price-item" wx:for="{{list}}" wx:key="id" wx:for-item="item">
+        <view class="item-main">
+          <view class="item-title">
+            <text class="item-title-text">{{item.start_date}} 至 {{item.end_date}}</text>
+            <view class="title-badges">
+              <view wx:if="{{item.status === 1 && !item.expired}}" class="badge badge-green">启用</view>
+              <view wx:if="{{item.status === 0}}" class="badge badge-gray">停用</view>
+              <view class="badge badge-active" wx:if="{{item.is_effective}}">当前生效</view>
+              <view class="badge badge-orange" wx:elif="{{item.not_started}}">未开始</view>
+              <view class="badge badge-red" wx:elif="{{item.expired}}">已过期</view>
+            </view>
+          </view>
+          <view class="meal-lines">
+            <view class="meal-line" wx:for="{{item.meals}}" wx:key="key" wx:for-item="meal">
+              <text class="meal-line-label">{{meal.label}}</text>
+              <text wx:if="{{meal.emp_price !== ''}}">员工 ¥{{meal.emp_price}} · 家属 ¥{{meal.family_price}}</text>
+              <text wx:else class="meal-line-off">未开放</text>
+            </view>
+          </view>
+        </view>
+        <view class="item-foot">
+          <view class="list-btn" hover-class="list-btn-hover" data-item="{{item}}" bindtap="onEdit">编辑</view>
+          <view class="list-btn list-btn-danger" hover-class="list-btn-danger-hover" data-item="{{item}}" bindtap="onDelete">删除</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 加载中 / 空态（与部门管理页一致） -->
+    <view class="empty-wrap">
+      <van-loading wx:if="{{loading}}" size="24rpx" color="#1989fa" />
+      <van-empty
+        wx:if="{{!loading && list.length === 0}}"
+        description="该部门暂无价格配置"
+      />
+    </view>
+  </view>
+</view>
+
+<!-- 新增 / 编辑价格配置 -->
+<van-popup
+  show="{{showForm}}"
+  position="bottom"
+  round
+  closeable
+  close-on-click-overlay="{{!submitting}}"
+  bind:close="closeForm"
+  safe-area-inset-bottom
+>
+  <view class="form-sheet">
+    <view class="form-title">{{form.id ? '编辑价格配置' : '新增价格配置'}}</view>
+
+    <view class="form-scroll">
+      <!-- 1. 所属部门 -->
+      <view class="form-row">
+        <text class="form-label">部门</text>
+        <view class="form-picker">
+          <text class="form-picker-text">{{currentDeptName}}</text>
+        </view>
+      </view>
+
+      <!-- 2. 生效 / 失效日期 -->
+      <picker mode="date" value="{{form.startDate}}" start="{{dateMin}}" end="{{form.endDate}}" bindchange="onStartDateChange">
+        <view class="form-row">
+          <text class="form-label">生效日期</text>
+          <view class="form-picker">
+            <text class="form-picker-text">{{form.startDate || '请选择'}}</text>
+            <text class="form-picker-arrow">▾</text>
+          </view>
+        </view>
+      </picker>
+
+      <picker mode="date" value="{{form.endDate}}" start="{{form.startDate || dateMin}}" bindchange="onEndDateChange">
+        <view class="form-row">
+          <text class="form-label">失效日期</text>
+          <view class="form-picker">
+            <text class="form-picker-text">{{form.endDate || '请选择'}}</text>
+            <text class="form-picker-arrow">▾</text>
+          </view>
+        </view>
+      </picker>
+
+      <!-- 3. 状态 -->
+      <view class="form-row">
+        <text class="form-label">状态</text>
+        <van-switch
+          checked="{{form.status === 1}}"
+          size="24"
+          active-color="#1989fa"
+          inactive-color="#dcdee0"
+          bind:change="onFormStatusChange"
+        />
+      </view>
+
+      <view class="form-meal-block" wx:for="{{form.meals}}" wx:key="key" wx:for-index="idx">
+        <view class="form-meal-title">{{item.label}}</view>
+        <view class="form-meal-row">
+          <view class="form-meal-field">
+            <text class="form-meal-label">员工价（元）</text>
+            <input
+              class="form-input"
+              type="digit"
+              value="{{item.empPrice}}"
+              data-index="{{idx}}"
+              data-field="emp"
+              bindinput="onMealPriceInput"
+            />
+          </view>
+          <view class="form-meal-field">
+            <text class="form-meal-label">家属价（元）</text>
+            <input
+              class="form-input"
+              type="digit"
+              value="{{item.familyPrice}}"
+              data-index="{{idx}}"
+              data-field="family"
+              bindinput="onMealPriceInput"
+            />
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="form-actions">
+      <van-button size="normal" plain hairline type="default" bindtap="closeForm" disabled="{{submitting}}" custom-class="form-btn">取消</van-button>
+      <van-button size="normal" type="primary" loading="{{submitting}}" bindtap="onSubmit" custom-class="form-btn">保存</van-button>
+    </view>
+  </view>
+</van-popup>

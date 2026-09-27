@@ -1,2 +1,177 @@
 <!--subpackages/admin/pages/permission/index.wxml-->
-<text>subpackages/admin/pages/permission/index.wxml</text>
+
+<view class="page-pad">
+
+  <!-- 工具卡：搜索 + 新增角色按钮 -->
+  <view class="tool-card">
+    <view class="tool-search-row">
+      <view class="search-box">
+        <van-icon name="search" size="16px" color="#969799" />
+        <input
+          class="search-input"
+          type="text"
+          value="{{searchKey}}"
+          placeholder="请输入角色名称"
+          placeholder-style="color:#969799;font-size:28rpx;"
+          confirm-type="search"
+          bindinput="onSearchInput"
+          bindconfirm="onRoleSearch"
+        />
+        <van-icon
+          wx:if="{{searchKey}}"
+          name="clear"
+          size="14px"
+          color="#c8c9cc"
+          bindtap="onRoleClear"
+        />
+      </view>
+      <van-button
+        type="primary"
+        size="mini"
+        custom-style="width:112rpx;height:58rpx;padding:0;font-size:26rpx;flex-shrink:0;box-sizing:border-box;line-height:58rpx;"
+        bindtap="onRoleSearch"
+      >查询</van-button>
+    </view>
+    <view class="tool-actions">
+      <view
+        class="ws-btn-style"
+        hover-class="ws-btn-style-hover"
+        bindtap="onAdd"
+      >新增角色</view>
+    </view>
+  </view>
+
+  <view class="group">
+    <view class="list">
+      <view class="xxx-item" wx:for="{{displayList}}" wx:key="id">
+        <view class="item-main">
+          <view class="item-title">
+            <text>{{item.name}}</text>
+            <text class="badge {{item.status === 1 ? 'badge-green' : 'badge-gray'}}">{{item.status === 1 ? '启用' : '停用'}}</text>
+          </view>
+          <view class="item-sub">{{item.emp_count}} 人
+            <block wx:if="{{item.code === 'sysAdmin'}}">· 全局</block>
+            <block wx:elif="{{item.location_names.length}}">· {{item.location_names}}</block>
+            <block wx:elif="{{item.code !== 'employee'}}">· 未绑定食堂</block>
+          </view>
+        </view>
+        <view class="item-foot">
+          <view
+            class="list-btn"
+            hover-class="list-btn-hover"
+            data-item="{{item}}"
+            wx:if="{{item.code !== 'employee' && item.code !== 'sysAdmin'}}"
+            bindtap="onEdit"
+          >编辑</view>
+          <view
+            class="list-btn list-btn-danger"
+            hover-class="list-btn-danger-hover"
+            wx:if="{{item.code !== 'employee' && item.code !== 'sysAdmin'}}"
+            data-item="{{item}}"
+            bindtap="onDelete"
+          >删除</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-wrap">
+      <van-loading wx:if="{{loading}}" size="24rpx" color="#1989fa" />
+      <van-empty
+        wx:if="{{!loading && displayList.length === 0}}"
+        description="暂无角色数据"
+      />
+    </view>
+  </view>
+</view>
+
+<!-- 新增 / 编辑角色 -->
+<van-popup
+  show="{{showForm}}"
+  position="bottom"
+  round
+  closeable
+  close-on-click-overlay="{{!submitting}}"
+  bind:close="closeForm"
+  safe-area-inset-bottom
+>
+  <view class="form-sheet" catchtouchmove="noop">
+    <view class="form-title">{{form.id ? '编辑角色' : '新增角色'}}</view>
+
+    <view class="form-scroll">
+      <!-- 1. 角色名称 -->
+      <van-cell-group inset custom-class="form-group">
+        <van-field
+          label="角色名称"
+          placeholder="请输入角色名称"
+          value="{{form.name}}"
+          maxlength="30"
+          bind:change="onNameInput"
+        />
+      </van-cell-group>
+
+      <!-- 2. 身份：新增态为可点击按钮组；编辑态为只读文字 -->
+      <view class="form-row form-row-identity" wx:if="{{!form.id}}">
+        <text class="form-label">身份</text>
+        <view class="seg seg-compact">
+          <view
+            class="seg-item {{form.code === ROLE.KITCHEN ? 'on' : ''}}"
+            data-code="{{ROLE.KITCHEN}}"
+            bindtap="onIdentityChange"
+          >食堂员工</view>
+          <view
+            class="seg-item {{form.code === ROLE.DEPT_ADMIN ? 'on' : ''}}"
+            data-code="{{ROLE.DEPT_ADMIN}}"
+            bindtap="onIdentityChange"
+          >部门管理员</view>
+        </view>
+      </view>
+
+      <view class="form-row" wx:if="{{form.id}}">
+        <text class="form-label">身份</text>
+        <text class="form-picker-text">{{identityLabel}}</text>
+      </view>
+
+      <!-- 3. 绑定食堂：
+           - 系统管理员：显示「全局角色，不绑定食堂」
+           - 普通员工：不显示该行
+           - 部门管理员 / 食堂员工：多选标签 -->
+      <view class="form-row" wx:if="{{form.code === 'sysAdmin'}}">
+        <text class="form-label">绑定食堂</text>
+        <text class="form-picker-text form-picker-placeholder">全局角色，不绑定食堂</text>
+      </view>
+
+      <view class="form-row form-row-top" wx:if="{{form.code !== 'employee' && form.code !== 'sysAdmin'}}">
+        <text class="form-label">绑定食堂</text>
+        <view class="form-all">
+          <view class="chips">
+            <view
+              class="chip {{chip.on ? 'on' : ''}} {{chip.disabled ? 'disabled' : ''}}"
+              wx:for="{{chips}}"
+              wx:for-item="chip"
+              wx:key="id"
+              data-id="{{chip.id}}"
+              bindtap="onToggleLocation"
+            >{{chip.name}}{{chip.disabled ? '（停用）' : ''}}</view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 4. 状态 -->
+      <view class="form-row">
+        <text class="form-label">状态</text>
+        <van-switch
+          checked="{{form.status === 1}}"
+          size="24"
+          active-color="#1989fa"
+          inactive-color="#dcdee0"
+          bind:change="onStatusChange"
+        />
+      </view>
+    </view>
+
+    <view class="form-actions">
+      <van-button size="normal" plain hairline type="default" bindtap="closeForm" disabled="{{submitting}}" custom-class="form-btn">取消</van-button>
+      <van-button size="normal" type="primary" loading="{{submitting}}" bindtap="onSubmit" custom-class="form-btn">保存</van-button>
+    </view>
+  </view>
+</van-popup>

@@ -2,7 +2,7 @@
 const { KitchenAPI } = require('../../../../services/api')
 const { MEAL_TYPE_LABEL, PAGE_SIZE } = require('../../../../utils/const')
 const { formatDate, formatDateCN } = require('../../../../utils/time')
-const { verifyMeal } = require('../../../../utils/verify')
+const { verifyMeal } = require('../../utils/verify')
 
 // 每人内部按 早餐→午餐→晚餐 排序
 const MEAL_ORDER = { breakfast: 0, lunch: 1, dinner: 2 }

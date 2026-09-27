@@ -265,8 +265,18 @@ const KitchenAPI = {
       role_id: Number(roleId) || 0,
     }),
   /**
+   * 员工管理：批量导入员工
+   */
+  batchAddStaff: ({ deptId, roleId, staff, password }) =>
+    call('deptAdmin', {
+      action: 'batchAddStaff',
+      dept_id: Number(deptId) || 0,
+      role_id: Number(roleId) || 0,
+      staff: staff || [],
+      password: password != null ? String(password) : '',
+    }),
+  /**
    * 员工管理：编辑员工基础信息 + 身份（roleId）
-   *   roleId 不传 = 保持原身份；0 = 转普通员工（写全局 employee 角色）；>0 = 转食堂员工
    * @param {{ id: number|string, name: string, phone: string, deptId: number|string,
    *           status: 0|1, roleId?: number|string }} params
    * @returns {Promise<*>}
@@ -280,7 +290,7 @@ const KitchenAPI = {
       dept_id: Number(deptId) || 0,
       status: Number(status) === 0 ? 0 : 1,
     }
-    // 显式传 roleId（含 0）才提交身份变更；不传表示保持原身份（后端兼容旧调用）
+    // 显式传 roleId 才提交身份变更；不传表示保持原身份
     if (roleId !== undefined && roleId !== null && String(roleId) !== '') {
       payload.role_id = Number(roleId)
     }
@@ -293,6 +303,13 @@ const KitchenAPI = {
    */
   unbindStaffWechat: ({ id }) =>
     call('deptAdmin', { action: 'unbindStaffWechat', id: Number(id) || 0 }),
+  /**
+   * 员工管理：删除员工
+   * @param {{ id: number|string }} params
+   * @returns {Promise<*>}
+   */
+  deleteStaff: ({ id }) =>
+    call('deptAdmin', { action: 'deleteStaff', id: Number(id) || 0 }),
   /**
    * 员工管理：重置员工密码（返回新密码明文，仅一次）
    * @param {{ id: number|string }} params
@@ -371,6 +388,142 @@ const NoticeAPI = {
   deleteNotice: ({ id }) => call('notice', { action: 'deleteNotice', id: Number(id) || 0 }),
 }
 
+// ═══════════════════════════════════════════════════════════
+// 系统管理工作台模块
+// ═══════════════════════════════════════════════════════════
+const SysAdminAPI = {
+  // ── 食堂管理 ──────────────────────────────────────────────
+  /**
+   * 食堂列表
+   * @returns {Promise<{list: Array}>}
+   *   list 元素: { id, name, status, dept_count, role_count }
+   */
+  getLocationList: () => call('sysAdmin', { action: 'getLocationList' }),
+  /**
+   * 新增 / 编辑食堂（id 为 0 表示新增）
+   * @param {{ id?: number|string, name: string, status: 0|1 }} params
+   * @returns {Promise<null>}
+   */
+  saveLocation: ({ id = 0, name, status = 1 }) =>
+    call('sysAdmin', {
+      action: 'saveLocation',
+      id: Number(id) || 0,
+      name,
+      status: Number(status) === 0 ? 0 : 1,
+    }),
+  /**
+   * 删除食堂（存在部门或已被角色绑定时云函数会拒绝）
+   * @param {{ id: number|string }} params
+   * @returns {Promise<null>}
+   */
+  deleteLocation: ({ id }) => call('sysAdmin', { action: 'deleteLocation', id: Number(id) || 0 }),
+
+  // ── 部门管理 ──────────────────────────────────────────────
+  /**
+   * 部门列表
+   * @returns {Promise<{list: Array}>}
+   *   list 元素: { id, name, location_id, location_name, status, emp_count, price_count }
+   */
+  getDeptList: () => call('sysAdmin', { action: 'getDeptList' }),
+  /**
+   * 新增 / 编辑部门（id 为 0 表示新增）
+   * @param {{ id?: number|string, name: string, locationId: number|string, status: 0|1 }} params
+   * @returns {Promise<null>}
+   */
+  saveDept: ({ id = 0, name, locationId, status = 1 }) =>
+    call('sysAdmin', {
+      action: 'saveDept',
+      id: Number(id) || 0,
+      name,
+      location_id: Number(locationId) || 0,
+      status: Number(status) === 0 ? 0 : 1,
+    }),
+  /**
+   * 删除部门（存在员工时云函数会拒绝，否则连带清理该部门价格配置）
+   * @param {{ id: number|string }} params
+   * @returns {Promise<null>}
+   */
+  deleteDept: ({ id }) => call('sysAdmin', { action: 'deleteDept', id: Number(id) || 0 }),
+
+  // ── 角色管理 ──────────────────────────────────────────────
+  /**
+   * 角色列表
+   * @returns {Promise<{list: Array}>}
+   *   list 元素: { id, code, name, status, is_builtin, is_global,
+   *                location_ids, location_names, emp_count }
+   */
+  getRoleList: () => call('sysAdmin', { action: 'getRoleList' }),
+  /**
+   * 新增 / 编辑角色（id 为 0 表示新增；编辑时 code 不可变更）
+   *   全局角色（employee / sysAdmin）不绑定食堂；其余角色需绑定至少一个食堂。
+   * @param {{ id?: number|string, code?: string, name: string, status: 0|1,
+   *           locationIds?: Array<number|string> }} params
+   * @returns {Promise<{id: number}|null>}
+   */
+  saveRole: ({ id = 0, code = '', name, status = 1, locationIds = [] }) =>
+    call('sysAdmin', {
+      action: 'saveRole',
+      id: Number(id) || 0,
+      code,
+      name,
+      status: Number(status) === 0 ? 0 : 1,
+      location_ids: Array.isArray(locationIds) ? locationIds.map(n => Number(n) || 0) : [],
+    }),
+  /**
+   * 删除角色（内置角色、或角色下存在员工时云函数会拒绝）
+   * @param {{ id: number|string }} params
+   * @returns {Promise<null>}
+   */
+  deleteRole: ({ id }) => call('sysAdmin', { action: 'deleteRole', id: Number(id) || 0 }),
+
+  // ── 价格配置 ──────────────────────────────────────────────
+  /**
+   * 某部门的价格配置列表（全部状态，按生效日期倒序；一行 = 一套三餐价格）
+   * @param {{ deptId: number|string }} params
+   * @returns {Promise<{dept_id: number, dept_name: string, list: Array}>}
+   *   list 元素: { id, status, start_date, end_date,
+   *                meals: [{ key, label, emp_price, family_price }] }
+   *   meals 中未开放的餐次 emp_price / family_price 为 ''（空字符串）
+   */
+  getPriceConfigList: ({ deptId }) =>
+    call('sysAdmin', { action: 'getPriceConfigList', dept_id: Number(deptId) || 0 }),
+  /**
+   * 新增 / 编辑价格配置（id 为 0 表示新增；一次保存一套三餐价格）
+   * @param {{ id?: number|string, deptId: number|string,
+   *           meals: { breakfast?: {empPrice, familyPrice}, lunch?: ..., dinner?: ... },
+   *           startDate: string, endDate: string, status: 0|1 }} params
+   *   meals 某餐次缺省 / 为空 = 该餐不开放；startDate/endDate 格式 YYYY-MM-DD
+   * @returns {Promise<null>}
+   */
+  savePriceConfig: ({ id = 0, deptId, meals = {}, startDate, endDate, status = 1 }) => {
+    const prices = {}
+    ;['breakfast', 'lunch', 'dinner'].forEach(key => {
+      const m = meals[key]
+      if (m && (m.empPrice !== '' && m.empPrice != null)) {
+        prices[key] = { emp_price: m.empPrice, family_price: m.familyPrice }
+      } else {
+        prices[key] = null
+      }
+    })
+    return call('sysAdmin', {
+      action: 'savePriceConfig',
+      id: Number(id) || 0,
+      dept_id: Number(deptId) || 0,
+      prices,
+      start_date: startDate,
+      end_date: endDate,
+      status: Number(status) === 0 ? 0 : 1,
+    })
+  },
+  /**
+   * 删除价格配置
+   * @param {{ id: number|string }} params
+   * @returns {Promise<null>}
+   */
+  deletePriceConfig: ({ id }) =>
+    call('sysAdmin', { action: 'deletePriceConfig', id: Number(id) || 0 }),
+}
+
 module.exports = {
   AuthAPI,
   MealOrderAPI,
@@ -379,4 +532,5 @@ module.exports = {
   UserAPI,
   KitchenAPI,
   NoticeAPI,
+  SysAdminAPI,
 }

@@ -11,7 +11,11 @@
       value="{{ currentLocationIndex }}"
       bindchange="onLocationChange"
     >
-      <text class="dept-picker">{{ locations[currentLocationIndex].name }} ▾</text>
+      <view class="dept-picker">
+        <text>{{ locations[currentLocationIndex].name }}</text>
+        <text wx:if="{{ !canAddNotice }}" class="dept-disabled-tag">已停用</text>
+        <text class="dept-picker-arrow">▾</text>
+      </view>
     </picker>
   </view>
 
@@ -229,14 +233,10 @@
           loading="{{ saving }}"
           bindtap="onFormSubmit"
           custom-class="form-btn"
-        >{{ formMode === 'edit' ? '保存' : '确定' }}</van-button>
+        >保存</van-button>
       </view>
     </view>
   </van-popup>
 
-  <!-- 底部导航：员工 / 统计 / 收费 / 菜单 / 公告 / 我的 -->
-  <dept-tabbar active="notice" />
-
-  <van-toast id="van-toast" />
   <van-dialog id="van-dialog" />
 </view>

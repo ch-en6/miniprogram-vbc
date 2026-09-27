@@ -2,12 +2,6 @@
 //
 // 职责：部门工作台「统计范围 / 收费 / 员工管理」的后端能力——
 //
-// 权限模型：
-//   部门侧：openid -> sys_emp.role_id -> sys_role_location -> location_id[]
-//           角色关联食堂下的 sys_dept 即为「可管理部门」；
-//           所有查询限定在角色范围内（越权静默空数据或显式报错，按语义选择）。
-//   身份一律取自云函数上下文 OPENID，不信任前端传入任何 role/location 参数。
-//
 const cloud = require('wx-server-sdk')
 const cloudbaseSDK = require('@cloudbase/node-sdk')
 const crypto = require('crypto')
@@ -146,12 +140,6 @@ function buildLocClause(locations) {
 
 // ──────────────────────────────────────────────────────────────────
 // Action: getMyDepts
-//   入参：无
-//   出参：{ locations: [{ id, name }], depts: [{ dept_id, dept_name, location_id, status }] }
-//        （status 供前端在"新增员工"表单里过滤出启用部门；列表筛选仍展示全部以便查历史）
-//   语义：部门统计页的"统计范围"——根据当前用户角色先读取其管理的食堂（location），
-//         再从 sys_dept 读取归属这些食堂的部门列表。
-//         含停用食堂部门（读放行：历史账单/员工档案可查可对；写拦截在各操作入口）。
 // ──────────────────────────────────────────────────────────────────
 async function actionGetMyDepts() {
   const wxContext = cloud.getWXContext() || {}
@@ -176,10 +164,6 @@ async function actionGetMyDepts() {
   }))
 
   // 2. 部门列表（sys_dept.location_id 指向食堂）
-  //    sysAdmin：全部部门（含 location_id 为空的历史部门）
-  //    其他角色：仅归属其管辖食堂的部门
-  //    读放行：停用部门（status=0）也返回，供列表筛选查看历史员工；
-  //    "新增员工"表单由前端按 status 过滤，后端 addStaff 另有启用校验兜底
   const deptRows = isSysAdmin
     ? await query(
         'SELECT `id`, `name`, `location_id`, `status` FROM `sys_dept` ' +
@@ -203,11 +187,6 @@ async function actionGetMyDepts() {
 
 // ──────────────────────────────────────────────────────────────────
 // Action: getMonthBilling
-//   入参：{ month: 'YYYY-MM', dept_id }
-//   出参：{ month, dept_id, dept_name, list, totalAmount }
-//   语义：部门月度收费账单。
-//         权限：dept_id 须属于当前角色关联食堂下的部门（resolveRoleDeptIds），
-//               不在范围内时静默返回空数据。
 // ──────────────────────────────────────────────────────────────────
 async function actionGetMonthBilling(event) {
   const month = event.month ? String(event.month).trim() : ''
@@ -383,23 +362,8 @@ async function fetchRoleInfo(roleId) {
   }
 }
 
-// 查询全局"普通员工"角色行 id（code='employee'，全系统一行，不绑定食堂）；
-// 仅认启用行（status=1），停用即视为未配置；查不到返回 0
-async function fetchEmployeeRole() {
-  const rows = await query(
-    'SELECT `id` FROM `sys_role` WHERE `code` = {{code}} AND `status` = 1 ORDER BY `id` ASC LIMIT 1',
-    { code: 'employee' }
-  )
-  if (!rows.length) return 0
-  return Number(rows[0].id) || 0
-}
-
 // ──────────────────────────────────────────────────────────────────
 // 角色分配白名单
-//   可分配角色等级 = 操作者 sys_role.code：
-//     deptAdmin -> 普通员工(employee) + 管辖食堂内的食堂员工(kitchen)
-//     sysAdmin  -> 普通员工(employee) + kitchen + deptAdmin + sysAdmin
-//   employee 为全局角色无绑定；sysAdmin 为全局角色（分配不受绑定限制）。
 // ──────────────────────────────────────────────────────────────────
 const STAFF_MGMT_ROLE_CODES = ['deptAdmin', 'sysAdmin']
 const ASSIGNABLE_CODES_BY_OPERATOR = {
@@ -413,11 +377,6 @@ function canManageStaff(roleCode) {
 }
 
 // 校验操作者能否把员工设为 roleId 角色
-//   规则：
-//     - 角色 code 须在操作者等级白名单内（deptAdmin: employee/kitchen；sysAdmin: 全部）
-//     - employee / sysAdmin 为全局角色，不校验食堂绑定
-//     - 食堂绑定角色（kitchen / deptAdmin）：绑定食堂须非空、全部落在操作者管辖的食堂
-//       范围内， 且须全部在营业中（停用食堂不再授权绑定角色）
 async function canAssignRole(openid, operatorCode, roleId) {
   if (!operatorCode || !roleId || roleId <= 0) return false
   const allowedCodes = ASSIGNABLE_CODES_BY_OPERATOR[operatorCode] || []
@@ -438,9 +397,6 @@ async function canAssignRole(openid, operatorCode, roleId) {
 //   入参：{ dept_id, keyword }
 //     - dept_id = 0 表示「角色范围内全部部门」（汇总视图）
 //     - keyword 模糊匹配 name / phone
-//   出参：{ list: [{ id, name, phone, dept_id, dept_name, role_id,
-//                    role_name, role_code, status, has_openid, created_at, updated_at }] }
-//     - role_name = sys_role.name（员工身份名）；role_code = sys_role.code
 // ──────────────────────────────────────────────────────────────────
 async function actionGetStaffList(event) {
   const wxContext = cloud.getWXContext() || {}
@@ -572,17 +528,138 @@ async function actionAddStaff(event) {
 }
 
 // ──────────────────────────────────────────────────────────────────
+// Action: batchAddStaff
+//   入参：{ dept_id, role_id, password, staff: [{ name, phone }] }（上限 100 条）
+//   出参：{ total, successCount, failCount,
+//           results: [{ line, name, phone, ok, message }] }
+// ──────────────────────────────────────────────────────────────────
+const BATCH_IMPORT_MAX = 100
+
+async function actionBatchAddStaff(event) {
+  const wxContext = cloud.getWXContext() || {}
+  const openid = wxContext.OPENID || ''
+
+  const dept_id = Number(event.dept_id) || 0
+  const role_id = Number(event.role_id) || 0
+  const staffArr = Array.isArray(event.staff) ? event.staff : []
+
+  if (dept_id <= 0) return { code: -1, message: '请选择部门', data: null }
+  if (role_id <= 0) return { code: -1, message: '请选择员工身份', data: null }
+  if (!staffArr.length) return { code: -1, message: '没有可导入的员工', data: null }
+  if (staffArr.length > BATCH_IMPORT_MAX) {
+    return { code: -1, message: `单次最多导入 ${BATCH_IMPORT_MAX} 名员工`, data: null }
+  }
+
+  if (!await isDeptInRoleScope(openid, dept_id)) {
+    return { code: -1, message: '无权在该部门下添加员工', data: null }
+  }
+  if (!await isDeptEnabled(dept_id)) {
+    return { code: -1, message: '该部门已停用，无法新增员工', data: null }
+  }
+
+  const { roleCode: opRoleCode } = await resolveIdentity(openid)
+  if (!canManageStaff(opRoleCode)) {
+    return { code: -1, message: '无权新增员工', data: null }
+  }
+  if (!await canAssignRole(openid, opRoleCode, role_id)) {
+    return { code: -1, message: '所选身份不可分配', data: null }
+  }
+
+  const FIXED_PWD_RE = /^[\x21-\x7e]{8,20}$/
+  const fixedPassword = event.password != null ? String(event.password) : ''
+  if (!fixedPassword) {
+    return { code: -1, message: '请填写统一初始密码', data: null }
+  }
+  if (!FIXED_PWD_RE.test(fixedPassword)) {
+    return { code: -1, message: '统一密码须为 8-20 位字母、数字或符号（不含空格）', data: null }
+  }
+  const fixedPwdSalt = crypto.randomBytes(16).toString('hex')
+  const fixedPwdHash = hashPassword(fixedPassword, fixedPwdSalt)
+
+  // ── 逐行规范化 + 批内手机号去重（保留首见行号，报错可定位） ──
+  const results = []
+  const seen = new Map() // phone -> 首次出现的行号
+  const valid = []
+  staffArr.forEach((item, i) => {
+    const line = i + 1
+    const name = (item && item.name != null ? String(item.name) : '').trim().slice(0, 20)
+    const phone = (item && item.phone != null ? String(item.phone) : '').trim()
+    if (!name) {
+      results.push({ line, name, phone, ok: false, message: '姓名为空' })
+      return
+    }
+    if (!/^1\d{10}$/.test(phone)) {
+      results.push({ line, name, phone, ok: false, message: '手机号格式不正确' })
+      return
+    }
+    if (seen.has(phone)) {
+      results.push({ line, name, phone, ok: false, message: `手机号与第 ${seen.get(phone)} 行重复` })
+      return
+    }
+    seen.set(phone, line)
+    valid.push({ line, name, phone })
+  })
+
+  if (valid.length) {
+    // ── DB 手机号批量查重（一次 IN 查询，避免 N 次往返） ──
+    const ph = valid.map((_, i) => `{{q${i}}}`).join(', ')
+    const params = {}
+    valid.forEach((s, i) => { params['q' + i] = s.phone })
+    const dupRows = await query(
+      'SELECT `phone` FROM `sys_emp` WHERE `phone` IN (' + ph + ')',
+      params
+    )
+    const dbPhones = new Set(dupRows.map(r => String(r.phone || '')))
+
+    const pending = []
+    for (const s of valid) {
+      if (dbPhones.has(s.phone)) {
+        results.push({ line: s.line, name: s.name, phone: s.phone, ok: false, message: '该手机号已被其他员工使用' })
+      } else {
+        pending.push(s)
+      }
+    }
+
+    // ── 逐条插入（单条失败不影响其余行；密码整批统一） ──
+    for (const s of pending) {
+      const password_hash = fixedPwdHash
+      const password_salt = fixedPwdSalt
+      try {
+        const inserted = await update(
+          'INSERT INTO `sys_emp` (`name`, `phone`, `dept_id`, `_openid`, `role_id`, `password`, `password_salt`, `status`) ' +
+          'VALUES ({{name}}, {{phone}}, {{dept_id}}, NULL, {{role_id}}, {{password}}, {{password_salt}}, 1)',
+          { name: s.name, phone: s.phone, dept_id, role_id, password: password_hash, password_salt }
+        )
+        if (inserted) {
+          results.push({ line: s.line, name: s.name, phone: s.phone, ok: true })
+        } else {
+          results.push({ line: s.line, name: s.name, phone: s.phone, ok: false, message: '写入失败，请重试' })
+        }
+      } catch (err) {
+        console.error('[deptAdmin][batchAddStaff] insert failed:', s.phone, err.message || err)
+        results.push({ line: s.line, name: s.name, phone: s.phone, ok: false, message: '写入失败，请重试' })
+      }
+    }
+  }
+
+  // 按原行号排序，结果与粘贴顺序一致，便于对照
+  results.sort((a, b) => a.line - b.line)
+  const successCount = results.filter(r => r.ok).length
+  return {
+    code: 0,
+    message: 'success',
+    data: {
+      total: staffArr.length,
+      successCount,
+      failCount: staffArr.length - successCount,
+      results,
+    },
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────
 // Action: updateStaff
 //   入参：{ id, name, phone, dept_id, status, role_id? }
-//     - role_id 缺省 = 保持原身份（兼容旧调用）
-//     - role_id = 0   = 转为普通员工（写全局 code='employee' 角色行）
-//     - role_id > 0   = 转为指定角色（employee / kitchen / deptAdmin / sysAdmin，
-//       按操作者等级白名单 + 目标部门食堂绑定强校验）
-//   语义：编辑员工基础信息（不含密码 / 微信绑定）
-//         调整部门时新部门也必须在角色范围内
-//         身份强约束：管理级角色(deptAdmin/sysAdmin)员工的身份仅 sysAdmin 可改动；
-//         操作者不能改自己的身份；食堂/部门绑定角色必须管得到所在部门食堂，
-//         跨食堂移动需显式指定新身份。
 // ──────────────────────────────────────────────────────────────────
 async function actionUpdateStaff(event) {
   const wxContext = cloud.getWXContext() || {}
@@ -604,12 +681,15 @@ async function actionUpdateStaff(event) {
 
   // 读取员工当前归属与身份（一次查询）
   const oldRows = await query(
-    'SELECT `dept_id`, `role_id` FROM `sys_emp` WHERE `id` = {{id}} LIMIT 1',
+    'SELECT `dept_id`, `role_id`, `name`, `phone`, `status` FROM `sys_emp` WHERE `id` = {{id}} LIMIT 1',
     { id }
   )
   if (!oldRows.length) return { code: -1, message: '员工不存在', data: null }
   const oldDeptId = Number(oldRows[0].dept_id) || 0
   const oldRoleId = Number(oldRows[0].role_id) || 0
+  const oldName = (oldRows[0].name != null ? String(oldRows[0].name) : '')
+  const oldPhone = (oldRows[0].phone != null ? String(oldRows[0].phone) : '')
+  const oldStatus = Number(oldRows[0].status) === 1 ? 1 : 0
 
   if (!await isDeptInRoleScope(openid, oldDeptId)) {
     return { code: -1, message: '无权编辑该员工', data: null }
@@ -632,7 +712,6 @@ async function actionUpdateStaff(event) {
   }
 
   // ── 身份(role_id)变更 ──
-  //   缺省 = 保持原身份；显式 0（兼容旧调用）= 转普通员工；>0 = 转指定角色
   const { roleCode: opRoleCode, empId: opEmpId } = await resolveIdentity(openid)
   if (!canManageStaff(opRoleCode)) {
     return { code: -1, message: '无权编辑员工身份', data: null }
@@ -641,45 +720,51 @@ async function actionUpdateStaff(event) {
   const hasRoleSpec = event.role_id !== undefined && event.role_id !== null
     && String(event.role_id).trim() !== ''
   const specRoleId = hasRoleSpec ? (Number(event.role_id) || 0) : 0
+  if (hasRoleSpec && specRoleId <= 0) {
+    return { code: -1, message: '员工身份参数无效', data: null }
+  }
 
   // 旧身份信息（role 行不存在视为未知，安全默认拒绝）
   const oldRoleInfo = oldRoleId > 0 ? await fetchRoleInfo(oldRoleId) : null
   const oldCode = oldRoleInfo ? oldRoleInfo.code : ''
 
-  // 是否"意图"改变身份（employee -> employee 不算变化）
-  const intentChanged = hasRoleSpec && (
-    specRoleId > 0
-      ? specRoleId !== oldRoleId
-      : (oldRoleId <= 0 || oldCode !== 'employee')
-  )
+  // 是否"意图"改变身份
+  const intentChanged = hasRoleSpec && specRoleId !== oldRoleId
 
-  // 0) 操作者不能修改自己的身份（防止自降级 / 自提权逃逸）
   if (intentChanged && id === opEmpId) {
     return { code: -1, message: '不能修改自己的员工身份', data: null }
   }
-
-  // 1) 管理级角色员工（deptAdmin / sysAdmin / 未知角色）：身份仅 sysAdmin 可改动
-  if (intentChanged && oldRoleId > 0
-      && oldCode !== 'kitchen' && oldCode !== 'employee' && opRoleCode !== 'sysAdmin') {
-    return { code: -1, message: '无权修改该员工的管理角色', data: null }
+  if (id === opEmpId && Number(status) === 0) {
+    return { code: -1, message: '不能停用自己的账号', data: null }
+  }
+  if (id === opEmpId && dept_id > 0 && dept_id !== Number(oldDeptId)) {
+    return { code: -1, message: '不能调整自己的部门，请联系系统管理员', data: null }
   }
 
-  // 目标身份 role_id：缺省保持；显式 0 解析为全局 employee 角色；>0 沿用
+  // 1) 管理级角色员工（deptAdmin / sysAdmin）：所有敏感改动仅 sysAdmin 可执行
+  if (opRoleCode !== 'sysAdmin' && oldRoleId > 0 && canManageStaff(oldCode)) {
+    if (intentChanged) {
+      return { code: -1, message: '无权修改该员工的管理角色', data: null }
+    }
+    const infoChanged = id !== opEmpId && (
+      name !== String(oldName)
+      || phone !== String(oldPhone)
+      || Number(status) !== Number(oldStatus)
+      || dept_id !== Number(oldDeptId)
+    )
+    if (infoChanged) {
+      return { code: -1, message: '无权修改管理级账号的信息，请联系系统管理员', data: null }
+    }
+  }
+
+  // 目标身份 role_id：不传保持原值
   let targetRoleId = oldRoleId
   if (hasRoleSpec) {
-    if (specRoleId > 0) {
-      // 身份发生变化时：按操作者等级白名单 + 角色绑定食堂范围校验（与新增同一套规则）
-      if (specRoleId !== oldRoleId && !await canAssignRole(openid, opRoleCode, specRoleId)) {
-        return { code: -1, message: '所选身份不可分配（超出你的管辖食堂范围）', data: null }
-      }
-      targetRoleId = specRoleId
-    } else if (oldRoleId <= 0 || oldCode !== 'employee') {
-      const empRoleId = await fetchEmployeeRole()
-      if (!empRoleId) {
-        return { code: -1, message: '系统未配置普通员工角色，请联系系统管理员', data: null }
-      }
-      targetRoleId = empRoleId
+    // 身份发生变化时：按操作者等级白名单 + 角色绑定食堂范围校验（与新增同一套规则）
+    if (specRoleId !== oldRoleId && !await canAssignRole(openid, opRoleCode, specRoleId)) {
+      return { code: -1, message: '所选身份不可分配（超出你的管辖食堂范围）', data: null }
     }
+    targetRoleId = specRoleId
   }
 
   const roleSetSql = targetRoleId > 0 ? '`role_id` = {{role_id}}' : '`role_id` = NULL'
@@ -716,6 +801,22 @@ async function actionUnbindStaffWechat(event) {
   if (!await isDeptInRoleScope(openid, deptId)) {
     return { code: -1, message: '无权操作该员工', data: null }
   }
+  const { empId: opEmpId, roleCode: opRoleCode } = await resolveIdentity(openid)
+  if (id === opEmpId) {
+    return { code: -1, message: '不能解绑自己的微信', data: null }
+  }
+  // 管理级账号（deptAdmin / sysAdmin）：微信绑定的解绑仅 sysAdmin 可执行
+  if (opRoleCode !== 'sysAdmin') {
+    const roleRows = await query(
+      'SELECT COALESCE(r.`code`, \'\') AS role_code FROM `sys_emp` e ' +
+      'LEFT JOIN `sys_role` r ON r.`id` = e.`role_id` WHERE e.`id` = {{id}} LIMIT 1',
+      { id }
+    )
+    const targetCode = roleRows.length ? String(roleRows[0].role_code || '') : ''
+    if (canManageStaff(targetCode)) {
+      return { code: -1, message: '无权操作管理级账号，请联系系统管理员', data: null }
+    }
+  }
   if (!rows[0]._openid) {
     return { code: 0, message: '该员工未绑定微信，无需解绑', data: null }
   }
@@ -744,6 +845,22 @@ async function actionResetStaffPassword(event) {
   if (!await isDeptInRoleScope(openid, deptId)) {
     return { code: -1, message: '无权操作该员工', data: null }
   }
+  const { empId: opEmpId, roleCode: opRoleCode } = await resolveIdentity(openid)
+  if (id === opEmpId) {
+    return { code: -1, message: '不能重置自己的密码，请在个人中心修改', data: null }
+  }
+  // 管理级账号（deptAdmin / sysAdmin）：密码重置仅 sysAdmin 可执行
+  if (opRoleCode !== 'sysAdmin') {
+    const roleRows = await query(
+      'SELECT COALESCE(r.`code`, \'\') AS role_code FROM `sys_emp` e ' +
+      'LEFT JOIN `sys_role` r ON r.`id` = e.`role_id` WHERE e.`id` = {{id}} LIMIT 1',
+      { id }
+    )
+    const targetCode = roleRows.length ? String(roleRows[0].role_code || '') : ''
+    if (canManageStaff(targetCode)) {
+      return { code: -1, message: '无权重置管理级账号的密码，请联系系统管理员', data: null }
+    }
+  }
 
   const { password, password_hash, password_salt } = genStaffPassword()
   await update(
@@ -751,6 +868,58 @@ async function actionResetStaffPassword(event) {
     { password: password_hash, password_salt, id }
   )
   return { code: 0, message: 'success', data: { password } }
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Action: deleteStaff
+//   入参：{ id }
+// ──────────────────────────────────────────────────────────────────
+async function actionDeleteStaff(event) {
+  const wxContext = cloud.getWXContext() || {}
+  const openid = wxContext.OPENID || ''
+
+  const id = Number(event.id) || 0
+  if (id <= 0) return { code: -1, message: '缺少员工 id', data: null }
+
+  const rows = await query(
+    'SELECT `dept_id`, `role_id` FROM `sys_emp` WHERE `id` = {{id}} LIMIT 1',
+    { id }
+  )
+  if (!rows.length) return { code: -1, message: '员工不存在', data: null }
+
+  const deptId = Number(rows[0].dept_id) || 0
+  const roleId = Number(rows[0].role_id) || 0
+
+  if (!await isDeptInRoleScope(openid, deptId)) {
+    return { code: -1, message: '无权操作该员工', data: null }
+  }
+
+  const { roleCode: opRoleCode, empId: opEmpId } = await resolveIdentity(openid)
+  if (!canManageStaff(opRoleCode)) {
+    return { code: -1, message: '无权删除员工', data: null }
+  }
+  // 不能删除自己（防止删除后失去管理入口）
+  if (id === opEmpId) {
+    return { code: -1, message: '不能删除自己的账号', data: null }
+  }
+  const roleInfo = roleId > 0 ? await fetchRoleInfo(roleId) : null
+  const roleCode = roleInfo ? String(roleInfo.code || '') : ''
+  if (canManageStaff(roleCode) && opRoleCode !== 'sysAdmin') {
+    return { code: -1, message: '无权删除管理级账号', data: null }
+  }
+
+  // 存在报餐记录则拒绝删除（历史账单按 emp_id 关联员工姓名）
+  const orderRows = await query(
+    'SELECT COUNT(*) AS cnt FROM `meal_order` WHERE `emp_id` = {{id}}',
+    { id }
+  )
+  const orderCnt = Number((orderRows[0] || {}).cnt) || 0
+  if (orderCnt > 0) {
+    return { code: -1, message: '该员工存在报餐记录，无法删除，可改为禁用', data: null }
+  }
+
+  await update('DELETE FROM `sys_emp` WHERE `id` = {{id}}', { id })
+  return { code: 0, message: 'success', data: null }
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -859,18 +1028,18 @@ exports.main = async (event, context) => {
       case 'getMonthBilling':     return await actionGetMonthBilling(event)
       case 'getStaffList':        return await actionGetStaffList(event)
       case 'addStaff':            return await actionAddStaff(event)
+      case 'batchAddStaff':       return await actionBatchAddStaff(event)
       case 'updateStaff':         return await actionUpdateStaff(event)
       case 'getAssignableRoles':  return await actionGetAssignableRoles(event)
       case 'unbindStaffWechat':   return await actionUnbindStaffWechat(event)
+      case 'deleteStaff':         return await actionDeleteStaff(event)
       case 'resetStaffPassword':  return await actionResetStaffPassword(event)
       default:
         return { code: -1, message: `未知 action: ${action}`, data: null }
     }
   } catch (err) {
-    // 详细错误只进日志（query 已在上层打印完整 SQL 与参数）
     console.error('[deptAdmin] error:', err)
     console.error('[deptAdmin] error stack:', err && err.stack)
-    // 对前端只给统一中文提示，避免把 $runSQL 的英文原始错误直接甩给用户
     return { code: -1, message: '操作失败，请重试', data: null }
   }
 }

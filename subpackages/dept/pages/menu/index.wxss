@@ -33,9 +33,29 @@ page {
 }
 
 .dept-picker {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
   font-size: 30rpx;
   font-weight: 600;
   color: var(--brand);
+}
+
+/* 当前所选食堂已停用时的提示标签（对齐 sys-config 页 .dept-disabled-tag） */
+.dept-disabled-tag {
+  font-size: 20rpx;
+  line-height: 1;
+  padding: 4rpx 12rpx;
+  border-radius: 100rpx;
+  background: #f2f3f5;
+  color: #969799;
+  font-weight: 400;
+}
+
+.dept-picker-arrow {
+  font-size: 24rpx;
+  line-height: 1;
+  color: var(--text-3);
 }
 
 /* ── 操作工具卡（白卡 + 蓝色按钮，风格对齐员工/统计/收费页） ── */
@@ -76,15 +96,8 @@ page {
   border: 1px solid #1989fa;
 }
 
-.ws-btn-primary {
-  background: #1989fa;
-  color: #fff;
-  border-color: #1989fa;
-}
-
-.ws-btn-primary-hover {
-  background: #0570db;
-  border-color: #0570db;
+.ws-btn-style-hover {
+  background: #ecf5ff;
 }
 
 /* 停用食堂：新增按钮置灰禁用（与员工页 .ws-btn-style-disabled 完全一致） */

@@ -1,0 +1,21 @@
+<!-- subpackages/dept/pages/workbench/index.wxml — 部门工作台 · 配置 -->
+<view class="page-pad">
+
+  <!-- 功能宫格 -->
+  <view class="grid">
+    <view
+      class="grid-item"
+      wx:for="{{entries}}"
+      wx:key="key"
+      data-path="{{item.path}}"
+      bindtap="onOpen"
+      hover-class="grid-item-hover"
+    >
+      <view class="gi-icon">{{item.icon}}</view>
+      <view class="gi-title">{{item.title}}</view>
+    </view>
+  </view>
+
+</view>
+
+<dept-tabbar active="workbench" />

@@ -92,7 +92,7 @@
         <van-field
           label="新密码"
           type="password"
-          placeholder="请输入新密码（至少8位）"
+          placeholder="请输入新密码"
           value="{{ newPwd }}"
           bind:change="onNewPwdInput"
         />
@@ -104,6 +104,7 @@
           bind:change="onConfirmPwdInput"
         />
       </van-cell-group>
+      <view class="pwd-rule-tip">密码须为 8-20 位字母、数字或符号（不含空格）</view>
       <view class="btn-row" style="margin-top:24rpx;">
         <van-button type="primary" block round loading="{{ pwdLoading }}" bindtap="confirmChangePwd">确认修改</van-button>
       </view>

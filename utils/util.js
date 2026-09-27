@@ -106,6 +106,18 @@ function parseIntParam(val, defaultVal = 0) {
   return isNaN(n) ? defaultVal : n
 }
 
+/** 密码规则提示文案 */
+const PASSWORD_RULE_TIP = '密码须为 8-20 位字母、数字或符号（不含空格）'
+
+/**
+ * 校验密码：8-20 位，可包含字母、数字、特殊符号，不含空格
+ * @param {string} password
+ * @returns {boolean}
+ */
+function isValidPassword(password) {
+  return /^[\x21-\x7e]{8,20}$/.test(String(password || ''))
+}
+
 module.exports = {
   debounce,
   throttle,
@@ -118,4 +130,6 @@ module.exports = {
   hideLoading,
   navigateTo,
   parseIntParam,
+  PASSWORD_RULE_TIP,
+  isValidPassword,
 }

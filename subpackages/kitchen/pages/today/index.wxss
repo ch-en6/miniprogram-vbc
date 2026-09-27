@@ -518,6 +518,14 @@
   color: #6b7280;
 }
 
+/* 修改密码弹窗：密码规则说明（placeholder 空间不足，规则单独提示） */
+.pwd-rule-tip {
+  margin: 12rpx 16rpx 0;
+  font-size: 22rpx;
+  line-height: 1.6;
+  color: #969799;
+}
+
 .btn-row {
   margin: 24rpx;
 }

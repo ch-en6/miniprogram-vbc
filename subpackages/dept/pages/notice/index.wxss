@@ -33,9 +33,29 @@ page {
 }
 
 .dept-picker {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
   font-size: 30rpx;
   font-weight: 600;
   color: var(--brand);
+}
+
+/* 当前所选食堂已停用时的提示标签（对齐 sys-config 页 .dept-disabled-tag） */
+.dept-disabled-tag {
+  font-size: 20rpx;
+  line-height: 1;
+  padding: 4rpx 12rpx;
+  border-radius: 100rpx;
+  background: #f2f3f5;
+  color: #969799;
+  font-weight: 400;
+}
+
+.dept-picker-arrow {
+  font-size: 24rpx;
+  line-height: 1;
+  color: var(--text-3);
 }
 
 /* ── 操作工具卡（白卡 + 蓝色按钮，风格对齐菜单页） ── */

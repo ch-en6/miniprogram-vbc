@@ -1,19 +1,18 @@
-// subpackages/admin/pages/dept-manage/index.js
-// 部门管理：部门的新增 / 编辑 / 启停 / 删除，并维护部门所属食堂。
-// 删除由云函数兜底校验（部门下存在员工时拒绝，并连带清理该部门价格配置）。
+// subpackages/admin/pages/location-manage/index.js
+// 食堂管理：食堂的新增 / 编辑 / 启停 / 删除。
+// 删除由云函数兜底校验（存在部门或已被角色绑定时拒绝）。
 const { SysAdminAPI } = require('../../../../services/api')
 const { ROLE } = require('../../../../utils/const')
 const auth = require('../../../../utils/auth')
 
-const EMPTY_FORM = { id: 0, name: '', locationIndex: -1, status: 1 }
+const EMPTY_FORM = { id: 0, name: '', status: 1 }
 
 Page({
   data: {
     loading: true,
-    list: [],            // 部门全量数据（getDeptList 返回）
+    list: [],            // 食堂全量数据（getLocationList 返回）
     searchKey: '',       // 搜索关键字
     displayList: [],     // 经搜索过滤后真正渲染的列表
-    locations: [],
     showForm: false,
     form: { ...EMPTY_FORM },
     submitting: false,
@@ -21,7 +20,7 @@ Page({
 
   onShow() {
     if (!this._checkRole()) return
-    this.loadAll()
+    this.loadList()
   },
 
   /** 仅系统管理员可访问 */
@@ -32,37 +31,29 @@ Page({
     return false
   },
 
-  /** 同时拉取部门列表与食堂选项（新增 / 编辑需要选择所属食堂） */
-  async loadAll() {
+  async loadList() {
     this.setData({ loading: true })
     try {
-      const [deptRes, locRes] = await Promise.all([
-        SysAdminAPI.getDeptList(),
-        SysAdminAPI.getLocationList(),
-      ])
-      const list = (deptRes && deptRes.list) || []
-      // 弹窗的所属食堂选项仅展示启用中的食堂
-      const locations = ((locRes && locRes.list) || []).filter(l => Number(l.status) === 1)
-
+      const res = await SysAdminAPI.getLocationList()
+      const list = (res && res.list) || []
       this.setData({
         list,
-        locations,
         displayList: this._computeDisplayList(list, this.data.searchKey),
       })
     } catch (err) {
-      console.error('[dept-manage] loadAll error:', err)
+      console.error('[location-manage] loadList error:', err)
       wx.showToast({ title: err.message || '加载失败', icon: 'none' })
     } finally {
       this.setData({ loading: false })
     }
   },
 
-  /** 根据搜索关键字计算展示列表（无关键字时展示全部部门） */
+  /** 根据搜索关键字计算展示列表（无关键字时展示全部食堂） */
   _computeDisplayList(list, searchKey) {
     if (!Array.isArray(list) || !list.length) return []
     const keyword = (searchKey || '').trim().toLowerCase()
     if (!keyword) return list
-    return list.filter(d => (d.name || '').toLowerCase().includes(keyword))
+    return list.filter(l => (l.name || '').toLowerCase().includes(keyword))
   },
 
   /** 重新计算 displayList */
@@ -78,47 +69,26 @@ Page({
     this.setData({ searchKey: e.detail.value || '' })
   },
 
-  onDeptSearch() {
+  onLocSearch() {
     this._refreshDisplayList()
   },
 
-  onDeptClear() {
+  onLocClear() {
     if (!this.data.searchKey) return
     this.setData({ searchKey: '' }, () => this._refreshDisplayList())
   },
 
-  // ── 新增 / 编辑 / 删除 ─────────────────────────
   onAdd() {
-    const locations = this.data.locations
-    if (!locations.length) {
-      wx.showToast({ title: '请先在「食堂管理」新增并启用食堂', icon: 'none' })
-      return
-    }
-    this.setData({
-      showForm: true,
-      form: { id: 0, name: '', locationIndex: 0, status: 1 },
-    })
+    this.setData({ showForm: true, form: { ...EMPTY_FORM } })
   },
 
   onEdit(e) {
     const item = e.currentTarget.dataset.item || {}
-    let locations = this.data.locations
-    let idx = locations.findIndex(l => Number(l.id) === Number(item.location_id))
-    // 部门当前归属的食堂已停用：临时补进选项末尾用于回显（云函数允许归属不变时保存）
-    if (idx === -1 && Number(item.location_id) > 0) {
-      locations = locations.concat([{
-        id: Number(item.location_id),
-        name: item.location_name || '原食堂（已停用）',
-        status: 0,
-      }])
-      idx = locations.length - 1
-    }
     this.setData({
       showForm: true,
       form: {
         id: Number(item.id) || 0,
         name: item.name || '',
-        locationIndex: idx,
         status: Number(item.status) === 0 ? 0 : 1,
       },
     })
@@ -129,14 +99,11 @@ Page({
     this.setData({ showForm: false })
   },
 
+  /** 阻止点击弹层内容时冒泡关闭 */
   noop() {},
 
   onNameInput(e) {
     this.setData({ 'form.name': e.detail })
-  },
-
-  onLocationChange(e) {
-    this.setData({ 'form.locationIndex': Number(e.detail.value) })
   },
 
   /** van-switch：e.detail 为布尔值 */
@@ -145,32 +112,22 @@ Page({
   },
 
   async onSubmit() {
-    const { form, locations } = this.data
+    const form = this.data.form
     const name = (form.name || '').trim()
     if (!name) {
-      wx.showToast({ title: '请填写部门名称', icon: 'none' })
-      return
-    }
-    const location = locations[form.locationIndex]
-    if (!location) {
-      wx.showToast({ title: '请选择所属食堂', icon: 'none' })
+      wx.showToast({ title: '请填写食堂名称', icon: 'none' })
       return
     }
 
     this.setData({ submitting: true })
     try {
-      await SysAdminAPI.saveDept({
-        id: form.id,
-        name,
-        locationId: location.id,
-        status: form.status,
-      })
+      await SysAdminAPI.saveLocation({ id: form.id, name, status: form.status })
       wx.showToast({ title: form.id ? '已保存' : '已新增', icon: 'success' })
       this.setData({ showForm: false })
-      await this.loadAll()
+      await this.loadList()
     } catch (err) {
-      console.error('[dept-manage] save error:', err)
-      wx.showToast({ title: (err && err.message) || '保存失败', icon: 'none' })
+      console.error('[location-manage] save error:', err)
+      wx.showToast({ title: err.message || '保存失败', icon: 'none' })
     } finally {
       this.setData({ submitting: false })
     }
@@ -182,20 +139,20 @@ Page({
     if (!id) return
 
     wx.showModal({
-      title: '删除部门',
-      content: `确认删除「${item.name || ''}」？该部门下的价格配置会一并清除。`,
+      title: '删除食堂',
+      content: `确认删除「${item.name || ''}」？删除后不可恢复。`,
       confirmColor: '#ee0a24',
       success: async (res) => {
         if (!res.confirm) return
         wx.showLoading({ title: '删除中', mask: true })
         try {
-          await SysAdminAPI.deleteDept({ id })
+          await SysAdminAPI.deleteLocation({ id })
           wx.hideLoading()
           wx.showToast({ title: '已删除', icon: 'success' })
-          await this.loadAll()
+          await this.loadList()
         } catch (err) {
           wx.hideLoading()
-          console.error('[dept-manage] delete error:', err)
+          console.error('[location-manage] delete error:', err)
           wx.showToast({ title: err.message || '删除失败', icon: 'none' })
         }
       },

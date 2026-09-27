@@ -40,8 +40,8 @@ const ROLE = {
 }
 
 const ROLE_LABEL = {
-  [ROLE.EMPLOYEE]:   '员工',
-  [ROLE.KITCHEN]:    '食堂管理员',
+  [ROLE.EMPLOYEE]:   '普通员工',
+  [ROLE.KITCHEN]:    '食堂员工',
   [ROLE.DEPT_ADMIN]: '部门管理员',
   [ROLE.SYS_ADMIN]:  '系统管理员',
 }

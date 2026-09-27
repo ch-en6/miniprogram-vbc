@@ -1,10 +1,7 @@
 // subpackages/dept/pages/stats/index.js — 部门工作台 · 统计查询
-// 部门列表 / 筛选条件 / 最近结果存于 utils/dept-store，跨页切换不丢
 const { MAX_RANGE_DAYS } = require('../../../../utils/const')
 const T = require('../../../../utils/time')
 const { KitchenAPI } = require('../../../../services/api')
-const store = require('../../../../utils/dept-store')
-const { state } = store
 
 Page({
   data: {
@@ -23,43 +20,42 @@ Page({
 
   async onShow() {
     wx.hideHomeButton()
-    store.ensureStatsDefault()
-    await store.ensureDepts()
-    const s = state.stats
-    // 本页记忆过部门则恢复，否则用默认（用户所在部门优先）
-    const idx = typeof s.deptIndex === 'number' ? s.deptIndex : store.defaultDeptIndex()
-    const depts = state.depts || []
+    const depts = await this._loadDepts()
+    const hasPermission = depts.length > 0
+    const idx = this._defaultDeptIndex(depts)
+    const range = T.getMonthRange(T.formatMonth(new Date()))
     this.setData({
       depts,
       currentDeptIndex: idx,
-      startDate: s.startDate,
-      endDate: s.endDate,
-      quickType: s.quickType,
-      pickerStart: s.pickerStart,
-      pickerEnd: s.pickerEnd,
-      hasPermission: depts.length > 0,
+      startDate: range.start,
+      endDate: range.end,
+      quickType: 'curMonth',
+      pickerStart: range.start,
+      pickerEnd: range.end,
+      statList: [],
+      hasQueried: false,
+      hasPermission,
     })
-    this._ensureFreshList()
+    if (hasPermission) this._loadStatList(false)
   },
 
-  // 结果与当前条件一致则先秒显缓存再静默刷新；否则带加载态查询
-  _ensureFreshList() {
-    if (!this.data.hasPermission) {
-      this.setData({ statList: [], statLoading: false, hasQueried: false })
-      return
+  async _loadDepts() {
+    try {
+      const res = await KitchenAPI.getMyDepts()
+      return (((res && res.depts) || []).filter(d => d && d.dept_name))
+    } catch (err) {
+      console.error('[dept stats] loadDepts error:', err)
+      return []
     }
-    const s = state.stats
-    const key = this._resultKey()
-    const cached = s.hasQueried && s.resultKey === key
-    if (cached) {
-      this.setData({ statList: s.statList, statLoading: false, hasQueried: true })
-      this._loadStatList(true)
-      return
-    }
-    this.setData({ statList: [], statLoading: false, hasQueried: s.hasQueried })
-    if (this.data.startDate && this.data.endDate) {
-      this._loadStatList(false)
-    }
+  },
+
+  _defaultDeptIndex(depts) {
+    const list = depts || []
+    if (!list.length) return 0
+    const app = getApp()
+    const deptId = ((app && app.globalData && app.globalData.userInfo) || {}).dept_id
+    const idx = list.findIndex(d => Number(d.dept_id) === Number(deptId))
+    return idx > -1 ? idx : 0
   },
 
   _resultKey() {
@@ -72,19 +68,10 @@ Page({
     ].join('|')
   },
 
-  // 把当前筛选条件同步回 store（供其它页面 / 下次进入恢复）
-  _syncConditions() {
-    const { startDate, endDate, quickType, pickerStart, pickerEnd } = this.data
-    store.setStats({ startDate, endDate, quickType, pickerStart, pickerEnd })
-  },
-
   // ─── 部门 ────────────────────────────────────────────────
 
-  // 切换部门：仅更新统计页自身的记忆并作废旧结果，按新部门重查
-  // （不影响员工 / 收费页各自的部门选择）
   onDeptChange(e) {
     const index = Number(e.detail.value) || 0
-    store.setStats({ deptIndex: index, statList: [], resultKey: '', hasQueried: false })
     this.setData({
       currentDeptIndex: index,
       statList: [],
@@ -106,7 +93,7 @@ Page({
       quickType: '',
       pickerStart: startDate,
       pickerEnd: endDate || '2035-12-31',
-    }, () => this._syncConditions())
+    })
   },
 
   onEndDateChange(e) {
@@ -121,7 +108,7 @@ Page({
       quickType: '',
       pickerStart: startDate || '2026-06-01',
       pickerEnd: endDate,
-    }, () => this._syncConditions())
+    })
   },
 
   // ── 快捷日期范围 ──────────────────────────────
@@ -133,10 +120,7 @@ Page({
       quickType,
       pickerStart: range.start,
       pickerEnd: range.end,
-    }, () => {
-      this._syncConditions()
-      this._loadStatList(false)
-    })
+    }, () => this._loadStatList(false))
   },
 
   // 快捷日期范围：单入口按 data-type 分发
@@ -183,19 +167,17 @@ Page({
 
   onSearch() {
     if (!this._validateRange()) return
-    this.setData({ quickType: '' }, () => {
-      this._syncConditions()
-      this._loadStatList(false)
-    })
+    this.setData({ quickType: '' }, () => this._loadStatList(false))
   },
 
-  // ── 下拉刷新：按当前生效条件（部门 + 日期区间）重查 ──
+  // ── 下拉刷新：重新拉取部门列表，再按当前生效条件（部门 + 日期区间）重查 ──
   async onPullDownRefresh() {
-    // 强制重拉部门/食堂列表（启用/停用状态可能已被修改）并同步页面
-    await store.refreshDepts()
-    const depts = state.depts || []
-    this.setData({ depts, hasPermission: depts.length > 0 })
-    if (!this.data.hasPermission) {
+    const depts = await this._loadDepts()
+    const hasPermission = depts.length > 0
+    const curIdx = Number(this.data.currentDeptIndex) || 0
+    const idx = curIdx < depts.length ? curIdx : this._defaultDeptIndex(depts)
+    this.setData({ depts, currentDeptIndex: idx, hasPermission })
+    if (!hasPermission) {
       wx.stopPullDownRefresh()
       return
     }
@@ -218,7 +200,6 @@ Page({
       .then(res => {
         const statList = (res && res.days) || []
         this.setData({ statList, statLoading: false, hasQueried: true })
-        store.setStats({ statList, hasQueried: true, resultKey: this._resultKey() })
       })
       .catch(err => {
         this.setData({ statLoading: false, hasQueried: true })

@@ -1,4 +1,4 @@
-// 云函数 - 读取价格配置（从云 MySQL price_config 表读取）
+// 云函数 - 读取价格配置（从云 MySQL price_config 宽表读取）
 // 读取逻辑：
 //   1. 必传 dept_id（部门ID，来自登录用户）
 //   2. 在 price_config 中查询该部门 status = 1（启用）的价格记录
@@ -19,13 +19,12 @@ const cloudbase = cloudbaseSDK.init({
 const models = cloudbase.models
 
 /**
- * meal_type 数值 -> 前端餐次字符串映射
- * price_config.meal_type 为 TINYINT，约定：0=早餐、1=午餐、2=晚餐
+ * 餐次字段前缀：breakfast -> bf_，lunch -> lunch_，dinner -> dinner_
  */
-const MEAL_TYPE_MAP = {
-  0: 'breakfast',
-  1: 'lunch',
-  2: 'dinner',
+const MEAL_PREFIX = {
+  breakfast: 'bf',
+  lunch: 'lunch',
+  dinner: 'dinner',
 }
 
 /**
@@ -52,6 +51,21 @@ function formatDate(dateVal) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
+/**
+ * 从主行取某餐次的价格对象；任一价格为 NULL / 非数值 → 返回 null（该餐未开放）
+ */
+function pickMeal(row, meal) {
+  const prefix = MEAL_PREFIX[meal]
+  const empRaw = row[`${prefix}_emp`]
+  const famRaw = row[`${prefix}_family`]
+  const emp = Number(empRaw)
+  const fam = Number(famRaw)
+  if (empRaw == null || famRaw == null || isNaN(emp) || isNaN(fam)) {
+    return null
+  }
+  return { emp_price: emp, family_price: fam }
+}
+
 exports.main = async (event, context) => {
   try {
     const { dept_id } = event
@@ -60,39 +74,23 @@ exports.main = async (event, context) => {
       return { code: -1, message: '缺少部门ID参数(dept_id)', data: null }
     }
 
-    // 查询该部门启用的价格配置（含有效期校验，规则见文件头注释）
     const rows = await query(
       'SELECT * FROM `price_config` ' +
       'WHERE `dept_id` = {{dept_id}} AND `status` = 1 ' +
-      'AND `start_date` <= CURDATE() AND `end_date` >= CURDATE()',
+      'AND `start_date` <= CURDATE() AND `end_date` >= CURDATE() ' +
+      'ORDER BY `start_date` DESC, `id` DESC LIMIT 1',
       { dept_id }
     )
+    const row = rows.length ? rows[0] : null
 
-    // 按餐次组装，未配置 / 价格字段为空或无效的餐次置为 null
     const config = {}
+    const startDate = row ? formatDate(row.start_date) : ''
+    const endDate = row ? formatDate(row.end_date) : ''
     ;['breakfast', 'lunch', 'dinner'].forEach(meal => {
-      const row = rows.find(r => MEAL_TYPE_MAP[r.meal_type] === meal)
-      if (!row) {
-        config[meal] = null
-        return
-      }
-      const emp = Number(row.emp_price)
-      const fam = Number(row.family_price)
-      // 记录存在但价格字段为 NULL / 非数值 → 该餐次视为未读到有效价格，返回 null
-      if (row.emp_price == null || row.family_price == null || isNaN(emp) || isNaN(fam)) {
-        console.warn(
-          '[getPriceConfig] 价格配置记录价格字段为空/无效，该餐次视为未配置:',
-          JSON.stringify(row)
-        )
-        config[meal] = null
-        return
-      }
-      config[meal] = {
-        emp_price: emp,
-        family_price: fam,
-        start_date: formatDate(row.start_date),
-        end_date: formatDate(row.end_date),
-      }
+      const price = row ? pickMeal(row, meal) : null
+      config[meal] = price
+        ? { ...price, start_date: startDate, end_date: endDate }
+        : null
     })
 
     return {

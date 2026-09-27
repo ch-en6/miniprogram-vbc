@@ -2,8 +2,5 @@
   "navigationBarTitleText": "菜单配置",
   "enablePullDownRefresh": true,
   "backgroundColor": "#f5f6f8",
-  "backgroundTextStyle": "dark",
-  "usingComponents": {
-    "dept-tabbar": "../../components/dept-tabbar/index"
-  }
+  "backgroundTextStyle": "dark"
 }
