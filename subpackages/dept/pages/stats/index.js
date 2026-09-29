@@ -250,26 +250,19 @@ Page({
       const baseName = filename.replace(/\.xlsx$/, '')
       const fs = wx.getFileSystemManager()
 
-      // 生成唯一文件名：已存在时自动加 "- 副本" / "- 副本 (2)" / ...
-      const resolveUniquePath = () => {
-        let name = `${baseName}.xlsx`
-        let path = `${wx.env.USER_DATA_PATH}/${name}`
-        let n = 1
-        while (true) {
-          try {
-            fs.accessSync(path)
-            n += 1
-            const suffix = n === 2 ? ' - 副本' : ` - 副本 (${n - 1})`
-            name = `${baseName}${suffix}.xlsx`
-            path = `${wx.env.USER_DATA_PATH}/${name}`
-          } catch (e) {
-            // 文件不存在，可用
-            break
-          }
-        }
-        return { fileName: name, filePath: path }
-      }
-      const { fileName, filePath } = resolveUniquePath()
+      // 清理历史导出文件，避免 USER_DATA_PATH 容量超限（writeFile:fail storage limit）
+      try {
+        fs.readdirSync(wx.env.USER_DATA_PATH)
+          .filter(n => /\.xlsx$/i.test(n))
+          .forEach(n => {
+            try {
+              if (fs.statSync(`${wx.env.USER_DATA_PATH}/${n}`).isDirectory()) return
+              fs.unlinkSync(`${wx.env.USER_DATA_PATH}/${n}`)
+            } catch (e) { }
+          })
+      } catch (e) { }
+
+      const filePath = `${wx.env.USER_DATA_PATH}/${baseName}.xlsx`
 
       fs.writeFile({
         filePath,

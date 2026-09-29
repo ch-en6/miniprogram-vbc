@@ -276,8 +276,9 @@ async function actionGetMonthBilling(event) {
 // ──────────────────────────────────────────────────────────────────
 
 // SHA-256 + salt 密码哈希
+const PBKDF2_ITERATIONS = 600000
 function hashPassword(password, salt) {
-  return crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha256').toString('hex')
+  return crypto.pbkdf2Sync(password, salt, PBKDF2_ITERATIONS, 64, 'sha256').toString('hex')
 }
 
 // 生成员工初始密码

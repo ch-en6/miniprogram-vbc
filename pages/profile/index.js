@@ -23,7 +23,6 @@ Page({
     pwdLoading: false,
     // 订阅消息
     // subscribed: false,
-    // templateIds: ['mock_template_id_1'],
   },
 
   onLoad() {

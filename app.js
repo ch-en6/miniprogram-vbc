@@ -1,5 +1,5 @@
-// app.js — 企业报餐小程序全局入口（云开发模式）
-const { saveTokens, clearAuth, getCachedUserInfo, setCachedUserInfo } = require('./utils/auth')
+// app.js — 报餐小程序全局入口（云开发模式）
+const { saveTokens, clearAuth, getCachedUserInfo, setCachedUserInfo, refreshUserInfo } = require('./utils/auth')
 const { getCachedPriceConfig, loadAndCachePriceConfig, clearAllCache } = require('./utils/cache')
 
 App({
@@ -46,7 +46,9 @@ App({
 
   /**
    * 初始化登录状态
-   * 检查本地缓存的用户信息，若存在则恢复登录态，否则跳转登录页
+   * - 缓存有效（7 天内）→ 恢复登录态
+   * - 缓存过期 → 调用云函数按 openid 静默刷新，重建缓存与登录态
+   * - 无缓存 / 刷新失败 → 跳转登录页
    */
   async _initAuth() {
     const app = this
@@ -54,25 +56,38 @@ App({
     try {
       const cached = getCachedUserInfo()
       if (cached && cached.id) {
-        // 有缓存用户，恢复登录态
-        app.globalData.userInfo = cached
-        app.globalData.roleCode = cached.role_code || 'employee'
-        app.globalData.authReady = true
-        app._resolveAuthCallbacks(true)
-        console.info('[App] Restored user from cache:', cached.name)
-
-        // 恢复缓存的价格配置（按部门 + 有效期校验，同步读 Storage，异步刷新）
-        app.globalData.priceConfig = getCachedPriceConfig(cached.dept_id)
-        // 后台静刷新（如果缓存过期/失效会自动重新拉取）
-        app._preloadCache(cached.dept_id)
+        app._restoreSession(cached)
       } else {
-        // 无缓存，跳登录页
-        app._redirectToLogin()
+        // 缓存缺失或已过期（超过 7 天）：静默刷新最新用户信息
+        const fresh = await refreshUserInfo()
+        if (fresh && fresh.id) {
+          app._restoreSession(fresh)
+          console.info('[App] Restored user from remote refresh:', fresh.name)
+        } else {
+          app._redirectToLogin()
+        }
       }
     } catch (e) {
       console.warn('[App] _initAuth error', e)
       app._redirectToLogin()
     }
+  },
+
+  /**
+   * 恢复/建立登录态（写入 globalData 并通知等待方）
+   */
+  _restoreSession(user) {
+    const app = this
+    app.globalData.userInfo = user
+    app.globalData.roleCode = user.role_code || 'employee'
+    app.globalData.authReady = true
+    app._resolveAuthCallbacks(true)
+    console.info('[App] Restored user from cache:', user.name)
+
+    // 恢复缓存的价格配置（按部门 + 有效期校验，同步读 Storage，异步刷新）
+    app.globalData.priceConfig = getCachedPriceConfig(user.dept_id)
+    // 后台静刷新（如果缓存过期/失效会自动重新拉取）
+    app._preloadCache(user.dept_id)
   },
 
   /**
