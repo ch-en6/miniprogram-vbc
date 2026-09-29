@@ -11,8 +11,6 @@
   "license": "ISC",
   "dependencies": {
     "@cloudbase/node-sdk": "^3.18.3",
-    "@vant/weapp": "^1.11.7",
-    "dotenv": "^17.4.2",
-    "mockjs": "^1.1.0"
+    "@vant/weapp": "^1.11.7"
   }
 }

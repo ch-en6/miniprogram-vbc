@@ -42,89 +42,18 @@ function clearAuth() {
 
 // ─── 用户信息缓存 ────────────────────────────────────────────
 
+/**
+ * 读取本地缓存的用户信息
+ * - 正常用户：登录成功后写入，正常读取后恢复登录态
+ * - 首次启动 / 未登录：返回 null → 走登录页
+ */
 function getCachedUserInfo() {
   return wx.getStorageSync(STORAGE_KEYS.USER_INFO) || null
 }
 
 function setCachedUserInfo(info) {
+  if (!info) return
   wx.setStorageSync(STORAGE_KEYS.USER_INFO, info)
-}
-
-// ─── 登录检测 ────────────────────────────────────────────────
-
-/**
- * 检测本地登录状态
- * - 有 access_token → 尝试用缓存 userInfo，返回 userInfo
- * - 无 token → 返回 null（需要重新登录）
- *
- * @returns {Promise<object|null>}
- */
-async function checkLogin() {
-  const token = getAccessToken()
-  if (!token) return null
-
-  // 先返回缓存，页面加载后再静默刷新
-  const cached = getCachedUserInfo()
-  if (cached) return cached
-
-  // 无缓存但有 token → 拉取用户信息
-  try {
-    const { request } = require('./request')
-    const userInfo = await request({ url: '/auth/me', method: 'GET' })
-    setCachedUserInfo(userInfo)
-    return userInfo
-  } catch (e) {
-    console.warn('[Auth] checkLogin failed', e)
-    // token 失效
-    clearAuth()
-    return null
-  }
-}
-
-/**
- * 执行微信登录授权流程
- * 1. wx.login 获取 code
- * 2. 后端换取 tokens + userInfo
- *
- * @param {{ code: string }} options
- * @returns {Promise<object>} userInfo
- */
-async function wxLogin(code) {
-  const { request } = require('./request')
-  const result = await request({
-    url: '/auth/wechat-login',
-    method: 'POST',
-    data: { code },
-    skipAuth: true, // 登录接口不带 token
-  })
-  saveTokens({
-    access_token: result.access_token,
-    refresh_token: result.refresh_token,
-  })
-  setCachedUserInfo(result.user)
-  return result.user
-}
-
-/**
- * 刷新 access_token
- * @returns {Promise<string>} 新 access_token
- */
-async function refreshAccessToken() {
-  const refreshToken = getRefreshToken()
-  if (!refreshToken) throw new Error('No refresh token')
-
-  const { request } = require('./request')
-  const result = await request({
-    url: '/auth/refresh',
-    method: 'POST',
-    data: { refresh_token: refreshToken },
-    skipAuth: true,
-  })
-  saveTokens({
-    access_token: result.access_token,
-    refresh_token: result.refresh_token || refreshToken,
-  })
-  return result.access_token
 }
 
 // ─── 角色工具 ────────────────────────────────────────────────
@@ -165,9 +94,6 @@ module.exports = {
   setCachedUserInfo,
   /** 别名：getStoredUserInfo（供页面使用） */
   getStoredUserInfo: getCachedUserInfo,
-  checkLogin,
-  wxLogin,
-  refreshAccessToken,
   hasRole,
   getPrimaryRole,
 }
