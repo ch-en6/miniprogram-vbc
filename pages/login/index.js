@@ -131,7 +131,7 @@ Page({
   showPrivacy() {
     wx.showModal({
       title: '用户隐私协议',
-      content: '本应用收集您的手机号用于企业内部用餐管理，不会将数据泄露给第三方。',
+      content: '',
       showCancel: false,
       confirmText: '我知道了',
     })
