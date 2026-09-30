@@ -46,8 +46,10 @@ function generateSalt(len = 16) {
  * @param {string} salt 盐值
  * @returns {string} 哈希值
  */
+const PBKDF2_ITERATIONS = 600000
+
 function hashPassword(password, salt) {
-  return crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha256').toString('hex')
+  return crypto.pbkdf2Sync(password, salt, PBKDF2_ITERATIONS, 64, 'sha256').toString('hex')
 }
 
 exports.main = async (event, context) => {

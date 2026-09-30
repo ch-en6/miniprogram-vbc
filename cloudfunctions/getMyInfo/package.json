@@ -1,0 +1,10 @@
+{
+  "name": "getMyInfo",
+  "version": "1.0.0",
+  "description": "获取当前登录用户信息（按 openid 反查 sys_emp），用于本地 user_info 缓存过期后的静默刷新",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3",
+    "@cloudbase/node-sdk": "^3.18.3"
+  }
+}

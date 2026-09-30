@@ -4,10 +4,8 @@
 //   2. 通过 @cloudbase/node-sdk 的 models.$runSQL 从 MySQL 的 sys_emp 表按手机号查询员工
 //   3. 校验密码（SHA-256 + salt 哈希比对）
 //   4. 通过 sys_emp.role（bigint 角色ID）关联 sys_role 表查询角色 code
-//   5. 将 openid 写回 sys_emp
+//   5. 防换绑双向校验：账号已绑其他微信 / 微信已绑其他账号均拒绝
 //
-// 前提：云开发环境中已绑定/接入 MySQL 数据源（sys_emp、sys_role 表），
-//       云函数无需配置连接串，SDK 自动使用当前环境的数据源。
 const cloud = require('wx-server-sdk')
 const crypto = require('crypto')
 const cloudbaseSDK = require('@cloudbase/node-sdk')
@@ -50,8 +48,10 @@ async function update(sql, params = {}) {
  * @param {string} salt 盐值
  * @returns {string} 哈希值
  */
+const PBKDF2_ITERATIONS = 600000
+
 function hashPassword(password, salt) {
-  return crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha256').toString('hex')
+  return crypto.pbkdf2Sync(password, salt, PBKDF2_ITERATIONS, 64, 'sha256').toString('hex')
 }
 
 exports.main = async (event, context) => {
@@ -104,15 +104,21 @@ exports.main = async (event, context) => {
       const emp = emps[0]
 
       // ── 3. 校验密码（SHA-256 + salt 哈希比对） ──────────────────
-      if (emp.password) {
-        const salt = emp.password_salt || ''
-        const inputHash = hashPassword(password, salt)
-        if (inputHash !== emp.password) {
-          return {
-            code: 0,
-            message: '密码错误',
-            data: { allowed: true, emp: null, pwdError: true, message: '密码错误' }
-          }
+      if (!emp.password) {
+        return {
+          code: 0,
+          message: '请联系管理员重置',
+          data: { allowed: false, pwdError: false, emp: null, message: '请联系管理员重置' }
+        }
+      }
+
+      const salt = emp.password_salt || ''
+      const inputHash = hashPassword(password, salt)
+      if (inputHash !== emp.password) {
+        return {
+          code: 0,
+          message: '密码错误',
+          data: { allowed: true, emp: null, pwdError: true, message: '密码错误' }
         }
       }
 
@@ -127,7 +133,16 @@ exports.main = async (event, context) => {
         role_code = role.length ? role[0].code : null
       }
 
-      // ── 5. 防换绑：校验该 openid 是否已被其他账号绑定（一人一微信一账号） ──
+      // ── 5. 防换绑：双向校验（一人一微信一账号） ──────────────────
+      //   a) 账号侧：该账号已绑定其他微信 → 拒绝登录
+      //   b) 微信侧：该 openid 已被其他账号占用 → 拒绝登录
+      if (emp._openid && emp._openid !== openid) {
+        return {
+          code: 0,
+          message: '该账号已绑定其他微信，如需换绑请联系管理员',
+          data: { allowed: false, pwdError: false, emp: null, message: '该账号已绑定其他微信，如需换绑请联系管理员' }
+        }
+      }
       if (emp._openid !== openid) {
         const bound = await query(
           'SELECT `id` FROM `sys_emp` WHERE `_openid` = {{openid}} AND `id` != {{id}} LIMIT 1',
@@ -140,11 +155,21 @@ exports.main = async (event, context) => {
             data: { allowed: false, pwdError: false, emp: null, message: '该微信已绑定其他账号，如需换绑请联系管理员' }
           }
         }
-        // 未被他人占用，则写入 openid 完成绑定
-        await update(
-          'UPDATE `sys_emp` SET `_openid` = {{openid}}, `updated_at` = NOW() WHERE `id` = {{id}}',
+        // 未被他人占用，则条件写入 openid 完成绑定（防并发抢占：
+        // 仅当该账号仍未绑定（NULL/空串）或绑定的是当前 openid 时才允许写入）
+        const affected = await update(
+          'UPDATE `sys_emp` SET `_openid` = {{openid}}, `updated_at` = NOW() ' +
+          "WHERE `id` = {{id}} AND ((`_openid` <=> NULL) OR `_openid` = '' OR `_openid` = {{openid}})",
           { openid, id: emp.id }
         )
+        if (!affected) {
+          // 并发期间被其他微信抢先绑定
+          return {
+            code: 0,
+            message: '该账号已被其他微信绑定，请重新登录',
+            data: { allowed: false, pwdError: false, emp: null, message: '该账号已被其他微信绑定，请重新登录' }
+          }
+        }
         console.log('[checkLogin] openid 已写入 sys_emp:', emp.id)
       }
 

@@ -31,6 +31,12 @@ const AuthAPI = {
    */
   checkLogin: ({ phone, password, loginCode }) =>
     call('checkLogin', { phone, password, loginCode }),
+  /**
+   * 本地 user_info 缓存过期后的静默刷新，保证角色/部门/停用状态及时生效
+   * @returns {Promise<{allowed: boolean, emp?: object|null, message?: string}>}
+   *   allowed=false 表示账号已停用/解绑，客户端应清除凭证回登录页
+   */
+  getMyInfo: () => call('getMyInfo', {}),
 }
 
 // ═══════════════════════════════════════════════════════════

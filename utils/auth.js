@@ -37,10 +37,14 @@ function clearAuth() {
   wx.removeStorageSync(STORAGE_KEYS.ACCESS_TOKEN)
   wx.removeStorageSync(STORAGE_KEYS.REFRESH_TOKEN)
   wx.removeStorageSync(STORAGE_KEYS.USER_INFO)
+  wx.removeStorageSync(STORAGE_KEYS.USER_INFO_SAVED_AT)
   wx.removeStorageSync(STORAGE_KEYS.LAST_LOGIN)
 }
 
-// ─── 用户信息缓存 ────────────────────────────────────────────
+// ─── 用户信息缓存（带 TTL，过期后需经云函数静默刷新重建） ───
+
+/** 用户信息缓存有效期：7 天（毫秒），过期后不再直接信任本地缓存 */
+const USER_INFO_TTL = 7 * 24 * 60 * 60 * 1000
 
 /**
  * 读取本地缓存的用户信息
@@ -48,12 +52,44 @@ function clearAuth() {
  * - 首次启动 / 未登录：返回 null → 走登录页
  */
 function getCachedUserInfo() {
-  return wx.getStorageSync(STORAGE_KEYS.USER_INFO) || null
+  try {
+    const savedAt = wx.getStorageSync(STORAGE_KEYS.USER_INFO_SAVED_AT) || 0
+    if (Date.now() - savedAt > USER_INFO_TTL) return null // 过期视为无缓存
+    return wx.getStorageSync(STORAGE_KEYS.USER_INFO) || null
+  } catch (e) {
+    console.warn('[Auth] getCachedUserInfo error', e)
+    return null
+  }
 }
 
 function setCachedUserInfo(info) {
   if (!info) return
   wx.setStorageSync(STORAGE_KEYS.USER_INFO, info)
+  wx.setStorageSync(STORAGE_KEYS.USER_INFO_SAVED_AT, Date.now())
+}
+
+/**
+ * 静默刷新用户信息
+ * @returns {Promise<object|null>}
+ */
+async function refreshUserInfo() {
+  try {
+    const { AuthAPI } = require('../services/api')
+    const result = await AuthAPI.getMyInfo()
+    const { allowed, emp } = result || {}
+
+    if (allowed && emp && emp.id) {
+      setCachedUserInfo(emp)
+      return emp
+    }
+
+    // 账号已停用 / 微信解绑 / 未找到绑定记录 → 登录态失效
+    clearAuth()
+    return null
+  } catch (e) {
+    console.warn('[Auth] refreshUserInfo error', e)
+    return null
+  }
 }
 
 // ─── 角色工具 ────────────────────────────────────────────────
@@ -92,6 +128,8 @@ module.exports = {
   clearAuth,
   getCachedUserInfo,
   setCachedUserInfo,
+  refreshUserInfo,
+  USER_INFO_TTL,
   /** 别名：getStoredUserInfo（供页面使用） */
   getStoredUserInfo: getCachedUserInfo,
   hasRole,

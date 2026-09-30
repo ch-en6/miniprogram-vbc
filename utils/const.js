@@ -56,6 +56,7 @@ const STORAGE_KEYS = {
   ACCESS_TOKEN:  'access_token',
   REFRESH_TOKEN: 'refresh_token',
   USER_INFO:     'user_info',
+  USER_INFO_SAVED_AT: 'user_info_saved_at',  // 用户信息缓存写入时间戳
   LAST_LOGIN:    'last_login',
   // ─── 应用级缓存 ───
   CACHE_PRICE_CONFIG: 'cache_price_config',

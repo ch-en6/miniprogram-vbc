@@ -88,7 +88,7 @@
   },
   "window": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "企业报餐",
+    "navigationBarTitleText": "报餐",
     "navigationBarBackgroundColor": "#ffffff",
     "backgroundColor": "#f4f6f9",
     "enablePullDownRefresh": false
