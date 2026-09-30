@@ -159,7 +159,7 @@ exports.main = async (event, context) => {
         // 仅当该账号仍未绑定（NULL/空串）或绑定的是当前 openid 时才允许写入）
         const affected = await update(
           'UPDATE `sys_emp` SET `_openid` = {{openid}}, `updated_at` = NOW() ' +
-          "WHERE `id` = {{id}} AND (`_openid` IS NULL OR `_openid` = '' OR `_openid` = {{openid}})",
+          "WHERE `id` = {{id}} AND ((`_openid` <=> NULL) OR `_openid` = '' OR `_openid` = {{openid}})",
           { openid, id: emp.id }
         )
         if (!affected) {

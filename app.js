@@ -22,7 +22,7 @@ App({
     // 初始化云开发环境
     if (wx.cloud) {
       wx.cloud.init({
-        env: 'cloud1-d6gef7cuzfdcc6b71', // TODO: 替换为你的云环境 ID
+        env: 'cloud1-d3g8qt4y6cfce11a2', // TODO: 替换为你的云环境 ID
         traceUser: true,
       })
       console.log('[App] Cloud initialized')
